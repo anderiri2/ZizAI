@@ -17,8 +17,8 @@ void main() {
 
     expect(find.text('Perretxikotan'), findsOneWidget);
 
-    // Advance past the Amanita caesarea splash animation (2600ms)
-    await tester.pump(const Duration(milliseconds: 2800));
+    // Advance past the 2.0-second (2000ms) Amanita caesarea splash animation
+    await tester.pump(const Duration(milliseconds: 2100));
     await tester.pumpAndSettle();
 
     // Default language is Basque (EU)
