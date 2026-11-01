@@ -10,11 +10,35 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../ai_identifier/models/chat_message.dart';
+import '../../ai_identifier/services/gemini_mushroom_service.dart';
+import '../../catalog/data/catalog_repository.dart';
+import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
+import '../../map/services/offline_map_service.dart';
+import '../../outings/data/outings_database.dart';
+import '../../outings/models/foraging_outing.dart';
+
+class FullBackupPayload {
+  final List<ForagingSpot> spots;
+  final List<ForagingOuting> outings;
+  final List<String> favoriteIds;
+  final List<AiChatMessage> aiMessages;
+  final List<OfflineMapRegion> offlineRegions;
+
+  const FullBackupPayload({
+    required this.spots,
+    this.outings = const <ForagingOuting>[],
+    this.favoriteIds = const <String>[],
+    this.aiMessages = const <AiChatMessage>[],
+    this.offlineRegions = const <OfflineMapRegion>[],
+  });
+}
 
 class AuthBackupState {
   final bool isAuthenticatedWithGoogle;
   final bool isLocalMode;
+  final bool autoBackupEnabled;
   final String? userEmail;
   final String? userDisplayName;
   final String? userPhotoUrl;
@@ -27,6 +51,7 @@ class AuthBackupState {
   const AuthBackupState({
     this.isAuthenticatedWithGoogle = false,
     this.isLocalMode = false,
+    this.autoBackupEnabled = true,
     this.userEmail,
     this.userDisplayName,
     this.userPhotoUrl,
@@ -42,6 +67,7 @@ class AuthBackupState {
   AuthBackupState copyWith({
     bool? isAuthenticatedWithGoogle,
     bool? isLocalMode,
+    bool? autoBackupEnabled,
     String? userEmail,
     String? userDisplayName,
     String? userPhotoUrl,
@@ -57,13 +83,15 @@ class AuthBackupState {
       isAuthenticatedWithGoogle:
           isAuthenticatedWithGoogle ?? this.isAuthenticatedWithGoogle,
       isLocalMode: isLocalMode ?? this.isLocalMode,
+      autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
       userEmail: userEmail ?? this.userEmail,
       userDisplayName: userDisplayName ?? this.userDisplayName,
       userPhotoUrl: userPhotoUrl ?? this.userPhotoUrl,
       lastDriveBackupDate: lastDriveBackupDate ?? this.lastDriveBackupDate,
       lastLocalBackupDate: lastLocalBackupDate ?? this.lastLocalBackupDate,
       isBusy: isBusy ?? this.isBusy,
-      statusMessage: clearStatus ? null : (statusMessage ?? this.statusMessage),
+      statusMessage:
+          clearStatus ? null : (statusMessage ?? this.statusMessage),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -72,8 +100,11 @@ class AuthBackupState {
 class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
   static const String _backupFileName = 'perretxikotan_backup.zip';
   static const String _prefLocalModeKey = 'perretxikotan_local_mode';
-  static const String _prefLastDriveBackupKey = 'perretxikotan_last_drive_backup';
-  static const String _prefLastLocalBackupKey = 'perretxikotan_last_local_backup';
+  static const String _prefAutoBackupKey = 'perretxikotan_auto_backup';
+  static const String _prefLastDriveBackupKey =
+      'perretxikotan_last_drive_backup';
+  static const String _prefLastLocalBackupKey =
+      'perretxikotan_last_local_backup';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[
@@ -99,6 +130,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
   Future<void> initializeAuthSession() async {
     final prefs = await SharedPreferences.getInstance();
     final savedLocalMode = prefs.getBool(_prefLocalModeKey) ?? false;
+    final savedAutoBackup = prefs.getBool(_prefAutoBackupKey) ?? true;
     final lastDriveStr = prefs.getString(_prefLastDriveBackupKey);
     final lastLocalStr = prefs.getString(_prefLastLocalBackupKey);
 
@@ -113,6 +145,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         state = state.copyWith(
           isAuthenticatedWithGoogle: true,
           isLocalMode: false,
+          autoBackupEnabled: savedAutoBackup,
           userEmail: account.email,
           userDisplayName: account.displayName ?? account.email,
           userPhotoUrl: account.photoUrl,
@@ -128,9 +161,16 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     state = state.copyWith(
       isAuthenticatedWithGoogle: false,
       isLocalMode: savedLocalMode,
+      autoBackupEnabled: savedAutoBackup,
       lastDriveBackupDate: lastDrive,
       lastLocalBackupDate: lastLocal,
     );
+  }
+
+  Future<void> setAutoBackupEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefAutoBackupKey, enabled);
+    state = state.copyWith(autoBackupEnabled: enabled);
   }
 
   Future<bool> signInWithGoogle() async {
@@ -140,7 +180,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       if (account == null) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage: 'Inicio de sesión con Google cancelado.',
+          errorMessage: 'Inicio de sesión con Google cancelado por el usuario.',
         );
         return false;
       }
@@ -155,14 +195,15 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         userEmail: account.email,
         userDisplayName: account.displayName ?? account.email,
         userPhotoUrl: account.photoUrl,
-        statusMessage: 'Cuenta de Google conectada correctamente.',
+        statusMessage:
+            'Conectado como ${account.email} (Google Drive + IA Gemini activos).',
       );
       return true;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
         errorMessage:
-            'No se pudo conectar con Google Sign-In. Verifica tu conexión o la configuración OAuth (SHA-1 / Client ID en GOOGLE_SETUP.md) o continúa en modo local.',
+            'No se pudo iniciar sesión en Google. Revisa GOOGLE_SETUP.md o continúa en Modo Local Sin Cuenta.',
       );
       return false;
     }
@@ -173,12 +214,14 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     await prefs.setBool(_prefLocalModeKey, true);
     state = state.copyWith(
       isLocalMode: true,
+      isAuthenticatedWithGoogle: false,
       clearError: true,
-      statusMessage: 'Modo local activado (datos guardados en el dispositivo).',
+      statusMessage: 'Modo local activado. Tus datos se guardan en el teléfono.',
     );
   }
 
   Future<void> signOut() async {
+    state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
       await _googleSignIn.signOut();
     } catch (_) {}
@@ -187,137 +230,299 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     state = const AuthBackupState();
   }
 
-  /// Empaqueta las ubicaciones, notas descriptivas y fotos en un archivo ZIP en memoria.
-  static List<int> createBackupArchiveBytes(List<ForagingSpot> spots) {
+  /// Empaqueta toda la actividad del usuario en un archivo ZIP en memoria:
+  /// - spots.json (ubicaciones del mapa global y salidas)
+  /// - outings.json (salidas al monte con polilíneas GPS y tiempos)
+  /// - favorites.json (especies favoritas del catálogo)
+  /// - ai_chats.json (historial de identificaciones con IA Gemini)
+  /// - offline_regions.json (regiones de mapa offline descargadas)
+  /// - photos/ (fotografías tomadas en el mapa, salidas y chat IA)
+  static Future<Uint8List> createBackupArchiveBytes(
+    List<ForagingSpot> spots, {
+    List<ForagingOuting> outings = const <ForagingOuting>[],
+    List<String> favoriteIds = const <String>[],
+    List<AiChatMessage> aiMessages = const <AiChatMessage>[],
+    List<OfflineMapRegion> offlineRegions = const <OfflineMapRegion>[],
+  }) async {
     final archive = Archive();
+    final exportedSpotsJson = <Map<String, dynamic>>[];
 
-    final spotsJsonList = spots.map((s) {
-      final map = s.toMap();
-      if (!kIsWeb &&
-          s.photoPath != null &&
-          s.photoPath!.isNotEmpty &&
-          File(s.photoPath!).existsSync()) {
-        final photoFileName = p.basename(s.photoPath!);
-        map['archivedPhotoName'] = photoFileName;
-        final photoBytes = File(s.photoPath!).readAsBytesSync();
-        archive.addFile(
-          ArchiveFile('photos/$photoFileName', photoBytes.length, photoBytes),
-        );
+    for (final spot in spots) {
+      String? relativePhotoName;
+      if (spot.photoPath != null &&
+          spot.photoPath!.isNotEmpty &&
+          !kIsWeb) {
+        final photoFile = File(spot.photoPath!);
+        if (await photoFile.exists()) {
+          final fileName = p.basename(spot.photoPath!);
+          relativePhotoName = 'photos/$fileName';
+          final photoBytes = await photoFile.readAsBytes();
+          archive.addFile(
+            ArchiveFile(relativePhotoName, photoBytes.length, photoBytes),
+          );
+        }
       }
-      return map;
-    }).toList();
 
-    final payload = {
-      'app': 'Perretxikotan',
-      'version': 1,
+      final map = spot.toJson();
+      map['photoRelativePath'] = relativePhotoName;
+      exportedSpotsJson.add(map);
+    }
+
+    // Incluir también fotos de las consultas a la IA Gemini
+    final exportedAiJson = <Map<String, dynamic>>[];
+    for (final msg in aiMessages) {
+      String? relativeAiPhoto;
+      if (msg.imagePath != null &&
+          msg.imagePath!.isNotEmpty &&
+          !kIsWeb) {
+        final photoFile = File(msg.imagePath!);
+        if (await photoFile.exists()) {
+          final fileName = p.basename(msg.imagePath!);
+          relativeAiPhoto = 'photos/$fileName';
+          final alreadyAdded =
+              archive.files.any((f) => f.name == relativeAiPhoto);
+          if (!alreadyAdded) {
+            final photoBytes = await photoFile.readAsBytes();
+            archive.addFile(
+              ArchiveFile(relativeAiPhoto, photoBytes.length, photoBytes),
+            );
+          }
+        }
+      }
+      final map = msg.toJson();
+      map['imageRelativePath'] = relativeAiPhoto;
+      exportedAiJson.add(map);
+    }
+
+    void addJsonFileToArchive(String fileName, Object payload) {
+      final bytes =
+          utf8.encode(const JsonEncoder.withIndent('  ').convert(payload));
+      archive.addFile(ArchiveFile(fileName, bytes.length, bytes));
+    }
+
+    addJsonFileToArchive('spots.json', {
+      'version': 2,
       'exportedAt': DateTime.now().toIso8601String(),
-      'spotsCount': spots.length,
-      'spots': spotsJsonList,
-    };
+      'spots': exportedSpotsJson,
+    });
 
-    final jsonBytes = utf8.encode(
-      const JsonEncoder.withIndent('  ').convert(payload),
-    );
-    archive.addFile(ArchiveFile('spots.json', jsonBytes.length, jsonBytes));
+    addJsonFileToArchive('outings.json', {
+      'version': 2,
+      'outings': outings.map((o) => o.toJson()).toList(),
+    });
 
-    return ZipEncoder().encode(archive) ?? <int>[];
+    addJsonFileToArchive('favorites.json', {
+      'version': 2,
+      'favoriteIds': favoriteIds,
+    });
+
+    addJsonFileToArchive('ai_chats.json', {
+      'version': 2,
+      'messages': exportedAiJson,
+    });
+
+    addJsonFileToArchive('offline_regions.json', {
+      'version': 2,
+      'regions': offlineRegions.map((r) => r.toJson()).toList(),
+    });
+
+    final encodedZip = ZipEncoder().encode(archive);
+    return Uint8List.fromList(encodedZip ?? <int>[]);
   }
 
-  /// Desempaqueta un archivo ZIP de backup y restaura los puntos y fotos.
-  static Future<List<ForagingSpot>> extractSpotsFromBackupBytes(
-    List<int> zipBytes, {
-    String? targetPhotosDirPath,
+  /// Extrae un paquete ZIP completo con toda la actividad del usuario y restaura las fotos en disco.
+  static Future<FullBackupPayload> extractFullActivityBackupBytes(
+    Uint8List zipBytes, {
+    Directory? customPhotosParentDir,
   }) async {
     final archive = ZipDecoder().decodeBytes(zipBytes);
-    ArchiveFile? spotsJsonFile;
+    Directory? photosDir;
 
-    for (final file in archive) {
-      if (file.name == 'spots.json') {
-        spotsJsonFile = file;
-        break;
+    if (!kIsWeb) {
+      final baseDir =
+          customPhotosParentDir ?? await getApplicationDocumentsDirectory();
+      photosDir = Directory(p.join(baseDir.path, 'photos'));
+      if (!await photosDir.exists()) {
+        await photosDir.create(recursive: true);
       }
     }
 
-    if (spotsJsonFile == null) {
-      throw const FormatException(
-        'El archivo de copia de seguridad no contiene spots.json.',
-      );
-    }
+    final restoredPhotosMap = <String, String>{};
+    ArchiveFile? spotsJsonFile;
+    ArchiveFile? outingsJsonFile;
+    ArchiveFile? favoritesJsonFile;
+    ArchiveFile? aiChatsJsonFile;
+    ArchiveFile? offlineRegionsJsonFile;
 
-    final contentStr = utf8.decode(spotsJsonFile.content as List<int>);
-    final Map<String, dynamic> decoded =
-        json.decode(contentStr) as Map<String, dynamic>;
-    final List<dynamic> rawSpots =
-        (decoded['spots'] as List<dynamic>?) ?? const [];
-
-    String? photosDir = targetPhotosDirPath;
-    if (photosDir == null && !kIsWeb) {
-      try {
-        final appDir = await getApplicationDocumentsDirectory();
-        final dir = Directory(p.join(appDir.path, 'spot_photos'));
-        if (!dir.existsSync()) {
-          await dir.create(recursive: true);
-        }
-        photosDir = dir.path;
-      } catch (_) {}
+    for (final file in archive) {
+      if (!file.isFile) continue;
+      if (file.name == 'spots.json') {
+        spotsJsonFile = file;
+      } else if (file.name == 'outings.json') {
+        outingsJsonFile = file;
+      } else if (file.name == 'favorites.json') {
+        favoritesJsonFile = file;
+      } else if (file.name == 'ai_chats.json') {
+        aiChatsJsonFile = file;
+      } else if (file.name == 'offline_regions.json') {
+        offlineRegionsJsonFile = file;
+      } else if (file.name.startsWith('photos/') && photosDir != null) {
+        final fileName = p.basename(file.name);
+        final destFile = File(p.join(photosDir.path, fileName));
+        final contentBytes = file.content as List<int>;
+        await destFile.writeAsBytes(contentBytes, flush: true);
+        restoredPhotosMap[file.name] = destFile.path;
+      }
     }
 
     final restoredSpots = <ForagingSpot>[];
-    for (final item in rawSpots) {
-      final map = Map<String, dynamic>.from(item as Map<String, dynamic>);
-      final archivedPhotoName = map['archivedPhotoName'] as String?;
-      if (archivedPhotoName != null && photosDir != null && !kIsWeb) {
-        final photoArchiveEntry = archive.files
-            .where((f) => f.name == 'photos/$archivedPhotoName')
-            .firstOrNull;
-        if (photoArchiveEntry != null) {
-          final destPath = p.join(photosDir, archivedPhotoName);
-          await File(destPath)
-              .writeAsBytes(photoArchiveEntry.content as List<int>);
-          map['photoPath'] = destPath;
+    if (spotsJsonFile != null) {
+      final jsonStr = utf8.decode(spotsJsonFile.content as List<int>);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+      final rawSpots =
+          decoded['spots'] as List<dynamic>? ?? const <dynamic>[];
+      for (final raw in rawSpots) {
+        final map = Map<String, dynamic>.from(raw as Map);
+        final relPath = map['photoRelativePath'] as String?;
+        if (relPath != null && restoredPhotosMap.containsKey(relPath)) {
+          map['photoPath'] = restoredPhotosMap[relPath];
         }
+        restoredSpots.add(ForagingSpot.fromJson(map));
       }
-      restoredSpots.add(ForagingSpot.fromMap(map));
     }
 
-    return restoredSpots;
+    final restoredOutings = <ForagingOuting>[];
+    if (outingsJsonFile != null) {
+      final jsonStr = utf8.decode(outingsJsonFile.content as List<int>);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+      final rawOutings =
+          decoded['outings'] as List<dynamic>? ?? const <dynamic>[];
+      for (final raw in rawOutings) {
+        restoredOutings
+            .add(ForagingOuting.fromJson(Map<String, dynamic>.from(raw as Map)));
+      }
+    }
+
+    final restoredFavorites = <String>[];
+    if (favoritesJsonFile != null) {
+      final jsonStr = utf8.decode(favoritesJsonFile.content as List<int>);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+      final rawFavs =
+          decoded['favoriteIds'] as List<dynamic>? ?? const <dynamic>[];
+      restoredFavorites.addAll(rawFavs.map((e) => e.toString()));
+    }
+
+    final restoredAiChats = <AiChatMessage>[];
+    if (aiChatsJsonFile != null) {
+      final jsonStr = utf8.decode(aiChatsJsonFile.content as List<int>);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+      final rawMsgs =
+          decoded['messages'] as List<dynamic>? ?? const <dynamic>[];
+      for (final raw in rawMsgs) {
+        final map = Map<String, dynamic>.from(raw as Map);
+        final relPath = map['imageRelativePath'] as String?;
+        if (relPath != null && restoredPhotosMap.containsKey(relPath)) {
+          map['imagePath'] = restoredPhotosMap[relPath];
+        }
+        restoredAiChats.add(AiChatMessage.fromJson(map));
+      }
+    }
+
+    final restoredRegions = <OfflineMapRegion>[];
+    if (offlineRegionsJsonFile != null) {
+      final jsonStr = utf8.decode(offlineRegionsJsonFile.content as List<int>);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+      final rawRegions =
+          decoded['regions'] as List<dynamic>? ?? const <dynamic>[];
+      for (final raw in rawRegions) {
+        restoredRegions.add(
+          OfflineMapRegion.fromJson(Map<String, dynamic>.from(raw as Map)),
+        );
+      }
+    }
+
+    return FullBackupPayload(
+      spots: restoredSpots,
+      outings: restoredOutings,
+      favoriteIds: restoredFavorites,
+      aiMessages: restoredAiChats,
+      offlineRegions: restoredRegions,
+    );
   }
 
-  /// Sube el backup comprimido a la carpeta oculta `appDataFolder` del Google Drive personal del usuario.
-  Future<bool> backupToGoogleDrive(List<ForagingSpot> spots) async {
+  /// Compatibilidad directa para extraer únicamente la lista de ForagingSpot.
+  static Future<List<ForagingSpot>> extractBackupArchiveBytes(
+    Uint8List zipBytes, {
+    Directory? customPhotosParentDir,
+  }) async {
+    final full = await extractFullActivityBackupBytes(
+      zipBytes,
+      customPhotosParentDir: customPhotosParentDir,
+    );
+    return full.spots;
+  }
+
+  /// Respalda toda la actividad del usuario en su cuenta personal de Google Drive (appDataFolder).
+  Future<bool> backupAllActivityToGoogleDrive({
+    required List<ForagingSpot> spots,
+    required List<ForagingOuting> outings,
+    required List<String> favoriteIds,
+    required List<AiChatMessage> aiMessages,
+    required List<OfflineMapRegion> offlineRegions,
+  }) async {
     state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
+      var account = _googleSignIn.currentUser;
+      account ??= await _googleSignIn.signInSilently();
+      account ??= await _googleSignIn.signIn();
+
+      if (account == null) {
+        state = state.copyWith(
+          isBusy: false,
+          errorMessage:
+              'Debes iniciar sesión con tu cuenta de Google para subir el backup a Google Drive.',
+        );
+        return false;
+      }
+
       final httpClient = await _googleSignIn.authenticatedClient();
       if (httpClient == null) {
         state = state.copyWith(
           isBusy: false,
           errorMessage:
-              'Debes iniciar sesión con tu cuenta de Google para subir la copia a Google Drive.',
+              'No se pudo obtener el cliente autenticado de Google Drive.',
         );
         return false;
       }
 
       final driveApi = drive.DriveApi(httpClient);
-      final zipBytes = createBackupArchiveBytes(spots);
-      final media = drive.Media(
-        Stream<List<int>>.value(zipBytes),
-        zipBytes.length,
-        contentType: 'application/zip',
+      final zipBytes = await createBackupArchiveBytes(
+        spots,
+        outings: outings,
+        favoriteIds: favoriteIds,
+        aiMessages: aiMessages,
+        offlineRegions: offlineRegions,
       );
 
-      // Comprobar si ya existe un backup previo en appDataFolder para actualizarlo
-      final existingList = await driveApi.files.list(
+      // También guardamos copia espejo local automática
+      await _writeLocalMirrorZip(zipBytes);
+
+      final fileList = await driveApi.files.list(
         spaces: 'appDataFolder',
         q: "name = '$_backupFileName' and trashed = false",
         $fields: 'files(id, name, modifiedTime)',
       );
 
-      if (existingList.files != null && existingList.files!.isNotEmpty) {
-        final fileId = existingList.files!.first.id!;
-        final updateFile = drive.File()..name = _backupFileName;
+      final media = drive.Media(
+        Stream<List<int>>.value(zipBytes),
+        zipBytes.length,
+      );
+
+      if (fileList.files != null && fileList.files!.isNotEmpty) {
+        final existingFileId = fileList.files!.first.id!;
         await driveApi.files.update(
-          updateFile,
-          fileId,
+          drive.File()..name = _backupFileName,
+          existingFileId,
           uploadMedia: media,
         );
       } else {
@@ -336,156 +541,217 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
 
       state = state.copyWith(
         isBusy: false,
+        isAuthenticatedWithGoogle: true,
+        userEmail: account.email,
+        userDisplayName: account.displayName ?? account.email,
+        userPhotoUrl: account.photoUrl,
         lastDriveBackupDate: now,
         statusMessage:
-            'Copia de seguridad guardada en tu Google Drive (${spots.length} ubicaciones).',
+            'Copia integral guardada en Google Drive (${spots.length} setales, ${outings.length} salidas, ${favoriteIds.length} favoritos).',
       );
       return true;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage: 'Error al subir copia a Google Drive: $e',
+        errorMessage:
+            'Error al conectar con Google Drive API. Verifica la configuración OAuth o utiliza el Snapshot Local.',
       );
       return false;
     }
   }
 
-  /// Descarga y restaura el backup desde la carpeta `appDataFolder` de Google Drive.
-  Future<List<ForagingSpot>?> restoreFromGoogleDrive() async {
+  /// Restaura toda la actividad desde Google Drive (appDataFolder).
+  Future<FullBackupPayload?> restoreFullActivityFromGoogleDrive() async {
     state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
+      var account = _googleSignIn.currentUser;
+      account ??= await _googleSignIn.signInSilently();
+      account ??= await _googleSignIn.signIn();
+
+      if (account == null) {
+        state = state.copyWith(
+          isBusy: false,
+          errorMessage:
+              'Inicia sesión en Google para buscar copias de seguridad en tu Google Drive.',
+        );
+        return null;
+      }
+
       final httpClient = await _googleSignIn.authenticatedClient();
       if (httpClient == null) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage:
-              'Conecta primero tu cuenta de Google para restaurar desde Google Drive.',
+          errorMessage: 'No se pudo autenticar con Google Drive.',
         );
         return null;
       }
 
       final driveApi = drive.DriveApi(httpClient);
-      final existingList = await driveApi.files.list(
+      final fileList = await driveApi.files.list(
         spaces: 'appDataFolder',
         q: "name = '$_backupFileName' and trashed = false",
-        orderBy: 'modifiedTime desc',
-        $fields: 'files(id, name, modifiedTime, size)',
+        $fields: 'files(id, name, modifiedTime)',
       );
 
-      if (existingList.files == null || existingList.files!.isEmpty) {
+      if (fileList.files == null || fileList.files!.isEmpty) {
         state = state.copyWith(
           isBusy: false,
           errorMessage:
-              'No se encontró ninguna copia de seguridad previa en tu Google Drive.',
+              'No se encontró ninguna copia previa ($_backupFileName) en tu cuenta de Google Drive.',
         );
         return null;
       }
 
-      final fileId = existingList.files!.first.id!;
+      final fileId = fileList.files!.first.id!;
       final mediaResponse = await driveApi.files.get(
         fileId,
         downloadOptions: drive.DownloadOptions.fullMedia,
       ) as drive.Media;
 
-      final bytes = <int>[];
+      final chunks = <int>[];
       await for (final chunk in mediaResponse.stream) {
-        bytes.addAll(chunk);
+        chunks.addAll(chunk);
       }
 
-      final restored = await extractSpotsFromBackupBytes(bytes);
+      final payload = await extractFullActivityBackupBytes(
+        Uint8List.fromList(chunks),
+      );
+
       state = state.copyWith(
         isBusy: false,
         statusMessage:
-            'Se han restaurado ${restored.length} ubicaciones desde tu Google Drive.',
+            'Restauración completada desde Google Drive (${payload.spots.length} setales, ${payload.outings.length} salidas, ${payload.favoriteIds.length} favoritos).',
       );
-      return restored;
+      return payload;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage: 'Error al restaurar desde Google Drive: $e',
+        errorMessage:
+            'No se pudo descargar el backup desde Google Drive. Puedes restaurar desde tu Snapshot Local.',
       );
       return null;
     }
   }
 
-  /// Crea una copia de seguridad ZIP local en el almacenamiento de la app.
-  Future<bool> saveLocalBackupSnapshot(List<ForagingSpot> spots) async {
+  Future<void> _writeLocalMirrorZip(Uint8List zipBytes) async {
+    if (kIsWeb) return;
+    final docsDir = await getApplicationDocumentsDirectory();
+    final backupFile = File(p.join(docsDir.path, _backupFileName));
+    await backupFile.writeAsBytes(zipBytes, flush: true);
+  }
+
+  /// Guarda una instantánea ZIP local completa en el almacenamiento del dispositivo.
+  Future<bool> saveLocalSnapshotAllActivity({
+    required List<ForagingSpot> spots,
+    required List<ForagingOuting> outings,
+    required List<String> favoriteIds,
+    required List<AiChatMessage> aiMessages,
+    required List<OfflineMapRegion> offlineRegions,
+  }) async {
     state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
-      final zipBytes = createBackupArchiveBytes(spots);
-      final prefs = await SharedPreferences.getInstance();
-
-      if (!kIsWeb) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final backupFile = File(p.join(appDir.path, _backupFileName));
-        await backupFile.writeAsBytes(zipBytes);
-      } else {
-        await prefs.setString(
-          'perretxikotan_web_backup_b64',
-          base64Encode(zipBytes),
-        );
-      }
+      final zipBytes = await createBackupArchiveBytes(
+        spots,
+        outings: outings,
+        favoriteIds: favoriteIds,
+        aiMessages: aiMessages,
+        offlineRegions: offlineRegions,
+      );
+      await _writeLocalMirrorZip(zipBytes);
 
       final now = DateTime.now();
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefLastLocalBackupKey, now.toIso8601String());
 
       state = state.copyWith(
         isBusy: false,
         lastLocalBackupDate: now,
         statusMessage:
-            'Copia de seguridad local empaquetada correctamente (${spots.length} setales).',
+            'Snapshot ZIP completo guardado en el dispositivo (${spots.length} setales, ${outings.length} salidas, ${favoriteIds.length} favoritos).',
       );
       return true;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage: 'Error al crear copia local: $e',
+        errorMessage: 'Error al crear la copia local: $e',
       );
       return false;
     }
   }
 
-  /// Restaura la copia de seguridad ZIP local del dispositivo.
-  Future<List<ForagingSpot>?> restoreFromLocalBackupSnapshot() async {
+  /// Restaura toda la actividad desde la instantánea ZIP local del dispositivo.
+  Future<FullBackupPayload?> restoreFromLocalSnapshotFullActivity() async {
     state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
-      List<int>? zipBytes;
-      final prefs = await SharedPreferences.getInstance();
-
-      if (!kIsWeb) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final backupFile = File(p.join(appDir.path, _backupFileName));
-        if (backupFile.existsSync()) {
-          zipBytes = await backupFile.readAsBytes();
-        }
-      } else {
-        final b64 = prefs.getString('perretxikotan_web_backup_b64');
-        if (b64 != null) {
-          zipBytes = base64Decode(b64);
-        }
-      }
-
-      if (zipBytes == null || zipBytes.isEmpty) {
+      if (kIsWeb) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage: 'Aún no hay ningún paquete de backup local guardado.',
+          errorMessage: 'La restauración desde archivo local requiere móvil.',
+        );
+        return null;
+      }
+      final docsDir = await getApplicationDocumentsDirectory();
+      final backupFile = File(p.join(docsDir.path, _backupFileName));
+      if (!await backupFile.exists()) {
+        state = state.copyWith(
+          isBusy: false,
+          errorMessage:
+              'Aún no existe ningún archivo de copia local ($_backupFileName).',
         );
         return null;
       }
 
-      final restored = await extractSpotsFromBackupBytes(zipBytes);
+      final zipBytes = await backupFile.readAsBytes();
+      final payload = await extractFullActivityBackupBytes(zipBytes);
       state = state.copyWith(
         isBusy: false,
         statusMessage:
-            'Restauradas ${restored.length} ubicaciones desde la copia local.',
+            'Se han restaurado ${payload.spots.length} setales y ${payload.outings.length} salidas desde la copia local.',
       );
-      return restored;
+      return payload;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage: 'Error al restaurar copia local: $e',
+        errorMessage: 'Error al restaurar la copia local: $e',
       );
       return null;
+    }
+  }
+
+  /// Aplica el payload restaurado a todos los repositorios de la app usando Fusión Inteligente (por defecto) o Reemplazo Total.
+  Future<void> applyRestoredPayloadToApp(
+    WidgetRef ref,
+    FullBackupPayload payload, {
+    required bool smartMerge,
+  }) async {
+    if (smartMerge) {
+      await ref.read(foragingSpotsProvider.notifier).mergeSpots(payload.spots);
+      await ref.read(outingsProvider.notifier).mergeOutings(payload.outings);
+      await ref
+          .read(favoriteMushroomIdsProvider.notifier)
+          .mergeFavorites(payload.favoriteIds);
+      await ref
+          .read(geminiMushroomProvider.notifier)
+          .mergeMessages(payload.aiMessages);
+      await ref
+          .read(offlineMapServiceProvider.notifier)
+          .mergeRegions(payload.offlineRegions);
+    } else {
+      await ref
+          .read(foragingSpotsProvider.notifier)
+          .replaceAllSpots(payload.spots);
+      await ref
+          .read(outingsProvider.notifier)
+          .replaceAllOutings(payload.outings);
+      await ref
+          .read(favoriteMushroomIdsProvider.notifier)
+          .replaceAllFavorites(payload.favoriteIds);
+      await ref
+          .read(geminiMushroomProvider.notifier)
+          .replaceAllMessages(payload.aiMessages);
+      await ref
+          .read(offlineMapServiceProvider.notifier)
+          .replaceAllRegions(payload.offlineRegions);
     }
   }
 }
