@@ -18,6 +18,8 @@ import '../../outings/data/outings_database.dart';
 import '../../outings/models/foraging_outing.dart';
 import '../data/spots_database.dart';
 import '../models/foraging_spot.dart';
+import '../services/offline_map_service.dart';
+import 'offline_maps_sheet.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   final Mushroom? initialMushroomToRegister;
@@ -43,6 +45,8 @@ class MapScreen extends ConsumerStatefulWidget {
 
 class MapScreenState extends ConsumerState<MapScreen> {
   final MapController _mapController = MapController();
+  final OfflineCachingTileProvider _defaultOfflineTileProvider =
+      OfflineCachingTileProvider();
   bool _useTopoLayer = true;
   bool _showAllRoutes = true;
   bool _isLocatingGps = false;
@@ -59,6 +63,25 @@ class MapScreenState extends ConsumerState<MapScreen> {
 
   void moveToRegion(LatLng center, double zoom) {
     _mapController.move(center, zoom);
+  }
+
+  void _openOfflineMapsModal() {
+    if (widget.onOpenOfflineMapsManager != null) {
+      widget.onOpenOfflineMapsManager!();
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => OfflineMapsSheet(
+        currentBounds: _mapController.camera.visibleBounds,
+        isTopoLayer: _useTopoLayer,
+        onSelectRegionOnMap: (center, zoom) {
+          _mapController.move(center, zoom);
+        },
+      ),
+    );
   }
 
   @override
@@ -403,7 +426,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.perretxikotan.app',
                 maxNativeZoom: _useTopoLayer ? 17 : 19,
-                tileProvider: widget.customTileProvider,
+                tileProvider:
+                    widget.customTileProvider ?? _defaultOfflineTileProvider,
               ),
               // Capa de polilíneas de las rutas GPS de las Salidas
               if (visibleOutingRoutes.isNotEmpty)
@@ -561,15 +585,13 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                         () => _useTopoLayer = !_useTopoLayer);
                                   },
                                 ),
-                                if (widget.onOpenOfflineMapsManager != null) ...[
-                                  const SizedBox(width: 6),
-                                  _HeaderPillButton(
-                                    icon: Icons.download_for_offline_rounded,
-                                    label: 'Offline',
-                                    active: true,
-                                    onTap: widget.onOpenOfflineMapsManager!,
-                                  ),
-                                ],
+                                const SizedBox(width: 6),
+                                _HeaderPillButton(
+                                  icon: Icons.download_for_offline_rounded,
+                                  label: 'Offline',
+                                  active: true,
+                                  onTap: _openOfflineMapsModal,
+                                ),
                                 const SizedBox(width: 6),
                                 _HeaderPillButton(
                                   icon: Icons.format_list_bulleted_rounded,
