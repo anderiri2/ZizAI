@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   final VoidCallback onFinished;
   final String? subtitleOverride;
   final List<String>? stageLabelsOverride;
@@ -15,10 +17,10 @@ class SplashScreen extends StatefulWidget {
   });
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
@@ -43,13 +45,8 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  String _stageText(double t) {
-    final labels = widget.stageLabelsOverride ??
-        const [
-          'Bolba zuritik jaiotzen · Naciendo de la volva...',
-          'Belardian hazten · Emergiendo en el campo...',
-          'Amanita caesarea (Gorringo) irekitzen · Abriendo sombrero...',
-        ];
+  String _stageText(double t, AppStrings strings) {
+    final labels = widget.stageLabelsOverride ?? strings.splashStages;
     if (t < 0.36) return labels[0];
     if (t < 0.72) return labels[1];
     return labels[2];
@@ -57,6 +54,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+    final strings = AppStrings(lang);
     return Scaffold(
       backgroundColor: AutumnColors.barkDark,
       body: Stack(
@@ -215,8 +214,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        widget.subtitleOverride ??
-                            'Mikologia · Perretxiko-lekuak · Euskal Herria',
+                        widget.subtitleOverride ?? strings.appSubtitle,
                         style: TextStyle(
                           color: AutumnColors.amberLeaf.withValues(alpha: 0.96),
                           fontSize: 14.5,
@@ -238,7 +236,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                         child: Text(
-                          _stageText(t),
+                          _stageText(t, strings),
                           style: const TextStyle(
                             color: AutumnColors.parchmentBg,
                             fontSize: 12.0,

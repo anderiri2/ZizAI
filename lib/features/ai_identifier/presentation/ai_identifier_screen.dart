@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 import '../../backup/services/google_drive_backup_service.dart';
 import '../../catalog/data/catalog_repository.dart';
@@ -93,6 +94,8 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final aiState = ref.watch(geminiMushroomProvider);
     final authState = ref.watch(googleDriveBackupProvider);
     final allMushrooms =
@@ -142,13 +145,17 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
                         size: 22,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Identificador IA Gemini',
+                            s.tr(
+                              eu: 'Gemini IA Identifikatzailea',
+                              es: 'Identificador IA Gemini',
+                              en: 'Gemini AI Identifier',
+                            ),
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
@@ -172,8 +179,16 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
                               Expanded(
                                 child: Text(
                                   authState.isAuthenticatedWithGoogle
-                                      ? 'Sesión Google activa (${authState.userEmail ?? "OAuth"}) • Sin AI Studio'
-                                      : 'Modo Local / Sin cobertura • Cola pendiente activa',
+                                      ? s.tr(
+                                          eu: 'Google saioa aktibo (${authState.userEmail ?? "OAuth"}) • AI Studio gabe',
+                                          es: 'Sesión Google activa (${authState.userEmail ?? "OAuth"}) • Sin AI Studio',
+                                          en: 'Google session active (${authState.userEmail ?? "OAuth"}) • Zero AI Studio',
+                                        )
+                                      : s.tr(
+                                          eu: 'Tokiko modua / Estaldurarik gabe • Ilara aktibo',
+                                          es: 'Modo Local / Sin cobertura • Cola pendiente activa',
+                                          en: 'Local / Offline mode • Pending queue active',
+                                        ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -188,13 +203,19 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
                         ],
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    const LanguageSelectorPill(darkSurface: false),
                     IconButton(
                       onPressed: () {
                         ref
                             .read(geminiMushroomProvider.notifier)
                             .clearConversation();
                       },
-                      tooltip: 'Reiniciar conversación',
+                      tooltip: s.tr(
+                        eu: 'Berrabiarazi elkarrizketa',
+                        es: 'Reiniciar conversación',
+                        en: 'Reset conversation',
+                      ),
                       icon: const Icon(
                         Icons.refresh_rounded,
                         color: AutumnColors.boletusBrown,

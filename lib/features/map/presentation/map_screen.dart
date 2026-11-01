@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
@@ -378,6 +379,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final allSpots =
         ref.watch(foragingSpotsProvider).valueOrNull ?? const <ForagingSpot>[];
     final allOutings =
@@ -552,20 +555,25 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
-                                const Expanded(
+                                Expanded(
                                   child: Text(
-                                    'Mapa Global de Setales',
-                                    style: TextStyle(
+                                    s.tr(
+                                      eu: 'Perretxiko-lekuen Mapa',
+                                      es: 'Mapa Global de Setales',
+                                      en: 'Global Foraging Map',
+                                    ),
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
                                     ),
                                   ),
                                 ),
-                                // Conmutador de Rutas GPS ON/OFF
                                 _HeaderPillButton(
                                   icon: Icons.route_rounded,
-                                  label: _showAllRoutes ? 'Rutas ON' : 'Rutas OFF',
+                                  label: _showAllRoutes
+                                      ? s.tr(eu: 'Ibilb. ON', es: 'Rutas ON', en: 'Routes ON')
+                                      : s.tr(eu: 'Ibilb. OFF', es: 'Rutas OFF', en: 'Routes OFF'),
                                   active: _showAllRoutes,
                                   onTap: () {
                                     setState(
@@ -573,12 +581,13 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                   },
                                 ),
                                 const SizedBox(width: 6),
-                                // Conmutador Topográfico / Calle
                                 _HeaderPillButton(
                                   icon: _useTopoLayer
                                       ? Icons.terrain_rounded
                                       : Icons.map_outlined,
-                                  label: _useTopoLayer ? 'Topo' : 'Calle',
+                                  label: _useTopoLayer
+                                      ? 'Topo'
+                                      : s.tr(eu: 'Kalea', es: 'Calle', en: 'Street'),
                                   active: _useTopoLayer,
                                   onTap: () {
                                     setState(
@@ -603,22 +612,28 @@ class MapScreenState extends ConsumerState<MapScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            // Selector de filtro: Todos / Puntos sueltos / Salidas concretas
                             SizedBox(
                               height: 30,
                               child: ListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
                                   _FilterChipPill(
-                                    label: 'Todos (${allSpots.length})',
+                                    label: s.tr(
+                                      eu: 'Guztiak (${allSpots.length})',
+                                      es: 'Todos (${allSpots.length})',
+                                      en: 'All (${allSpots.length})',
+                                    ),
                                     selected: _spotFilterMode == 'all',
                                     onTap: () =>
                                         setState(() => _spotFilterMode = 'all'),
                                   ),
                                   const SizedBox(width: 6),
                                   _FilterChipPill(
-                                    label:
-                                        'Puntos sueltos (${allSpots.where((s) => !s.isFromOuting).length})',
+                                    label: s.tr(
+                                      eu: 'Puntu solteak (${allSpots.where((sp) => !sp.isFromOuting).length})',
+                                      es: 'Puntos sueltos (${allSpots.where((sp) => !sp.isFromOuting).length})',
+                                      en: 'Standalone (${allSpots.where((sp) => !sp.isFromOuting).length})',
+                                    ),
                                     selected: _spotFilterMode == 'standalone',
                                     onTap: () => setState(
                                         () => _spotFilterMode = 'standalone'),
@@ -627,7 +642,11 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                     return Padding(
                                       padding: const EdgeInsets.only(left: 6),
                                       child: _FilterChipPill(
-                                        label: 'Salida: ${outing.title}',
+                                        label: s.tr(
+                                          eu: 'Irteera: ${outing.title}',
+                                          es: 'Salida: ${outing.title}',
+                                          en: 'Outing: ${outing.title}',
+                                        ),
                                         selected: _spotFilterMode == outing.id,
                                         onTap: () {
                                           setState(() =>
@@ -650,7 +669,6 @@ class MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // Botones flotantes (GPS + Guardar Setal)
           Positioned(
             right: 16,
             bottom: _selectedSpot != null ? 275 : 112,
@@ -661,7 +679,11 @@ class MapScreenState extends ConsumerState<MapScreen> {
                   heroTag: 'btn_gps_center',
                   backgroundColor: AutumnColors.parchmentBg,
                   foregroundColor: AutumnColors.boletusBrown,
-                  tooltip: 'Centrar en mi posición GPS',
+                  tooltip: s.tr(
+                    eu: 'Zentratu nire GPS posizioan',
+                    es: 'Centrar en mi posición GPS',
+                    en: 'Center on my GPS location',
+                  ),
                   onPressed: _isLocatingGps ? null : () => _centerOnUserGps(),
                   child: _isLocatingGps
                       ? const SizedBox(
@@ -681,9 +703,13 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     _openAddOrEditSpotSheet(context, initialLatLng: center);
                   },
                   icon: const Icon(Icons.add_location_alt_rounded),
-                  label: const Text(
-                    'Guardar Setal',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  label: Text(
+                    s.tr(
+                      eu: 'Gorde Lekua',
+                      es: 'Guardar Setal',
+                      en: 'Save Spot',
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
               ],

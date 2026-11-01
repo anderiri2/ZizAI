@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 
 enum EdibilityLevel {
@@ -26,6 +27,80 @@ enum EdibilityLevel {
         return EdibilityLevel.deadly;
       default:
         return EdibilityLevel.nonEdible;
+    }
+  }
+
+  String labelFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        switch (this) {
+          case EdibilityLevel.excellent:
+            return 'Jangarri bikaina';
+          case EdibilityLevel.good:
+            return 'Jangarri ona';
+          case EdibilityLevel.caution:
+            return 'Jangarria kontuz';
+          case EdibilityLevel.nonEdible:
+            return 'Balio kulinariorik gabea';
+          case EdibilityLevel.toxic:
+            return 'Toxikoa';
+          case EdibilityLevel.deadly:
+            return 'Hilgarria';
+        }
+      case AppLanguage.es:
+        return displayLabel;
+      case AppLanguage.en:
+        switch (this) {
+          case EdibilityLevel.excellent:
+            return 'Choice edible';
+          case EdibilityLevel.good:
+            return 'Good edible';
+          case EdibilityLevel.caution:
+            return 'Edible with caution';
+          case EdibilityLevel.nonEdible:
+            return 'Inedible';
+          case EdibilityLevel.toxic:
+            return 'Toxic';
+          case EdibilityLevel.deadly:
+            return 'Deadly poisonous';
+        }
+    }
+  }
+
+  String shortLabelFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        switch (this) {
+          case EdibilityLevel.excellent:
+            return 'Bikaina';
+          case EdibilityLevel.good:
+            return 'Jangarria';
+          case EdibilityLevel.caution:
+            return 'Kontuz';
+          case EdibilityLevel.nonEdible:
+            return 'Ez jangarria';
+          case EdibilityLevel.toxic:
+            return 'Toxikoa';
+          case EdibilityLevel.deadly:
+            return 'Hilgarria';
+        }
+      case AppLanguage.es:
+        return shortLabel;
+      case AppLanguage.en:
+        switch (this) {
+          case EdibilityLevel.excellent:
+            return 'Choice';
+          case EdibilityLevel.good:
+            return 'Edible';
+          case EdibilityLevel.caution:
+            return 'Caution';
+          case EdibilityLevel.nonEdible:
+            return 'Inedible';
+          case EdibilityLevel.toxic:
+            return 'Toxic';
+          case EdibilityLevel.deadly:
+            return 'Deadly';
+        }
     }
   }
 
@@ -165,6 +240,7 @@ class MushroomConfusion {
   String get speciesName =>
       scientificName.isNotEmpty ? '$commonName ($scientificName)' : commonName;
   String get edibilityWarning => riskLevel.displayLabel;
+  String edibilityWarningFor(AppLanguage lang) => riskLevel.labelFor(lang);
 }
 
 class Mushroom {
@@ -172,13 +248,24 @@ class Mushroom {
   final String scientificName;
   final String spanishName;
   final String basqueName;
+  final String englishName;
   final String family;
   final EdibilityLevel edibility;
   final String edibilityLabel;
+  final String edibilityLabelEu;
+  final String edibilityLabelEn;
   final String season;
+  final String seasonEu;
+  final String seasonEn;
   final String habitat;
+  final String habitatEu;
+  final String habitatEn;
   final String summary;
+  final String summaryEu;
+  final String summaryEn;
   final MushroomMorphology morphology;
+  final MushroomMorphology morphologyEu;
+  final MushroomMorphology morphologyEn;
   final List<MushroomConfusion> confusions;
   final List<String> images;
 
@@ -187,16 +274,28 @@ class Mushroom {
     required this.scientificName,
     required this.spanishName,
     required this.basqueName,
+    this.englishName = '',
     required this.family,
     required this.edibility,
     required this.edibilityLabel,
+    this.edibilityLabelEu = '',
+    this.edibilityLabelEn = '',
     required this.season,
+    this.seasonEu = '',
+    this.seasonEn = '',
     required this.habitat,
+    this.habitatEu = '',
+    this.habitatEn = '',
     required this.summary,
+    this.summaryEu = '',
+    this.summaryEn = '',
     required this.morphology,
+    MushroomMorphology? morphologyEu,
+    MushroomMorphology? morphologyEn,
     required this.confusions,
     required this.images,
-  });
+  })  : morphologyEu = morphologyEu ?? morphology,
+        morphologyEn = morphologyEn ?? morphology;
 
   String get primaryImage =>
       images.isNotEmpty ? images.first : 'assets/images/logo_perretxikotan.png';
@@ -204,8 +303,91 @@ class Mushroom {
   String get primaryImageAsset => primaryImage;
   String get commonNameEs => spanishName;
   String get nameEu => basqueName;
+  String get commonNameEn =>
+      englishName.isNotEmpty ? englishName : scientificName;
   String get capDescription => morphology.cap;
   String get hymeniumDescription => morphology.hymenium;
+
+  String displayNameFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return basqueName;
+      case AppLanguage.es:
+        return spanishName;
+      case AppLanguage.en:
+        return commonNameEn;
+    }
+  }
+
+  String secondaryNamesFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return 'ES: $spanishName · EN: $commonNameEn';
+      case AppLanguage.es:
+        return 'EU: $basqueName · EN: $commonNameEn';
+      case AppLanguage.en:
+        return 'EU: $basqueName · ES: $spanishName';
+    }
+  }
+
+  String edibilityLabelFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return edibilityLabelEu.isNotEmpty
+            ? edibilityLabelEu
+            : edibility.labelFor(lang);
+      case AppLanguage.es:
+        return edibilityLabel;
+      case AppLanguage.en:
+        return edibilityLabelEn.isNotEmpty
+            ? edibilityLabelEn
+            : edibility.labelFor(lang);
+    }
+  }
+
+  String seasonFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return seasonEu.isNotEmpty ? seasonEu : season;
+      case AppLanguage.es:
+        return season;
+      case AppLanguage.en:
+        return seasonEn.isNotEmpty ? seasonEn : season;
+    }
+  }
+
+  String habitatFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return habitatEu.isNotEmpty ? habitatEu : habitat;
+      case AppLanguage.es:
+        return habitat;
+      case AppLanguage.en:
+        return habitatEn.isNotEmpty ? habitatEn : habitat;
+    }
+  }
+
+  String summaryFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return summaryEu.isNotEmpty ? summaryEu : summary;
+      case AppLanguage.es:
+        return summary;
+      case AppLanguage.en:
+        return summaryEn.isNotEmpty ? summaryEn : summary;
+    }
+  }
+
+  MushroomMorphology morphologyFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return morphologyEu;
+      case AppLanguage.es:
+        return morphology;
+      case AppLanguage.en:
+        return morphologyEn;
+    }
+  }
 
   factory Mushroom.fromJson(Map<String, dynamic> json) {
     final edibility = EdibilityLevel.fromString(
@@ -218,6 +400,10 @@ class Mushroom {
           'stem': json['stipeDescription'] as String? ?? '',
           'flesh': json['fleshDescription'] as String? ?? '',
         };
+    final baseMorph = MushroomMorphology.fromJson(morphMap);
+    final morphEuMap = json['morphologyEu'] as Map<String, dynamic>?;
+    final morphEnMap = json['morphologyEn'] as Map<String, dynamic>?;
+
     return Mushroom(
       id: json['id'] as String,
       scientificName: json['scientificName'] as String? ?? '',
@@ -225,15 +411,30 @@ class Mushroom {
           json['spanishName'] as String? ?? json['commonNameEs'] as String? ?? '',
       basqueName:
           json['basqueName'] as String? ?? json['nameEu'] as String? ?? '',
+      englishName: json['englishName'] as String? ?? '',
       family: json['family'] as String? ?? '',
       edibility: edibility,
       edibilityLabel: json['edibilityLabel'] as String? ??
           json['edibilityDetail'] as String? ??
           edibility.displayLabel,
+      edibilityLabelEu: json['edibilityLabelEu'] as String? ??
+          edibility.labelFor(AppLanguage.eu),
+      edibilityLabelEn: json['edibilityLabelEn'] as String? ??
+          edibility.labelFor(AppLanguage.en),
       season: json['season'] as String? ?? '',
+      seasonEu: json['seasonEu'] as String? ?? '',
+      seasonEn: json['seasonEn'] as String? ?? '',
       habitat: json['habitat'] as String? ?? '',
+      habitatEu: json['habitatEu'] as String? ?? '',
+      habitatEn: json['habitatEn'] as String? ?? '',
       summary: json['summary'] as String? ?? '',
-      morphology: MushroomMorphology.fromJson(morphMap),
+      summaryEu: json['summaryEu'] as String? ?? '',
+      summaryEn: json['summaryEn'] as String? ?? '',
+      morphology: baseMorph,
+      morphologyEu:
+          morphEuMap != null ? MushroomMorphology.fromJson(morphEuMap) : baseMorph,
+      morphologyEn:
+          morphEnMap != null ? MushroomMorphology.fromJson(morphEnMap) : baseMorph,
       confusions: ((json['confusions'] as List<dynamic>?) ?? const [])
           .map((e) => MushroomConfusion.fromJson(e as Map<String, dynamic>))
           .toList(),

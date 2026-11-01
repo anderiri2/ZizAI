@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 import '../services/offline_map_service.dart';
 
@@ -83,6 +84,8 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final offlineState = ref.watch(offlineMapServiceProvider);
     final downloadedIds =
         offlineState.downloadedRegions.map((r) => r.id).toSet();
@@ -133,7 +136,11 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Mapas sin Conexión (Offline)',
+                          s.tr(
+                            eu: 'Konexiorik Gabeko Mapak (Offline)',
+                            es: 'Mapas sin Conexión (Offline)',
+                            en: 'Offline Forest Maps',
+                          ),
                           style:
                               Theme.of(context).textTheme.titleLarge?.copyWith(
                                     color: AutumnColors.boletusBrown,
@@ -141,7 +148,11 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                                   ),
                         ),
                         Text(
-                          'Espacio ocupado: ${offlineState.formattedTotalMb} (${offlineState.downloadedRegions.length} zonas)',
+                          s.tr(
+                            eu: 'Erabilitako lekua: ${offlineState.formattedTotalMb} (${offlineState.downloadedRegions.length} eremu)',
+                            es: 'Espacio ocupado: ${offlineState.formattedTotalMb} (${offlineState.downloadedRegions.length} zonas)',
+                            en: 'Storage used: ${offlineState.formattedTotalMb} (${offlineState.downloadedRegions.length} regions)',
+                          ),
                           style: const TextStyle(
                             fontSize: 12.5,
                             color: AutumnColors.textSecondary,

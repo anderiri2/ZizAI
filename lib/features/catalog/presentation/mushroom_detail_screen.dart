@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 import '../../../core/widgets/safety_disclaimer_banner.dart';
 import '../data/catalog_repository.dart';
@@ -68,9 +69,12 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final m = widget.mushroom;
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final favorites = ref.watch(favoriteMushroomsProvider);
     final isFavorite = favorites.contains(m.id);
     final allMushroomsAsync = ref.watch(allMushroomsProvider);
+    final morph = m.morphologyFor(lang);
 
     return Scaffold(
       backgroundColor: AutumnColors.parchmentBg,
@@ -82,15 +86,29 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
             backgroundColor: AutumnColors.boletusBrown,
             foregroundColor: Colors.white,
             actions: [
+              const Center(child: LanguageSelectorPill(darkSurface: true)),
+              const SizedBox(width: 6),
               IconButton(
-                tooltip: isFavorite ? 'Quitar de favoritas' : 'Guardar en favoritas',
+                tooltip: isFavorite
+                    ? s.tr(
+                        eu: 'Kendu gogokoetatik',
+                        es: 'Quitar de favoritas',
+                        en: 'Remove from favorites',
+                      )
+                    : s.tr(
+                        eu: 'Gorde gogokoetan',
+                        es: 'Guardar en favoritas',
+                        en: 'Save to favorites',
+                      ),
                 onPressed: () {
                   ref
                       .read(favoriteMushroomsProvider.notifier)
                       .toggleFavorite(m.id);
                 },
                 icon: Icon(
-                  isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
                   color: isFavorite ? AutumnColors.amberLeaf : Colors.white,
                 ),
               ),
@@ -102,13 +120,16 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                 children: [
                   PageView.builder(
                     itemCount: m.images.length,
-                    onPageChanged: (idx) => setState(() => _currentImageIndex = idx),
+                    onPageChanged: (idx) =>
+                        setState(() => _currentImageIndex = idx),
                     itemBuilder: (context, index) {
                       final imgPath = m.images[index];
                       return GestureDetector(
                         onTap: () => _openImageZoom(context, imgPath),
                         child: Hero(
-                          tag: index == 0 ? 'mushroom_img_${m.id}' : '${m.id}_$index',
+                          tag: index == 0
+                              ? 'mushroom_img_${m.id}'
+                              : '${m.id}_$index',
                           child: Image.asset(
                             imgPath,
                             fit: BoxFit.cover,
@@ -121,7 +142,6 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                       );
                     },
                   ),
-                  // Degradado inferior para legibilidad
                   Positioned(
                     left: 0,
                     right: 0,
@@ -142,7 +162,6 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                       ),
                     ),
                   ),
-                  // Indicador de galería y botón de zoom
                   Positioned(
                     right: 16,
                     bottom: 16,
@@ -176,7 +195,6 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                       ),
                     ),
                   ),
-                  // Badge de comestibilidad sobre la foto
                   Positioned(
                     left: 16,
                     bottom: 16,
@@ -206,7 +224,7 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                           ),
                           const SizedBox(width: 7),
                           Text(
-                            m.edibilityLabel,
+                            m.edibilityLabelFor(lang),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -227,13 +245,13 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Nombres en Castellano, Euskera y Científico
                   Text(
-                    m.spanishName,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: AutumnColors.boletusBrown,
-                          height: 1.15,
-                        ),
+                    m.displayNameFor(lang),
+                    style:
+                        Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              color: AutumnColors.boletusBrown,
+                              height: 1.15,
+                            ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -247,32 +265,58 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: AutumnColors.mossGreen.withValues(alpha: 0.14),
+                          color:
+                              AutumnColors.mossGreen.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AutumnColors.mossGreen.withValues(alpha: 0.35),
+                            color:
+                                AutumnColors.mossGreen.withValues(alpha: 0.35),
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'EUS ',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w800,
-                                color: AutumnColors.mossGreen,
-                              ),
-                            ),
-                            Text(
-                              m.basqueName,
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: AutumnColors.mossGreen,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          'EU: ${m.basqueName}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AutumnColors.mossGreen,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              AutumnColors.ochreGold.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'ES: ${m.spanishName}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AutumnColors.boletusBrown,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AutumnColors.creamCard,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'EN: ${m.commonNameEn}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AutumnColors.textSecondary,
+                          ),
                         ),
                       ),
                       Container(
@@ -287,26 +331,8 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                         child: Text(
                           m.scientificName,
                           style: const TextStyle(
-                            fontSize: 13.5,
+                            fontSize: 13,
                             fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w600,
-                            color: AutumnColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AutumnColors.warmSand.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Familia: ${m.family}',
-                          style: const TextStyle(
-                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AutumnColors.textSecondary,
                           ),
@@ -316,7 +342,7 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Resumen destacado
+                  // Summary
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -326,7 +352,7 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                       border: Border.all(color: AutumnColors.warmSand),
                     ),
                     child: Text(
-                      m.summary,
+                      m.summaryFor(lang),
                       style: const TextStyle(
                         fontSize: 15,
                         height: 1.48,
@@ -337,14 +363,14 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Botón para registrar ubicación de esta seta en el mapa
                   if (widget.onRegisterSpotInMap != null) ...[
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AutumnColors.boletusBrown,
-                          backgroundColor: AutumnColors.ochreGold.withValues(alpha: 0.12),
+                          backgroundColor:
+                              AutumnColors.ochreGold.withValues(alpha: 0.12),
                           side: const BorderSide(
                             color: AutumnColors.ochreGold,
                             width: 1.4,
@@ -362,70 +388,106 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                           widget.onRegisterSpotInMap!(m);
                         },
                         icon: const Icon(Icons.add_location_alt_rounded),
-                        label: const Text(
-                          'Guardar ubicación de esta seta en el Mapa',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        label: Text(
+                          s.tr(
+                            eu: 'Gorde perretxiko honen kokapena Mapan',
+                            es: 'Guardar ubicación de esta seta en el Mapa',
+                            en: 'Save location of this mushroom on the Map',
+                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
                     const SizedBox(height: 14),
                   ],
 
-                  // Hábitat y Temporada
+                  // Habitat & Season
                   _InfoSectionCard(
-                    title: 'Hábitat y Época de Fructificación',
+                    title: s.tr(
+                      eu: 'Habitata eta Sasoia',
+                      es: 'Hábitat y Época de Fructificación',
+                      en: 'Habitat & Fruiting Season',
+                    ),
                     icon: Icons.forest_rounded,
                     iconColor: AutumnColors.mossGreen,
                     children: [
                       _DetailRow(
                         icon: Icons.park_rounded,
-                        label: 'Hábitat habitual',
-                        value: m.habitat,
+                        label: s.tr(
+                          eu: 'Ohiko habitata',
+                          es: 'Hábitat habitual',
+                          en: 'Typical habitat',
+                        ),
+                        value: m.habitatFor(lang),
                       ),
                       const Divider(height: 22),
                       _DetailRow(
                         icon: Icons.calendar_month_rounded,
-                        label: 'Temporada',
-                        value: m.season,
+                        label: s.tr(
+                          eu: 'Sasoia',
+                          es: 'Temporada',
+                          en: 'Season',
+                        ),
+                        value: m.seasonFor(lang),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
 
-                  // Morfología detallada
+                  // Morphology
                   _InfoSectionCard(
-                    title: 'Identificación y Morfología',
+                    title: s.tr(
+                      eu: 'Identifikazioa eta Morfologia',
+                      es: 'Identificación y Morfología',
+                      en: 'Identification & Morphology',
+                    ),
                     icon: Icons.biotech_rounded,
                     iconColor: AutumnColors.ochreGold,
                     children: [
                       _DetailRow(
                         icon: Icons.umbrella_rounded,
-                        label: 'Sombrero (Txapela)',
-                        value: m.morphology.cap,
+                        label: s.tr(
+                          eu: 'Txapela',
+                          es: 'Sombrero (Txapela)',
+                          en: 'Cap (Pileus)',
+                        ),
+                        value: morph.cap,
                       ),
                       const Divider(height: 22),
                       _DetailRow(
                         icon: Icons.view_stream_rounded,
-                        label: 'Himenio (Láminas / Poros / Pliegues)',
-                        value: m.morphology.hymenium,
+                        label: s.tr(
+                          eu: 'Himenioa (Orriak / Poroak / Tolesturak)',
+                          es: 'Himenio (Láminas / Poros / Pliegues)',
+                          en: 'Hymenium (Gills / Pores / Ridges)',
+                        ),
+                        value: morph.hymenium,
                       ),
                       const Divider(height: 22),
                       _DetailRow(
                         icon: Icons.vertical_align_bottom_rounded,
-                        label: 'Pie (Hanka)',
-                        value: m.morphology.stem,
+                        label: s.tr(
+                          eu: 'Hanka / Oina',
+                          es: 'Pie (Hanka)',
+                          en: 'Stem / Stipe',
+                        ),
+                        value: morph.stem,
                       ),
                       const Divider(height: 22),
                       _DetailRow(
                         icon: Icons.air_rounded,
-                        label: 'Carne, Olor y Sabor',
-                        value: m.morphology.flesh,
+                        label: s.tr(
+                          eu: 'Mamia, Usaina eta Zaporea',
+                          es: 'Carne, Olor y Sabor',
+                          en: 'Flesh, Odor & Taste',
+                        ),
+                        value: morph.flesh,
                       ),
                     ],
                   ),
                   const SizedBox(height: 18),
 
-                  // Confusiones habituales
+                  // Confusions
                   Row(
                     children: [
                       const Icon(
@@ -435,7 +497,11 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Confusiones Habituales',
+                        s.tr(
+                          eu: 'Ohiko Nahasketak',
+                          es: 'Confusiones Habituales',
+                          en: 'Common Lookalikes & Confusions',
+                        ),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: AutumnColors.boletusBrown,
                             ),
@@ -452,9 +518,13 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AutumnColors.warmSand),
                       ),
-                      child: const Text(
-                        'Especie de morfología muy característica sin confusiones peligrosas habituales.',
-                        style: TextStyle(color: AutumnColors.textSecondary),
+                      child: Text(
+                        s.tr(
+                          eu: 'Morfologia oso bereizgarria duen espeziea, ohiko nahasketa arriskutsurik gabea.',
+                          es: 'Especie de morfología muy característica sin confusiones peligrosas habituales.',
+                          en: 'Distinctive morphology with no common dangerous lookalikes.',
+                        ),
+                        style: const TextStyle(color: AutumnColors.textSecondary),
                       ),
                     )
                   else
@@ -470,7 +540,8 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: conf.riskLevel.badgeColor.withValues(alpha: 0.45),
+                            color: conf.riskLevel.badgeColor
+                                .withValues(alpha: 0.45),
                             width: 1.3,
                           ),
                         ),
@@ -500,7 +571,8 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                                   const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.symmetric(
@@ -509,10 +581,13 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: conf.riskLevel.badgeColor,
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                         child: Text(
-                                          conf.riskLevel.displayLabel.toUpperCase(),
+                                          conf
+                                              .edibilityWarningFor(lang)
+                                              .toUpperCase(),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 10,
@@ -544,7 +619,7 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Cómo diferenciarla: ${conf.difference}',
+                              '${s.tr(eu: 'Nola bereizi', es: 'Cómo diferenciarla', en: 'How to distinguish')}: ${conf.difference}',
                               style: const TextStyle(
                                 fontSize: 13.8,
                                 height: 1.42,
@@ -579,9 +654,13 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                                     Icons.open_in_new_rounded,
                                     size: 16,
                                   ),
-                                  label: const Text(
-                                    'Ver ficha de esta especie',
-                                    style: TextStyle(
+                                  label: Text(
+                                    s.tr(
+                                      eu: 'Ikusi espezie honen fitxa',
+                                      es: 'Ver ficha de esta especie',
+                                      en: 'View species sheet',
+                                    ),
+                                    style: const TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w700,
                                     ),
