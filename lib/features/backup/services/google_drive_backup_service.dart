@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -77,11 +78,23 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[
       drive.DriveApi.driveAppdataScope,
+      'https://www.googleapis.com/auth/generative-language.retriever',
       'email',
     ],
   );
 
   GoogleDriveBackupService() : super(const AuthBackupState());
+
+  Future<http.Client?> getAuthenticatedHttpClient() async {
+    try {
+      if (_googleSignIn.currentUser == null) {
+        await _googleSignIn.signInSilently();
+      }
+      return await _googleSignIn.authenticatedClient();
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> initializeAuthSession() async {
     final prefs = await SharedPreferences.getInstance();
