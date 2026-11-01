@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../localization/app_localizations.dart';
 import '../theme/autumn_theme.dart';
 
-class SafetyDisclaimerBanner extends StatelessWidget {
+class SafetyDisclaimerBanner extends ConsumerWidget {
   final bool compact;
 
   const SafetyDisclaimerBanner({
@@ -16,6 +18,10 @@ class SafetyDisclaimerBanner extends StatelessWidget {
     final prefs = await SharedPreferences.getInstance();
     final accepted = prefs.getBool(_prefKeyAccepted) ?? false;
     if (accepted || !context.mounted) return;
+    final lang = AppLanguage.fromCode(
+      prefs.getString('perretxikotan_app_language'),
+    );
+    final s = AppStrings(lang);
 
     await showDialog<void>(
       context: context,
@@ -38,10 +44,10 @@ class SafetyDisclaimerBanner extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Aviso de Seguridad Micológica',
-                style: TextStyle(
+                s.safetyDialogTitle,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AutumnColors.boletusBrown,
@@ -50,10 +56,9 @@ class SafetyDisclaimerBanner extends StatelessWidget {
             ),
           ],
         ),
-        content: const Text(
-          'La información e imágenes de Perretxikotan tienen carácter exclusivamente divulgativo y orientativo.\n\n'
-          'Nunca consumas una seta silvestre si no estás 100 % seguro de su identificación morfológica o sin haberla consultado presencialmente con expertos o en una sociedad micológica.',
-          style: TextStyle(
+        content: Text(
+          s.safetyDialogBody,
+          style: const TextStyle(
             fontSize: 14.5,
             height: 1.45,
             color: AutumnColors.textSecondary,
@@ -66,7 +71,7 @@ class SafetyDisclaimerBanner extends StatelessWidget {
               if (ctx.mounted) Navigator.of(ctx).pop();
             },
             icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-            label: const Text('Entendido, recolectar con prudencia'),
+            label: Text(s.understood),
           ),
         ],
       ),
@@ -74,7 +79,10 @@ class SafetyDisclaimerBanner extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
+
     return Container(
       padding: EdgeInsets.all(compact ? 12 : 14),
       decoration: BoxDecoration(
@@ -95,9 +103,7 @@ class SafetyDisclaimerBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              compact
-                  ? 'Guía orientativa: no consumas ningún ejemplar sin estar 100 % seguro o consultar a una sociedad micológica.'
-                  : 'Aviso micológico: Esta ficha tiene carácter informativo. Ante la más mínima duda sobre la identidad de un ejemplar, nunca lo consumas y consulta a una sociedad micológica.',
+              compact ? s.safetyDisclaimerShort : s.safetyDialogBody,
               style: TextStyle(
                 fontSize: compact ? 12 : 12.5,
                 height: 1.38,

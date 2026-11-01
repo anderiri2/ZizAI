@@ -2,15 +2,37 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../models/mushroom.dart';
 
 enum CatalogSortMode {
+  basque('Euskara (A-Z)'),
   spanish('Castellano (A-Z)'),
-  basque('Euskera (A-Z)'),
-  scientific('Científico (A-Z)');
+  english('English (A-Z)'),
+  scientific('Científico / Latin (A-Z)');
 
   final String label;
   const CatalogSortMode(this.label);
+
+  String labelFor(AppLanguage lang) {
+    switch (this) {
+      case CatalogSortMode.basque:
+        return 'Euskara (A-Z)';
+      case CatalogSortMode.spanish:
+        return 'Castellano (A-Z)';
+      case CatalogSortMode.english:
+        return 'English (A-Z)';
+      case CatalogSortMode.scientific:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Izen zientifikoa (A-Z)';
+          case AppLanguage.es:
+            return 'Científico (A-Z)';
+          case AppLanguage.en:
+            return 'Scientific (A-Z)';
+        }
+    }
+  }
 }
 
 enum CatalogCategoryFilter {
@@ -25,6 +47,83 @@ enum CatalogCategoryFilter {
 
   final String label;
   const CatalogCategoryFilter(this.label);
+
+  String labelFor(AppLanguage lang) {
+    switch (this) {
+      case CatalogCategoryFilter.all:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Guztiak';
+          case AppLanguage.es:
+            return 'Todas';
+          case AppLanguage.en:
+            return 'All';
+        }
+      case CatalogCategoryFilter.excellent:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Bikainak';
+          case AppLanguage.es:
+            return 'Excelentes';
+          case AppLanguage.en:
+            return 'Choice';
+        }
+      case CatalogCategoryFilter.edible:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Jangarriak';
+          case AppLanguage.es:
+            return 'Comestibles';
+          case AppLanguage.en:
+            return 'Edible';
+        }
+      case CatalogCategoryFilter.caution:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Kontuz';
+          case AppLanguage.es:
+            return 'Precaución';
+          case AppLanguage.en:
+            return 'Caution';
+        }
+      case CatalogCategoryFilter.dangerous:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Toxikoak / Hilgarriak';
+          case AppLanguage.es:
+            return 'Tóxicas / Mortales';
+          case AppLanguage.en:
+            return 'Toxic / Deadly';
+        }
+      case CatalogCategoryFilter.autumn:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Udazkena';
+          case AppLanguage.es:
+            return 'Otoño';
+          case AppLanguage.en:
+            return 'Autumn';
+        }
+      case CatalogCategoryFilter.spring:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Udaberria';
+          case AppLanguage.es:
+            return 'Primavera';
+          case AppLanguage.en:
+            return 'Spring';
+        }
+      case CatalogCategoryFilter.favorites:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Gogokoak';
+          case AppLanguage.es:
+            return 'Favoritas';
+          case AppLanguage.en:
+            return 'Favorites';
+        }
+    }
+  }
 }
 
 class CatalogRepository {
@@ -50,8 +149,9 @@ final allMushroomsProvider = FutureProvider<List<Mushroom>>((ref) async {
 
 final catalogSearchQueryProvider = StateProvider<String>((ref) => '');
 
+/// Defaults to Basque (`CatalogSortMode.basque`) as primary language of the app.
 final catalogSortModeProvider =
-    StateProvider<CatalogSortMode>((ref) => CatalogSortMode.spanish);
+    StateProvider<CatalogSortMode>((ref) => CatalogSortMode.basque);
 
 final catalogCategoryFilterProvider =
     StateProvider<CatalogCategoryFilter>((ref) => CatalogCategoryFilter.all);
@@ -112,9 +212,10 @@ final filteredMushroomsProvider = Provider<AsyncValue<List<Mushroom>>>((ref) {
 
   return allAsync.whenData((mushrooms) {
     final filtered = mushrooms.where((m) {
-      if ( query.isNotEmpty ) {
-        final matchesQuery = m.spanishName.toLowerCase().contains(query) ||
-            m.basqueName.toLowerCase().contains(query) ||
+      if (query.isNotEmpty) {
+        final matchesQuery = m.basqueName.toLowerCase().contains(query) ||
+            m.spanishName.toLowerCase().contains(query) ||
+            m.commonNameEn.toLowerCase().contains(query) ||
             m.scientificName.toLowerCase().contains(query) ||
             m.family.toLowerCase().contains(query) ||
             m.habitat.toLowerCase().contains(query);
@@ -145,12 +246,15 @@ final filteredMushroomsProvider = Provider<AsyncValue<List<Mushroom>>>((ref) {
 
     filtered.sort((a, b) {
       switch (sortMode) {
-        case CatalogSortMode.spanish:
-          return _normalizeSortKey(a.spanishName)
-              .compareTo(_normalizeSortKey(b.spanishName));
         case CatalogSortMode.basque:
           return _normalizeSortKey(a.basqueName)
               .compareTo(_normalizeSortKey(b.basqueName));
+        case CatalogSortMode.spanish:
+          return _normalizeSortKey(a.spanishName)
+              .compareTo(_normalizeSortKey(b.spanishName));
+        case CatalogSortMode.english:
+          return _normalizeSortKey(a.commonNameEn)
+              .compareTo(_normalizeSortKey(b.commonNameEn));
         case CatalogSortMode.scientific:
           return _normalizeSortKey(a.scientificName)
               .compareTo(_normalizeSortKey(b.scientificName));

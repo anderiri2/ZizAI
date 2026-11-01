@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 import '../../../core/widgets/safety_disclaimer_banner.dart';
 import '../data/catalog_repository.dart';
@@ -29,10 +30,12 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
 
   String _getPrimaryDisplayName(Mushroom m, CatalogSortMode sortMode) {
     switch (sortMode) {
-      case CatalogSortMode.spanish:
-        return m.spanishName;
       case CatalogSortMode.basque:
         return m.basqueName;
+      case CatalogSortMode.spanish:
+        return m.spanishName;
+      case CatalogSortMode.english:
+        return m.commonNameEn;
       case CatalogSortMode.scientific:
         return m.scientificName;
     }
@@ -52,6 +55,8 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final filteredAsync = ref.watch(filteredMushroomsProvider);
     final sortMode = ref.watch(catalogSortModeProvider);
     final selectedFilter = ref.watch(catalogCategoryFilterProvider);
@@ -65,7 +70,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabecera de Perretxikotan + Selector de orden A-Z
+            // Header: Amanita caesarea logo + Title + Language Selector Pill + A-Z Sort
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
               child: Row(
@@ -79,7 +84,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       fit: BoxFit.cover,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,10 +99,12 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
-                        const Text(
-                          'Guía micológica de Euskadi y España',
-                          style: TextStyle(
-                            fontSize: 12.5,
+                        Text(
+                          s.catalogHeaderSubtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
                             color: AutumnColors.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
@@ -105,9 +112,15 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       ],
                     ),
                   ),
-                  // Selector de idioma de ordenación alfabética
+                  const SizedBox(width: 6),
+                  const LanguageSelectorPill(darkSurface: false),
+                  const SizedBox(width: 6),
                   PopupMenuButton<CatalogSortMode>(
-                    tooltip: 'Ordenar índice alfabético A-Z',
+                    tooltip: s.tr(
+                      eu: 'Ordenatu A-Z aurkibidea',
+                      es: 'Ordenar índice alfabético A-Z',
+                      en: 'Sort A-Z index',
+                    ),
                     initialValue: sortMode,
                     color: AutumnColors.parchmentBg,
                     shape: RoundedRectangleBorder(
@@ -131,7 +144,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  mode.label,
+                                  mode.labelFor(lang),
                                   style: TextStyle(
                                     fontWeight: sortMode == mode
                                         ? FontWeight.w700
@@ -145,8 +158,8 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                         .toList(),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 8,
+                        horizontal: 9,
+                        vertical: 7,
                       ),
                       decoration: BoxDecoration(
                         color: AutumnColors.creamCard,
@@ -158,18 +171,19 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                         children: [
                           const Icon(
                             Icons.sort_by_alpha_rounded,
-                            size: 18,
+                            size: 16,
                             color: AutumnColors.boletusBrown,
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: 4),
                           Text(
-                            sortMode == CatalogSortMode.spanish
-                                ? 'ES A-Z'
-                                : sortMode == CatalogSortMode.basque
-                                    ? 'EUS A-Z'
-                                    : 'LAT A-Z',
+                            switch (sortMode) {
+                              CatalogSortMode.basque => 'EU A-Z',
+                              CatalogSortMode.spanish => 'ES A-Z',
+                              CatalogSortMode.english => 'EN A-Z',
+                              CatalogSortMode.scientific => 'LAT A-Z',
+                            },
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.w700,
                               color: AutumnColors.boletusBrown,
                             ),
@@ -182,7 +196,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
               ),
             ),
 
-            // Barra de búsqueda
+            // Search bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
               child: TextField(
@@ -191,8 +205,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                   ref.read(catalogSearchQueryProvider.notifier).state = val;
                 },
                 decoration: InputDecoration(
-                  hintText:
-                      'Buscar seta (ej. Onddo beltza, Níscalo, Boletus...)',
+                  hintText: s.searchHint,
                   prefixIcon: const Icon(
                     Icons.search_rounded,
                     color: AutumnColors.textSecondary,
@@ -211,7 +224,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
               ),
             ),
 
-            // Chips de filtro rápido
+            // Category Filter Chips
             SizedBox(
               height: 44,
               child: ListView.separated(
@@ -223,7 +236,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                   final filter = CatalogCategoryFilter.values[idx];
                   final isSelected = selectedFilter == filter;
                   return ChoiceChip(
-                    label: Text(filter.label),
+                    label: Text(filter.labelFor(lang)),
                     selected: isSelected,
                     onSelected: (_) {
                       ref.read(catalogCategoryFilterProvider.notifier).state =
@@ -245,7 +258,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
             ),
             const SizedBox(height: 6),
 
-            // Listado de Cards alfabético
+            // Alphabetical Species List
             Expanded(
               child: filteredAsync.when(
                 loading: () => const Center(
@@ -257,7 +270,11 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Error al cargar el catálogo: $err',
+                      s.tr(
+                        eu: 'Errorea katalogoa kargatzean: $err',
+                        es: 'Error al cargar el catálogo: $err',
+                        en: 'Error loading catalog: $err',
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -273,13 +290,18 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                             Icon(
                               Icons.search_off_rounded,
                               size: 52,
-                              color: AutumnColors.textMuted.withValues(alpha: 0.6),
+                              color:
+                                  AutumnColors.textMuted.withValues(alpha: 0.6),
                             ),
                             const SizedBox(height: 12),
-                            const Text(
-                              'No se han encontrado setas con esos filtros.',
+                            Text(
+                              s.tr(
+                                eu: 'Ez da perretxikorik aurkitu iragazki horiekin.',
+                                es: 'No se han encontrado setas con esos filtros.',
+                                en: 'No mushrooms found matching those filters.',
+                              ),
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: AutumnColors.textSecondary,
@@ -296,7 +318,13 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                                     .read(catalogCategoryFilterProvider.notifier)
                                     .state = CatalogCategoryFilter.all;
                               },
-                              child: const Text('Restablecer filtros'),
+                              child: Text(
+                                s.tr(
+                                  eu: 'Berrezarri iragazkiak',
+                                  es: 'Restablecer filtros',
+                                  en: 'Reset filters',
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -317,7 +345,11 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                               const SafetyDisclaimerBanner(compact: true),
                               const SizedBox(height: 8),
                               Text(
-                                'Mostrando ${mushrooms.length} especies ordenadas por ${sortMode.label}',
+                                s.tr(
+                                  eu: '${mushrooms.length} espezie erakusten (${sortMode.labelFor(lang)})',
+                                  es: 'Mostrando ${mushrooms.length} especies ordenadas por ${sortMode.labelFor(lang)}',
+                                  en: 'Showing ${mushrooms.length} species sorted by ${sortMode.labelFor(lang)}',
+                                ),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -342,7 +374,8 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                         children: [
                           if (showLetterHeader)
                             Padding(
-                              padding: const EdgeInsets.only(top: 10, bottom: 6),
+                              padding:
+                                  const EdgeInsets.only(top: 10, bottom: 6),
                               child: Row(
                                 children: [
                                   Container(
@@ -375,6 +408,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                           _MushroomCatalogCard(
                             mushroom: m,
                             sortMode: sortMode,
+                            lang: lang,
                             isFavorite: isFav,
                             onFavoriteToggle: () {
                               ref
@@ -410,6 +444,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
 class _MushroomCatalogCard extends StatelessWidget {
   final Mushroom mushroom;
   final CatalogSortMode sortMode;
+  final AppLanguage lang;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
   final VoidCallback onTap;
@@ -417,6 +452,7 @@ class _MushroomCatalogCard extends StatelessWidget {
   const _MushroomCatalogCard({
     required this.mushroom,
     required this.sortMode,
+    required this.lang,
     required this.isFavorite,
     required this.onFavoriteToggle,
     required this.onTap,
@@ -424,15 +460,14 @@ class _MushroomCatalogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTitle = sortMode == CatalogSortMode.basque
-        ? mushroom.basqueName
-        : sortMode == CatalogSortMode.scientific
-            ? mushroom.scientificName
-            : mushroom.spanishName;
+    final primaryTitle = switch (sortMode) {
+      CatalogSortMode.basque => mushroom.basqueName,
+      CatalogSortMode.spanish => mushroom.spanishName,
+      CatalogSortMode.english => mushroom.commonNameEn,
+      CatalogSortMode.scientific => mushroom.scientificName,
+    };
 
-    final secondaryTitle = sortMode == CatalogSortMode.basque
-        ? mushroom.spanishName
-        : mushroom.basqueName;
+    final secondaryTitle = mushroom.secondaryNamesFor(lang);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -444,7 +479,6 @@ class _MushroomCatalogCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Miniatura de foto de la seta
               Stack(
                 children: [
                   Hero(
@@ -484,7 +518,6 @@ class _MushroomCatalogCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 13),
-              // Información principal de la card
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -504,7 +537,7 @@ class _MushroomCatalogCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              mushroom.edibility.shortLabel.toUpperCase(),
+                              mushroom.edibility.shortLabelFor(lang).toUpperCase(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -547,7 +580,7 @@ class _MushroomCatalogCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 12.2,
                         fontWeight: FontWeight.w600,
                         color: AutumnColors.mossGreen,
                       ),
@@ -574,7 +607,7 @@ class _MushroomCatalogCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            mushroom.habitat,
+                            mushroom.habitatFor(lang),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
