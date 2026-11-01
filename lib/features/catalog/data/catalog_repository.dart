@@ -80,12 +80,28 @@ class FavoriteMushroomsNotifier extends StateNotifier<Set<String>> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_prefsKey, updated.toList());
   }
+
+  Future<void> replaceAllFavorites(List<String> ids) async {
+    final updated = ids.toSet();
+    state = updated;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_prefsKey, updated.toList());
+  }
+
+  Future<void> mergeFavorites(List<String> incomingIds) async {
+    final updated = Set<String>.from(state)..addAll(incomingIds);
+    state = updated;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_prefsKey, updated.toList());
+  }
 }
 
 final favoriteMushroomsProvider =
     StateNotifierProvider<FavoriteMushroomsNotifier, Set<String>>((ref) {
   return FavoriteMushroomsNotifier();
 });
+
+final favoriteMushroomIdsProvider = favoriteMushroomsProvider;
 
 final filteredMushroomsProvider = Provider<AsyncValue<List<Mushroom>>>((ref) {
   final allAsync = ref.watch(allMushroomsProvider);
