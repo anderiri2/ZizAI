@@ -14,62 +14,104 @@ import '../../../core/theme/autumn_theme.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
 import '../../catalog/presentation/mushroom_detail_screen.dart';
+import '../../outings/data/outings_database.dart';
+import '../../outings/models/foraging_outing.dart';
 import '../data/spots_database.dart';
 import '../models/foraging_spot.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   final Mushroom? initialMushroomToRegister;
+  final String? initialImagePathToRegister;
+  final String? initialSelectedOutingFilter;
   final VoidCallback? onInitialMushroomConsumed;
+  final VoidCallback? onOpenOfflineMapsManager;
+  final TileProvider? customTileProvider;
 
   const MapScreen({
     super.key,
     this.initialMushroomToRegister,
+    this.initialImagePathToRegister,
+    this.initialSelectedOutingFilter,
     this.onInitialMushroomConsumed,
+    this.onOpenOfflineMapsManager,
+    this.customTileProvider,
   });
 
   @override
-  ConsumerState<MapScreen> createState() => _MapScreenState();
+  ConsumerState<MapScreen> createState() => MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> {
+class MapScreenState extends ConsumerState<MapScreen> {
   final MapController _mapController = MapController();
   bool _useTopoLayer = true;
+  bool _showAllRoutes = true;
   bool _isLocatingGps = false;
   ForagingSpot? _selectedSpot;
   LatLng? _currentUserLocation;
 
-  // Centro inicial en el corazón de Euskadi / Montes Vascos (Gorbeia / Urkiola / Aralar)
+  /// Filtro: 'all' (Todos), 'standalone' (Puntos sueltos) o el ID de una Salida concreta.
+  String _spotFilterMode = 'all';
+
   static const LatLng _defaultBasqueCenter = LatLng(43.0150, -2.5200);
+
+  LatLngBounds get currentViewportBounds => _mapController.camera.visibleBounds;
+  bool get isUsingTopoLayer => _useTopoLayer;
+
+  void moveToRegion(LatLng center, double zoom) {
+    _mapController.move(center, zoom);
+  }
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialSelectedOutingFilter != null) {
+      _spotFilterMode = widget.initialSelectedOutingFilter!;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkPendingMushroomRegistration();
+      _checkPendingRegistration();
     });
   }
 
   @override
   void didUpdateWidget(covariant MapScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.initialSelectedOutingFilter != null &&
+        widget.initialSelectedOutingFilter !=
+            oldWidget.initialSelectedOutingFilter) {
+      setState(() {
+        _spotFilterMode = widget.initialSelectedOutingFilter!;
+      });
+      _centerOnOutingFilter(widget.initialSelectedOutingFilter!);
+    }
     if (widget.initialMushroomToRegister != null &&
         widget.initialMushroomToRegister !=
             oldWidget.initialMushroomToRegister) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _checkPendingMushroomRegistration();
+        _checkPendingRegistration();
       });
     }
   }
 
-  void _checkPendingMushroomRegistration() {
+  void _centerOnOutingFilter(String outingId) {
+    final outings =
+        ref.read(outingsProvider).valueOrNull ?? const <ForagingOuting>[];
+    final target = outings.where((o) => o.id == outingId).firstOrNull;
+    if (target != null && target.routePoints.isNotEmpty) {
+      _mapController.move(target.routePoints.first, 13.8);
+    }
+  }
+
+  void _checkPendingRegistration() {
     final pending = widget.initialMushroomToRegister;
     if (pending != null) {
+      final initialPhoto = widget.initialImagePathToRegister;
       widget.onInitialMushroomConsumed?.call();
       final center = _currentUserLocation ?? _mapController.camera.center;
       _openAddOrEditSpotSheet(
         context,
         initialLatLng: center,
         preselectedMushroom: pending,
+        preselectedPhotoPath: initialPhoto,
       );
     }
   }
@@ -83,7 +125,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'El GPS está desactivado. Puedes mantener pulsado cualquier punto del mapa para guardar un setal.',
+                'El GPS está desactivado. Mantén pulsado cualquier punto del mapa para guardar un setal.',
               ),
             ),
           );
@@ -127,14 +169,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         final fallback = _mapController.camera.center;
         if (openFormAfter) {
           await _openAddOrEditSpotSheet(context, initialLatLng: fallback);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'No se pudo obtener señal GPS en este momento. Puedes pulsar largo en el mapa para marcar el punto.',
-              ),
-            ),
-          );
         }
       }
     } finally {
@@ -147,9 +181,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     required LatLng initialLatLng,
     ForagingSpot? existingSpot,
     Mushroom? preselectedMushroom,
+    String? preselectedPhotoPath,
   }) async {
     final allMushrooms =
         ref.read(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    final activeOuting = ref.read(activeOutingRecorderProvider);
 
     final savedSpot = await showModalBottomSheet<ForagingSpot>(
       context: context,
@@ -159,6 +195,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         initialLatLng: initialLatLng,
         existingSpot: existingSpot,
         preselectedMushroom: preselectedMushroom,
+        preselectedPhotoPath: preselectedPhotoPath,
+        activeOutingId: activeOuting.isRecording
+            ? activeOuting.activeOutingId
+            : null,
+        activeOutingTitle: activeOuting.isRecording
+            ? activeOuting.title
+            : null,
         catalogMushrooms: allMushrooms,
       ),
     );
@@ -207,7 +250,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Mis Setales Guardados (${spots.length})',
+                      'Ubicaciones en Vista (${spots.length})',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: AutumnColors.boletusBrown,
                           ),
@@ -220,7 +263,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     padding: EdgeInsets.symmetric(vertical: 28),
                     child: Center(
                       child: Text(
-                        'Aún no has guardado ninguna ubicación.\nMantén pulsado un punto del mapa o usa el botón Guardar Setal.',
+                        'No hay puntos para el filtro seleccionado.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AutumnColors.textSecondary),
                       ),
@@ -240,15 +283,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             vertical: 4,
                           ),
                           leading: CircleAvatar(
-                            backgroundColor:
-                                AutumnColors.ochreGold.withValues(alpha: 0.2),
-                            child: const Icon(
-                              Icons.location_on_rounded,
-                              color: AutumnColors.boletusBrown,
+                            backgroundColor: spot.isFromOuting
+                                ? AutumnColors.mossGreen.withValues(alpha: 0.2)
+                                : AutumnColors.ochreGold.withValues(alpha: 0.2),
+                            child: Icon(
+                              spot.isFromOuting
+                                  ? Icons.hiking_rounded
+                                  : Icons.location_on_rounded,
+                              color: spot.isFromOuting
+                                  ? AutumnColors.mossGreen
+                                  : AutumnColors.boletusBrown,
                             ),
                           ),
                           title: Text(
-                            spot.title,
+                            '${spot.title} (${spot.quantityCount}x)',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: AutumnColors.textPrimary,
@@ -267,13 +315,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                     fontSize: 12.5,
                                   ),
                                 ),
-                              if (spot.notes.isNotEmpty)
-                                Text(
-                                  spot.notes,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12),
+                              Text(
+                                spot.isFromOuting
+                                    ? 'Salida: ${spot.outingTitle ?? "Ruta GPS"}'
+                                    : 'Punto suelto del Mapa Global',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: AutumnColors.textMuted,
                                 ),
+                              ),
                             ],
                           ),
                           trailing: Text(
@@ -305,20 +355,36 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final spotsAsync = ref.watch(foragingSpotsProvider);
-    final spots = spotsAsync.valueOrNull ?? const <ForagingSpot>[];
+    final allSpots =
+        ref.watch(foragingSpotsProvider).valueOrNull ?? const <ForagingSpot>[];
+    final allOutings =
+        ref.watch(outingsProvider).valueOrNull ?? const <ForagingOuting>[];
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+
+    // Filtrar los puntos según el selector del Mapa Global
+    final visibleSpots = allSpots.where((s) {
+      if (_spotFilterMode == 'all') return true;
+      if (_spotFilterMode == 'standalone') return !s.isFromOuting;
+      return s.outingId == _spotFilterMode;
+    }).toList();
+
+    // Filtrar las polilíneas de las rutas GPS a mostrar
+    final visibleOutingRoutes = allOutings.where((o) {
+      if (o.routePoints.length < 2) return false;
+      if (_spotFilterMode == 'standalone') return false;
+      if (_spotFilterMode == 'all') return _showAllRoutes;
+      return o.id == _spotFilterMode;
+    }).toList();
 
     return Scaffold(
       body: Stack(
         children: [
-          // Mapa interactivo OpenTopoMap / OpenStreetMap
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
               initialCenter: _defaultBasqueCenter,
-              initialZoom: 9.6,
+              initialZoom: 9.8,
               minZoom: 4.0,
               maxZoom: 17.5,
               onTap: (_, __) {
@@ -337,7 +403,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.perretxikotan.app',
                 maxNativeZoom: _useTopoLayer ? 17 : 19,
+                tileProvider: widget.customTileProvider,
               ),
+              // Capa de polilíneas de las rutas GPS de las Salidas
+              if (visibleOutingRoutes.isNotEmpty)
+                PolylineLayer(
+                  polylines: visibleOutingRoutes.map((outing) {
+                    final isHighlighted = _spotFilterMode == outing.id;
+                    return Polyline(
+                      points: outing.routePoints,
+                      color: isHighlighted
+                          ? AutumnColors.terracotta
+                          : AutumnColors.mossGreen.withValues(alpha: 0.82),
+                      strokeWidth: isHighlighted ? 4.8 : 3.6,
+                    );
+                  }).toList(),
+                ),
               if (_currentUserLocation != null)
                 MarkerLayer(
                   markers: [
@@ -350,21 +431,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           color: Colors.blueAccent,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blueAccent.withValues(alpha: 0.45),
-                              blurRadius: 10,
-                              spreadRadius: 3,
-                            ),
-                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
+              // Marcadores diferenciados visualmente (Puntos de Salida vs Puntos sueltos)
               MarkerLayer(
-                markers: spots.map((spot) {
+                markers: visibleSpots.map((spot) {
                   final isSelected = _selectedSpot?.id == spot.id;
+                  final isFromOuting = spot.isFromOuting;
+
                   return Marker(
                     point: LatLng(spot.latitude, spot.longitude),
                     width: isSelected ? 56 : 46,
@@ -386,11 +463,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AutumnColors.terracotta
-                                : AutumnColors.boletusBrown,
+                                : (isFromOuting
+                                    ? AutumnColors.mossGreen
+                                    : AutumnColors.boletusBrown),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AutumnColors.amberLeaf,
-                              width: isSelected ? 3 : 2,
+                              color: isFromOuting
+                                  ? Colors.white
+                                  : AutumnColors.amberLeaf,
+                              width: isSelected ? 3 : 2.2,
                             ),
                             boxShadow: [
                               BoxShadow(
@@ -400,10 +481,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.park_rounded,
+                          child: Icon(
+                            isFromOuting
+                                ? Icons.hiking_rounded
+                                : Icons.park_rounded,
                             color: Colors.white,
-                            size: 22,
+                            size: 21,
                           ),
                         ),
                       ),
@@ -414,137 +497,125 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ],
           ),
 
-          // Barra superior translúcida con controles de capa y listado de setales
+          // Cabecera translúcida con controles de Capa, Rutas, Mapas Offline y Filtro por Salida
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                         decoration: BoxDecoration(
-                          color: AutumnColors.barkDark.withValues(alpha: 0.80),
+                          color: AutumnColors.barkDark.withValues(alpha: 0.82),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color:
                                 AutumnColors.amberLeaf.withValues(alpha: 0.35),
                           ),
                         ),
-                        child: Row(
+                        child: Column(
                           children: [
-                            const Icon(
-                              Icons.explore_rounded,
-                              color: AutumnColors.amberLeaf,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Mapa de Setales',
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.explore_rounded,
+                                  color: AutumnColors.amberLeaf,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Mapa Global de Setales',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 15.5,
+                                      fontSize: 15,
                                     ),
                                   ),
-                                  Text(
-                                    'Mantén pulsado el mapa para guardar un sitio',
-                                    style: TextStyle(
-                                      color: AutumnColors.warmSand
-                                          .withValues(alpha: 0.85),
-                                      fontSize: 11.5,
-                                    ),
+                                ),
+                                // Conmutador de Rutas GPS ON/OFF
+                                _HeaderPillButton(
+                                  icon: Icons.route_rounded,
+                                  label: _showAllRoutes ? 'Rutas ON' : 'Rutas OFF',
+                                  active: _showAllRoutes,
+                                  onTap: () {
+                                    setState(
+                                        () => _showAllRoutes = !_showAllRoutes);
+                                  },
+                                ),
+                                const SizedBox(width: 6),
+                                // Conmutador Topográfico / Calle
+                                _HeaderPillButton(
+                                  icon: _useTopoLayer
+                                      ? Icons.terrain_rounded
+                                      : Icons.map_outlined,
+                                  label: _useTopoLayer ? 'Topo' : 'Calle',
+                                  active: _useTopoLayer,
+                                  onTap: () {
+                                    setState(
+                                        () => _useTopoLayer = !_useTopoLayer);
+                                  },
+                                ),
+                                if (widget.onOpenOfflineMapsManager != null) ...[
+                                  const SizedBox(width: 6),
+                                  _HeaderPillButton(
+                                    icon: Icons.download_for_offline_rounded,
+                                    label: 'Offline',
+                                    active: true,
+                                    onTap: widget.onOpenOfflineMapsManager!,
                                   ),
                                 ],
-                              ),
-                            ),
-                            // Conmutador Topográfico / Estándar
-                            InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                setState(() => _useTopoLayer = !_useTopoLayer);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
+                                const SizedBox(width: 6),
+                                _HeaderPillButton(
+                                  icon: Icons.format_list_bulleted_rounded,
+                                  label: '${visibleSpots.length}',
+                                  active: false,
+                                  onTap: () =>
+                                      _openSavedSpotsListSheet(visibleSpots),
                                 ),
-                                decoration: BoxDecoration(
-                                  color: AutumnColors.ochreGold
-                                      .withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: AutumnColors.amberLeaf
-                                        .withValues(alpha: 0.5),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Selector de filtro: Todos / Puntos sueltos / Salidas concretas
+                            SizedBox(
+                              height: 30,
+                              child: ListView(
+                                scrollDirection: Axis.horizontal,
+                                children: [
+                                  _FilterChipPill(
+                                    label: 'Todos (${allSpots.length})',
+                                    selected: _spotFilterMode == 'all',
+                                    onTap: () =>
+                                        setState(() => _spotFilterMode = 'all'),
                                   ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      _useTopoLayer
-                                          ? Icons.terrain_rounded
-                                          : Icons.map_outlined,
-                                      color: AutumnColors.amberLeaf,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _useTopoLayer ? 'Topo' : 'Calle',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                  const SizedBox(width: 6),
+                                  _FilterChipPill(
+                                    label:
+                                        'Puntos sueltos (${allSpots.where((s) => !s.isFromOuting).length})',
+                                    selected: _spotFilterMode == 'standalone',
+                                    onTap: () => setState(
+                                        () => _spotFilterMode = 'standalone'),
+                                  ),
+                                  ...allOutings.map((outing) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(left: 6),
+                                      child: _FilterChipPill(
+                                        label: 'Salida: ${outing.title}',
+                                        selected: _spotFilterMode == outing.id,
+                                        onTap: () {
+                                          setState(() =>
+                                              _spotFilterMode = outing.id);
+                                          _centerOnOutingFilter(outing.id);
+                                        },
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Ver lista de setales
-                            InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () => _openSavedSpotsListSheet(spots),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.format_list_bulleted_rounded,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${spots.length}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                    );
+                                  }),
+                                ],
                               ),
                             ),
                           ],
@@ -557,10 +628,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // Botones laterales de control de mapa (GPS + Añadir ubicación)
+          // Botones flotantes (GPS + Guardar Setal)
           Positioned(
             right: 16,
-            bottom: _selectedSpot != null ? 265 : 112,
+            bottom: _selectedSpot != null ? 275 : 112,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -569,8 +640,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   backgroundColor: AutumnColors.parchmentBg,
                   foregroundColor: AutumnColors.boletusBrown,
                   tooltip: 'Centrar en mi posición GPS',
-                  onPressed:
-                      _isLocatingGps ? null : () => _centerOnUserGps(),
+                  onPressed: _isLocatingGps ? null : () => _centerOnUserGps(),
                   child: _isLocatingGps
                       ? const SizedBox(
                           width: 18,
@@ -598,7 +668,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // Tarjeta inferior emergente al seleccionar un marcador del mapa
           if (_selectedSpot != null)
             Positioned(
               left: 16,
@@ -628,6 +697,96 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeaderPillButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _HeaderPillButton({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(11),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: active
+              ? AutumnColors.ochreGold.withValues(alpha: 0.28)
+              : Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(11),
+          border: active
+              ? Border.all(
+                  color: AutumnColors.amberLeaf.withValues(alpha: 0.55))
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: active ? AutumnColors.amberLeaf : Colors.white,
+              size: 14,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterChipPill extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChipPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected
+              ? AutumnColors.amberLeaf
+              : Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AutumnColors.barkDark : Colors.white,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
@@ -702,10 +861,48 @@ class _SelectedSpotCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: spot.isFromOuting
+                                ? AutumnColors.mossGreen.withValues(alpha: 0.16)
+                                : AutumnColors.ochreGold.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            spot.isFromOuting
+                                ? 'SALIDA: ${spot.outingTitle ?? "RUTA"}'
+                                : 'PUNTO SUELTO',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: spot.isFromOuting
+                                  ? AutumnColors.mossGreen
+                                  : AutumnColors.boletusBrown,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${spot.quantityCount} ej.${spot.weightGrams != null ? " (${spot.weightGrams}g)" : ""}',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: AutumnColors.terracotta,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     Text(
                       spot.title,
                       style: const TextStyle(
-                        fontSize: 16.5,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: AutumnColors.boletusBrown,
                       ),
@@ -725,42 +922,22 @@ class _SelectedSpotCard extends StatelessWidget {
                                 );
                               },
                         child: Padding(
-                          padding: const EdgeInsets.only(top: 3),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.eco_rounded,
-                                size: 14,
-                                color: AutumnColors.mossGreen,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  spot.mushroomName!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: AutumnColors.mossGreen,
-                                    decoration: linkedMushroom != null
-                                        ? TextDecoration.underline
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            spot.mushroomName!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AutumnColors.mossGreen,
+                              decoration: linkedMushroom != null
+                                  ? TextDecoration.underline
+                                  : null,
+                            ),
                           ),
                         ),
                       ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${DateFormat('dd/MM/yyyy').format(spot.foundAt)} · ${spot.latitude.toStringAsFixed(4)}, ${spot.longitude.toStringAsFixed(4)}',
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: AutumnColors.textMuted,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -775,7 +952,7 @@ class _SelectedSpotCard extends StatelessWidget {
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(11),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: AutumnColors.creamCard,
                 borderRadius: BorderRadius.circular(12),
@@ -785,14 +962,14 @@ class _SelectedSpotCard extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 13.2,
+                  fontSize: 13,
                   height: 1.38,
                   color: AutumnColors.textPrimary,
                 ),
               ),
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -807,12 +984,13 @@ class _SelectedSpotCard extends StatelessWidget {
               const SizedBox(width: 6),
               FilledButton.tonalIcon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AutumnColors.ochreGold.withValues(alpha: 0.2),
+                  backgroundColor:
+                      AutumnColors.ochreGold.withValues(alpha: 0.2),
                   foregroundColor: AutumnColors.boletusBrown,
                 ),
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_note_rounded, size: 18),
-                label: const Text('Editar nota'),
+                label: const Text('Editar'),
               ),
             ],
           ),
@@ -826,12 +1004,18 @@ class _SpotFormBottomSheet extends StatefulWidget {
   final LatLng initialLatLng;
   final ForagingSpot? existingSpot;
   final Mushroom? preselectedMushroom;
+  final String? preselectedPhotoPath;
+  final String? activeOutingId;
+  final String? activeOutingTitle;
   final List<Mushroom> catalogMushrooms;
 
   const _SpotFormBottomSheet({
     required this.initialLatLng,
     this.existingSpot,
     this.preselectedMushroom,
+    this.preselectedPhotoPath,
+    this.activeOutingId,
+    this.activeOutingTitle,
     required this.catalogMushrooms,
   });
 
@@ -844,6 +1028,8 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
   late final TextEditingController _notesController;
   late final TextEditingController _latController;
   late final TextEditingController _lngController;
+  late final TextEditingController _qtyController;
+  late final TextEditingController _weightController;
   late DateTime _selectedDate;
   String? _selectedMushroomId;
   String? _selectedMushroomName;
@@ -857,7 +1043,9 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
 
     _titleController = TextEditingController(
       text: existing?.title ??
-          (pre != null ? 'Setal de ${pre.basqueName.split('/').first.trim()}' : ''),
+          (pre != null
+              ? 'Setal de ${pre.basqueName.split('/').first.trim()}'
+              : ''),
     );
     _notesController = TextEditingController(text: existing?.notes ?? '');
     _latController = TextEditingController(
@@ -868,11 +1056,17 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
       text: (existing?.longitude ?? widget.initialLatLng.longitude)
           .toStringAsFixed(5),
     );
+    _qtyController = TextEditingController(
+      text: '${existing?.quantityCount ?? 1}',
+    );
+    _weightController = TextEditingController(
+      text: existing?.weightGrams != null ? '${existing!.weightGrams}' : '',
+    );
     _selectedDate = existing?.foundAt ?? DateTime.now();
     _selectedMushroomId = existing?.mushroomId ?? pre?.id;
     _selectedMushroomName = existing?.mushroomName ??
         (pre != null ? '${pre.basqueName} / ${pre.spanishName}' : null);
-    _photoPath = existing?.photoPath;
+    _photoPath = existing?.photoPath ?? widget.preselectedPhotoPath;
   }
 
   @override
@@ -881,6 +1075,8 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     _notesController.dispose();
     _latController.dispose();
     _lngController.dispose();
+    _qtyController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -1024,6 +1220,8 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
         widget.initialLatLng.latitude;
     final lng = double.tryParse(_lngController.text.replaceAll(',', '.')) ??
         widget.initialLatLng.longitude;
+    final qty = int.tryParse(_qtyController.text.trim()) ?? 1;
+    final grams = int.tryParse(_weightController.text.trim());
 
     final spot = ForagingSpot(
       id: widget.existingSpot?.id ??
@@ -1036,6 +1234,11 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
       notes: _notesController.text.trim(),
       foundAt: _selectedDate,
       photoPath: _photoPath,
+      outingId: widget.existingSpot?.outingId ?? widget.activeOutingId,
+      outingTitle:
+          widget.existingSpot?.outingTitle ?? widget.activeOutingTitle,
+      quantityCount: qty < 1 ? 1 : qty,
+      weightGrams: grams,
     );
 
     Navigator.of(context).pop(spot);
@@ -1075,9 +1278,27 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                     color: AutumnColors.boletusBrown,
                   ),
             ),
+            if (widget.activeOutingTitle != null) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AutumnColors.mossGreen.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'Se vinculará a tu salida activa: ${widget.activeOutingTitle}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AutumnColors.mossGreen,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 14),
 
-            // Nombre del sitio
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -1088,7 +1309,6 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Selector de especie del catálogo
             InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: _selectMushroomDialog,
@@ -1102,7 +1322,7 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                     Expanded(
                       child: Text(
                         _selectedMushroomName ??
-                            'Pulsa para elegir una seta del catálogo (opcional)',
+                            'Pulsa para elegir una seta del catálogo',
                         style: TextStyle(
                           color: _selectedMushroomName != null
                               ? AutumnColors.textPrimary
@@ -1123,14 +1343,43 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Nota descriptiva detallada
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _qtyController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Nº ejemplares',
+                      prefixIcon: Icon(Icons.tag_rounded),
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _weightController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Peso aprox. (g)',
+                      hintText: 'Opcional',
+                      prefixIcon: Icon(Icons.scale_rounded),
+                      isDense: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
             TextField(
               controller: _notesController,
               maxLines: 3,
               decoration: const InputDecoration(
                 labelText: 'Nota descriptiva del hallazgo',
                 hintText:
-                    'Detalla orientación de la ladera, árboles cercanos, humedad, cantidad o referencias para volver...',
+                    'Detalla orientación de la ladera, árboles cercanos, humedad, cantidad o referencias...',
                 alignLabelWithHint: true,
                 prefixIcon: Padding(
                   padding: EdgeInsets.only(bottom: 42),
@@ -1140,7 +1389,6 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Coordenadas y Fecha
             Row(
               children: [
                 Expanded(
@@ -1174,7 +1422,6 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Fecha y Fotografía opcional
             Row(
               children: [
                 Expanded(
@@ -1218,33 +1465,6 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                 ),
               ],
             ),
-
-            if (_photoPath != null &&
-                !kIsWeb &&
-                File(_photoPath!).existsSync()) ...[
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    Image.file(
-                      File(_photoPath!),
-                      height: 110,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                    IconButton.filled(
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.black54,
-                      ),
-                      onPressed: () => setState(() => _photoPath = null),
-                      icon: const Icon(Icons.close_rounded, size: 18),
-                    ),
-                  ],
-                ),
-              ),
-            ],
 
             const SizedBox(height: 18),
             SizedBox(
