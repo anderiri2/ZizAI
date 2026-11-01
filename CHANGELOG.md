@@ -2,6 +2,13 @@
 
 Todos los cambios relevantes de **Perretxikotan** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
 
+## [1.3.0] - 2026-11-01 (`v1.3.0`)
+### Cambiado
+- **Nuevo Logo Ilustrado de *Amanita caesarea* y Splash Animado de 2.0 Segundos (`feature/custom-caesarea-logo-and-2s-splash`)**:
+  - Sustitución de `assets/images/logo_perretxikotan.png` y de todos los iconos nativos de Android (`mipmap-*`) e iOS (`AppIcon.appiconset`) por la ilustración vectorial de *Amanita caesarea* con su huevo blanco (*volva*) sobre fondo verde bosque oscuro (`#192718`).
+  - Nuevo `SplashScreen` animado de **exactamente 2.0 segundos (`2000 ms`)** con los 24 fotogramas de eclosión de la volva blanca, emergencia del pie amarillo con anillo y apertura del sombrero naranja intenso de la *Amanita caesarea*.
+  - Configuración de `launch_background.xml` en Android con el color `#192718` para transición nativa sin pantallazo blanco.
+
 ## [1.2.0] - 2026-11-01 (`v1.2.0`)
 ### Añadido
 - **Soporte Trilingüe Completo (`EU` / `ES` / `EN`) con Euskera (`eu`) como idioma principal por defecto (`feature/trilingual-eu-es-en`)**:

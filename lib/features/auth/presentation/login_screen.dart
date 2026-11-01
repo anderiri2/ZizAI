@@ -60,27 +60,22 @@ class LoginScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Amanita caesarea emblem logo
+                          // Amanita caesarea illustrated app icon logo
                           Container(
-                            width: 126,
-                            height: 126,
-                            padding: const EdgeInsets.all(5),
+                            width: 132,
+                            height: 132,
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AutumnColors.parchmentBg,
-                              border: Border.all(
-                                color: AutumnColors.amberLeaf,
-                                width: 2.5,
-                              ),
+                              borderRadius: BorderRadius.circular(30),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.4),
-                                  blurRadius: 24,
+                                  color: Colors.black.withValues(alpha: 0.48),
+                                  blurRadius: 26,
                                   offset: const Offset(0, 10),
                                 ),
                               ],
                             ),
-                            child: ClipOval(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(30),
                               child: Image.asset(
                                 'assets/images/logo_perretxikotan.png',
                                 fit: BoxFit.cover,

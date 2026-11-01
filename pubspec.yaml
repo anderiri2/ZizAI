@@ -37,7 +37,5 @@ flutter:
     - assets/data/mushrooms_catalog.json
     - assets/images/logo_perretxikotan.png
     - assets/images/autumn_forest_bg.png
-    - assets/images/splash_caesarea_stage1_egg.png
-    - assets/images/splash_caesarea_stage2_emerging.png
-    - assets/images/splash_caesarea_stage3_open.png
+    - assets/images/splash_frames/
     - assets/images/mushrooms/
