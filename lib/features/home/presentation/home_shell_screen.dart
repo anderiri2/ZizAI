@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/safety_disclaimer_banner.dart';
 import '../../../core/widgets/translucent_bottom_nav.dart';
+import '../../ai_identifier/presentation/ai_identifier_screen.dart';
 import '../../backup/presentation/backup_screen.dart';
+import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
 import '../../catalog/presentation/catalog_screen.dart';
-import '../../map/data/spots_database.dart';
 import '../../map/presentation/map_screen.dart';
+import '../../outings/presentation/outings_screen.dart';
 
 class HomeShellScreen extends ConsumerStatefulWidget {
-  final VoidCallback onSignOutToLogin;
+  final VoidCallback? onSignOutToLogin;
 
   const HomeShellScreen({
     super.key,
-    required this.onSignOutToLogin,
+    this.onSignOutToLogin,
   });
 
   @override
@@ -21,8 +23,10 @@ class HomeShellScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
-  int _selectedIndex = 0;
+  int _currentTabIndex = 0;
   Mushroom? _pendingMushroomForMap;
+  String? _pendingPhotoPathForMap;
+  String? _selectedOutingIdForMapFilter;
 
   @override
   void initState() {
@@ -32,42 +36,71 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
     });
   }
 
-  void _navigateToMapWithMushroom(Mushroom mushroom) {
+  void _openMapToRegisterSpecies(Mushroom mushroom, [String? photoPath]) {
     setState(() {
       _pendingMushroomForMap = mushroom;
-      _selectedIndex = 1;
+      _pendingPhotoPathForMap = photoPath;
+      _currentTabIndex = 1;
+    });
+  }
+
+  void _openMapFilteredByOuting(String outingId) {
+    setState(() {
+      _selectedOutingIdForMapFilter = outingId;
+      _currentTabIndex = 1;
+    });
+  }
+
+  void _openMapToRegisterSpotOnActiveOuting() {
+    final catalog =
+        ref.read(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    setState(() {
+      if (catalog.isNotEmpty) {
+        _pendingMushroomForMap = catalog.first;
+      }
+      _currentTabIndex = 1;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final spotsAsync = ref.watch(foragingSpotsProvider);
-    final spotsCount = spotsAsync.valueOrNull?.length ?? 0;
-
     return Scaffold(
       extendBody: true,
       body: IndexedStack(
-        index: _selectedIndex,
+        index: _currentTabIndex,
         children: [
           CatalogScreen(
-            onRegisterSpotInMap: _navigateToMapWithMushroom,
+            onRegisterSpotInMap: (mushroom) =>
+                _openMapToRegisterSpecies(mushroom),
           ),
           MapScreen(
             initialMushroomToRegister: _pendingMushroomForMap,
+            initialImagePathToRegister: _pendingPhotoPathForMap,
+            initialSelectedOutingFilter: _selectedOutingIdForMapFilter,
             onInitialMushroomConsumed: () {
-              setState(() => _pendingMushroomForMap = null);
+              setState(() {
+                _pendingMushroomForMap = null;
+                _pendingPhotoPathForMap = null;
+              });
             },
           ),
-          BackupScreen(
-            onSignOutToLogin: widget.onSignOutToLogin,
+          OutingsScreen(
+            onViewOutingInGlobalMap: _openMapFilteredByOuting,
+            onAddSpotInMapDuringOuting: _openMapToRegisterSpotOnActiveOuting,
           ),
+          AiIdentifierScreen(
+            onRegisterIdentifiedMushroomInMap: (mushroom, photoPath) =>
+                _openMapToRegisterSpecies(mushroom, photoPath),
+          ),
+          const BackupScreen(),
         ],
       ),
-      bottomNavigationBar: TranslucentBottomNav(
-        currentIndex: _selectedIndex,
-        savedSpotsCount: spotsCount,
-        onTap: (idx) {
-          setState(() => _selectedIndex = idx);
+      bottomNavigationBar: TranslucentBottomNavBar(
+        currentIndex: _currentTabIndex,
+        onTabSelected: (index) {
+          setState(() {
+            _currentTabIndex = index;
+          });
         },
       ),
     );
