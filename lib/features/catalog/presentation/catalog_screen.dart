@@ -89,15 +89,20 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Perretxikotan',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: AutumnColors.boletusBrown,
-                                fontWeight: FontWeight.w800,
-                              ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Perretxikotan',
+                            maxLines: 1,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  color: AutumnColors.boletusBrown,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
                         ),
                         Text(
                           s.catalogHeaderSubtitle,

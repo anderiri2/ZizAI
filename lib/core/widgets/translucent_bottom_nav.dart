@@ -134,16 +134,18 @@ class _NavItem extends StatelessWidget {
                     : AutumnColors.parchmentBg.withValues(alpha: 0.72),
               ),
               const SizedBox(height: 2),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected
-                      ? Colors.white
-                      : AutumnColors.parchmentBg.withValues(alpha: 0.72),
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  fontSize: 10.5,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: selected
+                        ? Colors.white
+                        : AutumnColors.parchmentBg.withValues(alpha: 0.72),
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    fontSize: 10.5,
+                  ),
                 ),
               ),
             ],
