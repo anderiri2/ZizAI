@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
+import '../../../core/widgets/settings_drawer.dart';
 import '../../ai_identifier/services/gemini_mushroom_service.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../map/data/spots_database.dart';
@@ -107,8 +108,6 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const LanguageSelectorPill(darkSurface: false),
                 ],
               ),
               const SizedBox(height: 18),
@@ -325,65 +324,74 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               const SizedBox(height: 16),
 
               // Configuración de Fusión Inteligente y Auto-Backup
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AutumnColors.warmSand),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AutumnColors.mossGreen,
-                      title: const Text(
-                        'Fusión Inteligente al Restaurar (Recomendado)',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
-                          color: AutumnColors.boletusBrown,
+              Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AutumnColors.warmSand),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Material(
+                        color: Colors.transparent,
+                        child: SwitchListTile.adaptive(
+                          contentPadding: EdgeInsets.zero,
+                          activeThumbColor: AutumnColors.mossGreen,
+                          title: const Text(
+                            'Fusión Inteligente al Restaurar (Recomendado)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                              color: AutumnColors.boletusBrown,
+                            ),
+                          ),
+                          subtitle: Text(
+                            _smartMergeOnRestore
+                                ? 'Combina los datos de Google Drive con los datos locales sin perder ninguna salida ni ubicación.'
+                                : 'Modo Reemplazo: sustituye los datos actuales del teléfono por el contenido exacto del backup.',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              color: AutumnColors.textSecondary,
+                            ),
+                          ),
+                          value: _smartMergeOnRestore,
+                          onChanged: (v) =>
+                              setState(() => _smartMergeOnRestore = v),
                         ),
                       ),
-                      subtitle: Text(
-                        _smartMergeOnRestore
-                            ? 'Combina los datos de Google Drive con los datos locales sin perder ninguna salida ni ubicación.'
-                            : 'Modo Reemplazo: sustituye los datos actuales del teléfono por el contenido exacto del backup.',
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: AutumnColors.textSecondary,
+                      const Divider(height: 12),
+                      Material(
+                        color: Colors.transparent,
+                        child: SwitchListTile.adaptive(
+                          contentPadding: EdgeInsets.zero,
+                          activeThumbColor: AutumnColors.ochreGold,
+                          title: const Text(
+                            'Copia automática tras registrar salidas',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                              color: AutumnColors.boletusBrown,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Sincroniza automáticamente tu actividad cuando tengas conexión.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: AutumnColors.textSecondary,
+                            ),
+                          ),
+                          value: authState.autoBackupEnabled,
+                          onChanged: (v) => ref
+                              .read(googleDriveBackupProvider.notifier)
+                              .setAutoBackupEnabled(v),
                         ),
                       ),
-                      value: _smartMergeOnRestore,
-                      onChanged: (v) =>
-                          setState(() => _smartMergeOnRestore = v),
-                    ),
-                    const Divider(height: 12),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AutumnColors.ochreGold,
-                      title: const Text(
-                        'Copia automática tras registrar salidas',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
-                          color: AutumnColors.boletusBrown,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Sincroniza automáticamente tu actividad cuando tengas conexión.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: AutumnColors.textSecondary,
-                        ),
-                      ),
-                      value: authState.autoBackupEnabled,
-                      onChanged: (v) => ref
-                          .read(googleDriveBackupProvider.notifier)
-                          .setAutoBackupEnabled(v),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -432,20 +440,43 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       color: AutumnColors.cautionOrange.withValues(alpha: 0.4),
                     ),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.info_outline_rounded,
-                        color: AutumnColors.cautionOrange,
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            color: AutumnColors.cautionOrange,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              authState.errorMessage!,
+                              style: const TextStyle(
+                                color: AutumnColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          authState.errorMessage!,
-                          style: const TextStyle(
-                            color: AutumnColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          foregroundColor: AutumnColors.boletusBrown,
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: () =>
+                            SettingsDrawer.showOauthDiagnosticDialog(context),
+                        icon: const Icon(Icons.help_outline_rounded, size: 16),
+                        label: const Text(
+                          'Ver solución y guía de configuración OAuth / SHA-1',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),

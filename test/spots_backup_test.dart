@@ -166,5 +166,30 @@ void main() {
       expect(mushroom.edibility, EdibilityLevel.good);
       expect(mushroom.confusions.first.targetId, 'lactarius_torminosus');
     });
+
+    test('ForagingOuting supports isManual mode without GPS and formats label correctly', () {
+      final manualOuting = ForagingOuting(
+        id: 'outing_manual_01',
+        title: 'Paseo micológico por Pagoeta',
+        startedAt: DateTime.utc(2026, 10, 20, 10, 0),
+        endedAt: DateTime.utc(2026, 10, 20, 12, 30),
+        durationSeconds: 9000,
+        distanceMeters: 0.0,
+        routePoints: const [],
+        notes: 'Salida manual sin GPS.',
+        isManual: true,
+      );
+
+      expect(manualOuting.isManual, isTrue);
+      expect(manualOuting.formattedDistanceKm, 'Manual (Sin GPS)');
+      expect(manualOuting.formattedDuration, '2h 30m');
+
+      final map = manualOuting.toMap();
+      expect(map['isManual'], 1);
+
+      final restored = ForagingOuting.fromMap(map);
+      expect(restored.isManual, isTrue);
+      expect(restored.title, 'Paseo micológico por Pagoeta');
+    });
   });
 }

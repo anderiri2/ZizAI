@@ -13,6 +13,7 @@ import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
 import '../data/outings_database.dart';
 import '../models/foraging_outing.dart';
+import 'map_spot_picker_screen.dart';
 
 class OutingsScreen extends ConsumerStatefulWidget {
   final void Function(String outingId)? onViewOutingOnGlobalMap;
@@ -34,64 +35,418 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
   final MapController _liveMapController = MapController();
 
   Future<void> _promptStartNewOuting() async {
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
     final titleCtrl = TextEditingController(
       text: 'Salida de otoño (${DateFormat('dd/MM').format(DateTime.now())})',
     );
+    int selectedMode = 0; // 0 = GPS en Vivo, 1 = Manual en Directo, 2 = Retrospectiva
+    DateTime selectedDate = DateTime.now();
+    int durationMinutes = 120;
 
-    final confirmed = await showDialog<bool>(
+    final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AutumnColors.parchmentBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
-          'Iniciar Nueva Salida al Monte',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: AutumnColors.boletusBrown,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Se grabará tu recorrido GPS y podrás ir anotando todas las setas que encuentres en la vuelta.',
-              style: TextStyle(
-                fontSize: 13.5,
-                color: AutumnColors.textSecondary,
-              ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFFFAF4EA),
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            s.tr(
+              eu: 'Irteera Berria Antolatu',
+              es: 'Nueva Salida al Monte',
+              en: 'New Foraging Outing',
             ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: titleCtrl,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Nombre de la salida / zona',
-                hintText: 'Ej. Vuelta por el Hayedo de Altube',
-                prefixIcon: Icon(Icons.hiking_rounded),
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AutumnColors.boletusBrown,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s.tr(
+                    eu: 'Aukeratu irteera mota:',
+                    es: 'Elige la modalidad de salida:',
+                    en: 'Choose outing mode:',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AutumnColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Modo 0: GPS en Vivo
+                InkWell(
+                  onTap: () => setDialogState(() => selectedMode = 0),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: selectedMode == 0
+                          ? AutumnColors.amberLeaf.withValues(alpha: 0.14)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: selectedMode == 0
+                            ? AutumnColors.amberLeaf
+                            : AutumnColors.warmSand,
+                        width: selectedMode == 0 ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.gps_fixed_rounded,
+                          color: AutumnColors.mossGreen,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.tr(
+                                  eu: 'GPS Ibilbidea Zuzenean',
+                                  es: 'Ruta GPS en Vivo',
+                                  en: 'Live GPS Track',
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: AutumnColors.boletusBrown,
+                                ),
+                              ),
+                              Text(
+                                s.tr(
+                                  eu: 'Ibilbidea satelite bidez grabatzen du',
+                                  es: 'Graba el recorrido y distancia continuamente',
+                                  en: 'Records live GPS trail and distance',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AutumnColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          selectedMode == 0
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: selectedMode == 0
+                              ? AutumnColors.amberLeaf
+                              : AutumnColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Modo 1: Salida Manual (Sin GPS)
+                InkWell(
+                  onTap: () => setDialogState(() => selectedMode = 1),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: selectedMode == 1
+                          ? AutumnColors.amberLeaf.withValues(alpha: 0.14)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: selectedMode == 1
+                            ? AutumnColors.amberLeaf
+                            : AutumnColors.warmSand,
+                        width: selectedMode == 1 ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.battery_charging_full_rounded,
+                          color: AutumnColors.amberLeaf,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.tr(
+                                  eu: 'Eskuzko Irteera (GPS gabe)',
+                                  es: 'Salida Manual (Sin GPS)',
+                                  en: 'Manual Outing (No GPS)',
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: AutumnColors.boletusBrown,
+                                ),
+                              ),
+                              Text(
+                                s.tr(
+                                  eu: '%0 bateria-gastua • Mapan setalak markatu',
+                                  es: '0% batería GPS • Ubica setas en el mapa',
+                                  en: 'Zero battery drain • Place spots on map',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AutumnColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          selectedMode == 1
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: selectedMode == 1
+                              ? AutumnColors.amberLeaf
+                              : AutumnColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Modo 2: Salida Retrospectiva (Pasada)
+                InkWell(
+                  onTap: () => setDialogState(() => selectedMode = 2),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: selectedMode == 2
+                          ? AutumnColors.amberLeaf.withValues(alpha: 0.14)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: selectedMode == 2
+                            ? AutumnColors.amberLeaf
+                            : AutumnColors.warmSand,
+                        width: selectedMode == 2 ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.history_rounded,
+                          color: AutumnColors.boletusBrown,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.tr(
+                                  eu: 'Iraganeko Irteera Erregistratu',
+                                  es: 'Registrar Salida Pasada',
+                                  en: 'Log Past Outing',
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: AutumnColors.boletusBrown,
+                                ),
+                              ),
+                              Text(
+                                s.tr(
+                                  eu: 'Etxera itzultzean datak eta setak sartu',
+                                  es: 'Guarda salidas anteriores con fecha y notas',
+                                  en: 'Record previous trips with date and finds',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AutumnColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          selectedMode == 2
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: selectedMode == 2
+                              ? AutumnColors.amberLeaf
+                              : AutumnColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                TextField(
+                  controller: titleCtrl,
+                  decoration: InputDecoration(
+                    labelText: s.tr(
+                      eu: 'Irteeraren izena / gunea',
+                      es: 'Nombre de la salida / zona',
+                      en: 'Outing / zone name',
+                    ),
+                    hintText: 'Ej. Hayedo de Altube',
+                    prefixIcon: const Icon(Icons.hiking_rounded),
+                  ),
+                ),
+
+                if (selectedMode == 2) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: selectedDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() => selectedDate = picked);
+                            }
+                          },
+                          icon: const Icon(Icons.calendar_month_rounded, size: 16),
+                          label: Text(
+                            DateFormat('dd/MM/yyyy').format(selectedDate),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue: durationMinutes,
+                          decoration: const InputDecoration(
+                            labelText: 'Duración aprox.',
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 60, child: Text('1h 00m')),
+                            DropdownMenuItem(value: 90, child: Text('1h 30m')),
+                            DropdownMenuItem(value: 120, child: Text('2h 00m')),
+                            DropdownMenuItem(value: 180, child: Text('3h 00m')),
+                            DropdownMenuItem(value: 240, child: Text('4h 00m')),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) {
+                              setDialogState(() => durationMinutes = v);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AutumnColors.boletusBrown,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              icon: Icon(
+                selectedMode == 2
+                    ? Icons.save_rounded
+                    : Icons.play_arrow_rounded,
+              ),
+              label: Text(
+                selectedMode == 2
+                    ? s.tr(eu: 'Gorde Irteera', es: 'Guardar Salida', en: 'Save Outing')
+                    : selectedMode == 1
+                        ? s.tr(eu: 'Hasi Eskuz (GPS gabe)', es: 'Iniciar Sin GPS', en: 'Start Manual')
+                        : s.tr(eu: 'Hasi GPS Ibilbidea', es: 'Empezar Ruta GPS', en: 'Start GPS Route'),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: const Text('Empezar Ruta GPS'),
-          ),
-        ],
       ),
     );
 
-    if (confirmed == true) {
-      await ref.read(activeOutingRecorderProvider.notifier).startOuting(
-            titleCtrl.text,
-            initialPoint: const LatLng(43.0340, -2.7270),
+    if (result == true) {
+      if (selectedMode == 2) {
+        // Salida Retrospectiva
+        final outing = ref
+            .read(activeOutingRecorderProvider.notifier)
+            .createRetrospectiveOuting(
+              title: titleCtrl.text,
+              startedAt: selectedDate,
+              durationSeconds: durationMinutes * 60,
+              notes: 'Salida manual registrada retrospectivamente.',
+            );
+        await ref.read(outingsProvider.notifier).saveOuting(outing);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AutumnColors.mossGreen,
+              content: Text(
+                'Salida "${outing.title}" guardada. Ya puedes añadir setas tocando en el mapa.',
+              ),
+              action: SnackBarAction(
+                label: 'Añadir seta',
+                textColor: Colors.white,
+                onPressed: () =>
+                    _openMapSpotPickerForOuting(outing.id, outing.title),
+              ),
+            ),
           );
+        }
+      } else {
+        // Salida en Vivo (GPS o Manual)
+        final isManual = selectedMode == 1;
+        await ref.read(activeOutingRecorderProvider.notifier).startOuting(
+              titleCtrl.text,
+              initialPoint: const LatLng(43.0340, -2.7270),
+              isManual: isManual,
+            );
+      }
+    }
+  }
+
+  Future<void> _openMapSpotPickerForOuting(
+    String outingId,
+    String outingTitle,
+  ) async {
+    final newSpot = await Navigator.of(context).push<ForagingSpot>(
+      MaterialPageRoute(
+        builder: (_) => MapSpotPickerScreen(
+          outingId: outingId,
+          outingTitle: outingTitle,
+        ),
+      ),
+    );
+
+    if (newSpot != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AutumnColors.mossGreen,
+          content: Text(
+            'Seta "${newSpot.mushroomName ?? 'hallazgo'}" añadida a la salida "$outingTitle"',
+          ),
+        ),
+      );
     }
   }
 
@@ -108,7 +463,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _OutingFindFormSheet(
+      builder: (ctx) => OutingFindFormSheet(
         position: currentPos,
         outingId: activeState.activeOutingId!,
         outingTitle: activeState.title,
@@ -273,9 +628,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const LanguageSelectorPill(darkSurface: false),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   if (!activeOuting.isRecording)
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -318,6 +671,10 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                   },
                   onRegisterFind: () =>
                       _openRegisterFindInActiveOuting(activeOuting),
+                  onPickSpotOnMap: () => _openMapSpotPickerForOuting(
+                    activeOuting.activeOutingId!,
+                    activeOuting.title,
+                  ),
                   onTogglePause: () {
                     ref
                         .read(activeOutingRecorderProvider.notifier)
@@ -407,6 +764,8 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                             ? null
                             : () => (widget.onViewOutingOnGlobalMap ??
                                 widget.onViewOutingInGlobalMap)!(outing.id),
+                        onAddSpotOnMap: () =>
+                            _openMapSpotPickerForOuting(outing.id, outing.title),
                         onDelete: () => _confirmDeleteOuting(
                           outing,
                           outingSpots.length,
@@ -433,6 +792,7 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
   final VoidCallback onRegisterFind;
   final VoidCallback onTogglePause;
   final VoidCallback onFinish;
+  final VoidCallback? onPickSpotOnMap;
 
   const _ActiveOutingRecorderCard({
     required this.activeState,
@@ -443,6 +803,7 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
     required this.onRegisterFind,
     required this.onTogglePause,
     required this.onFinish,
+    this.onPickSpotOnMap,
   });
 
   @override
@@ -478,15 +839,32 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  'Grabando: ${activeState.title}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Grabando: ${activeState.title}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (activeState.isManual)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          'Salida Manual (Sin GPS activo)',
+                          style: TextStyle(
+                            color: AutumnColors.amberLeaf.withValues(alpha: 0.9),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               Text(
@@ -515,7 +893,7 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                 children: [
                   TileLayer(
                     urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.perretxikotan.app',
+                    userAgentPackageName: 'com.perretxikotan.perretxikotan',
                   ),
                   if (activeState.routePoints.length >= 2)
                     PolylineLayer(
@@ -573,16 +951,23 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Distancia: $km km · Cesta: $totalSpecimens ejemplares (${outingSpots.length} puntos)',
-                style: TextStyle(
-                  color: AutumnColors.warmSand.withValues(alpha: 0.9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  activeState.isManual
+                      ? 'Modo Manual (Sin GPS) · Cesta: $totalSpecimens ej. (${outingSpots.length} puntos)'
+                      : 'Distancia: $km km · Cesta: $totalSpecimens ej. (${outingSpots.length} puntos)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AutumnColors.warmSand.withValues(alpha: 0.9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
-                'Toca el mapa para trazar paso',
+                activeState.isManual ? 'Toca mapa para ubicar' : 'Toca el mapa para trazar paso',
                 style: TextStyle(
                   color: AutumnColors.amberLeaf.withValues(alpha: 0.8),
                   fontSize: 11,
@@ -622,6 +1007,18 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                       : Icons.pause_rounded,
                 ),
               ),
+              if (onPickSpotOnMap != null) ...[
+                const SizedBox(width: 6),
+                IconButton.filled(
+                  style: IconButton.styleFrom(
+                    backgroundColor: AutumnColors.amberLeaf,
+                    foregroundColor: Colors.white,
+                  ),
+                  tooltip: 'Ubicar seta en el mapa a pantalla completa',
+                  onPressed: onPickSpotOnMap,
+                  icon: const Icon(Icons.touch_app_rounded, size: 20),
+                ),
+              ],
               const SizedBox(width: 6),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
@@ -647,6 +1044,7 @@ class _OutingSummaryCard extends StatelessWidget {
   final List<Mushroom> catalogMushrooms;
   final VoidCallback onTap;
   final VoidCallback? onViewOnGlobalMap;
+  final VoidCallback? onAddSpotOnMap;
   final VoidCallback onDelete;
 
   const _OutingSummaryCard({
@@ -656,6 +1054,7 @@ class _OutingSummaryCard extends StatelessWidget {
     required this.catalogMushrooms,
     required this.onTap,
     this.onViewOnGlobalMap,
+    this.onAddSpotOnMap,
     required this.onDelete,
   });
 
@@ -735,6 +1134,42 @@ class _OutingSummaryCard extends StatelessWidget {
                             color: AutumnColors.boletusBrown,
                           ),
                         ),
+                        if (outing.isManual)
+                          Container(
+                            margin: const EdgeInsets.only(top: 4, bottom: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  AutumnColors.amberLeaf.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AutumnColors.amberLeaf
+                                    .withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.touch_app_rounded,
+                                  size: 13,
+                                  color: AutumnColors.boletusBrown,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Salida Manual (Sin GPS)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AutumnColors.boletusBrown,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         const SizedBox(height: 8),
                         // Métricas de la vuelta dada
                         Wrap(
@@ -857,27 +1292,54 @@ class _OutingSummaryCard extends StatelessWidget {
                   }).toList(),
                 ),
 
-              if (onViewOnGlobalMap != null) ...[
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: AutumnColors.mossGreen,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    onPressed: onViewOnGlobalMap,
-                    icon: const Icon(Icons.map_rounded, size: 16),
-                    label: const Text(
-                      'Ver ruta y puntos en Mapa Global',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (onAddSpotOnMap != null)
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AutumnColors.boletusBrown,
+                        side: const BorderSide(color: AutumnColors.amberLeaf),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                      ),
+                      onPressed: onAddSpotOnMap,
+                      icon: const Icon(
+                        Icons.add_location_alt_rounded,
+                        size: 15,
+                      ),
+                      label: const Text(
+                        'Añadir en mapa',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ],
+                  if (onViewOnGlobalMap != null) ...[
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AutumnColors.mossGreen,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: onViewOnGlobalMap,
+                      icon: const Icon(Icons.map_rounded, size: 16),
+                      label: const Text(
+                        'Ver en Mapa',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),
@@ -1040,6 +1502,23 @@ class OutingDetailScreen extends StatelessWidget {
       backgroundColor: AutumnColors.parchmentBg,
       appBar: AppBar(
         title: Text(outing.title),
+        actions: [
+          IconButton(
+            tooltip: 'Añadir seta seleccionando en el mapa',
+            icon: const Icon(Icons.add_location_alt_rounded),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => MapSpotPickerScreen(
+                    outingId: outing.id,
+                    outingTitle: outing.title,
+                    initialCenter: center,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 10, 18, 36),
@@ -1057,7 +1536,7 @@ class OutingDetailScreen extends StatelessWidget {
                 children: [
                   TileLayer(
                     urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.perretxikotan.app',
+                    userAgentPackageName: 'com.perretxikotan.perretxikotan',
                   ),
                   if (outing.routePoints.length >= 2)
                     PolylineLayer(
@@ -1252,13 +1731,14 @@ class _DetailStatColumn extends StatelessWidget {
   }
 }
 
-class _OutingFindFormSheet extends StatefulWidget {
+class OutingFindFormSheet extends StatefulWidget {
   final LatLng position;
   final String outingId;
   final String outingTitle;
   final List<Mushroom> catalogMushrooms;
 
-  const _OutingFindFormSheet({
+  const OutingFindFormSheet({
+    super.key,
     required this.position,
     required this.outingId,
     required this.outingTitle,
@@ -1266,10 +1746,10 @@ class _OutingFindFormSheet extends StatefulWidget {
   });
 
   @override
-  State<_OutingFindFormSheet> createState() => _OutingFindFormSheetState();
+  State<OutingFindFormSheet> createState() => _OutingFindFormSheetState();
 }
 
-class _OutingFindFormSheetState extends State<_OutingFindFormSheet> {
+class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
   final _titleCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   final _qtyCtrl = TextEditingController(text: '3');

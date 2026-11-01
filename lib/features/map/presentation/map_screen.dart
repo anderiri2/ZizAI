@@ -427,7 +427,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 urlTemplate: _useTopoLayer
                     ? 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
                     : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.perretxikotan.app',
+                userAgentPackageName: 'com.perretxikotan.perretxikotan',
                 maxNativeZoom: _useTopoLayer ? 17 : 19,
                 tileProvider:
                     widget.customTileProvider ?? _defaultOfflineTileProvider,

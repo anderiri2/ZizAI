@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/safety_disclaimer_banner.dart';
+import '../../../core/widgets/settings_drawer.dart';
 import '../../../core/widgets/translucent_bottom_nav.dart';
 import '../../ai_identifier/presentation/ai_identifier_screen.dart';
 import '../../backup/presentation/backup_screen.dart';
@@ -62,14 +63,26 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
     });
   }
 
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       extendBody: true,
+      drawer: SettingsDrawer(
+        onNavigateToBackupTab: () {
+          setState(() {
+            _currentTabIndex = 4;
+          });
+        },
+      ),
       body: IndexedStack(
         index: _currentTabIndex,
         children: [
           CatalogScreen(
+            onOpenSettingsDrawer: () =>
+                _scaffoldKey.currentState?.openDrawer(),
             onRegisterSpotInMap: (mushroom) =>
                 _openMapToRegisterSpecies(mushroom),
           ),

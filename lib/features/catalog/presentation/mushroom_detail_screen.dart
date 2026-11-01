@@ -86,8 +86,6 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
             backgroundColor: AutumnColors.boletusBrown,
             foregroundColor: Colors.white,
             actions: [
-              const Center(child: LanguageSelectorPill(darkSurface: true)),
-              const SizedBox(width: 6),
               IconButton(
                 tooltip: isFavorite
                     ? s.tr(

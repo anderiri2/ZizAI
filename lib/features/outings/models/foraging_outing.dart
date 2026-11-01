@@ -33,6 +33,7 @@ class ForagingOuting {
   final double distanceMeters;
   final List<LatLng> routePoints;
   final String notes;
+  final bool isManual;
 
   const ForagingOuting({
     required this.id,
@@ -43,11 +44,15 @@ class ForagingOuting {
     required this.distanceMeters,
     required this.routePoints,
     this.notes = '',
+    this.isManual = false,
   });
 
   double get distanceKm => distanceMeters / 1000.0;
 
   String get formattedDistanceKm {
+    if (isManual) {
+      return 'Manual (Sin GPS)';
+    }
     final km = distanceMeters / 1000.0;
     return '${km.toStringAsFixed(2)} km';
   }
@@ -110,6 +115,7 @@ class ForagingOuting {
             .toList(),
       ),
       'notes': notes,
+      'isManual': isManual ? 1 : 0,
     };
   }
 
@@ -146,6 +152,7 @@ class ForagingOuting {
       distanceMeters: (map['distanceMeters'] as num?)?.toDouble() ?? 0.0,
       routePoints: parsedPoints,
       notes: map['notes'] as String? ?? '',
+      isManual: (map['isManual'] == 1 || map['isManual'] == true),
     );
   }
 
