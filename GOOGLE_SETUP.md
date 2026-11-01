@@ -25,13 +25,13 @@ Mientras desarrollas o cuando estás en el monte sin cobertura, puedes pulsar **
    ```
 2. En **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**:
    * **Tipo de aplicación**: `Android`
-   * **Nombre del paquete**: `com.perretxikotan.app`
-   * **Huella digital del certificado SHA-1**: Pega tu SHA-1.
+   * **Nombre del paquete**: `com.perretxikotan.perretxikotan`
+   * **Huella digital del certificado SHA-1**: Pega tu huella SHA-1.
 
 ## 4. Credenciales para iOS
 1. En **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**:
    * **Tipo de aplicación**: `iOS`
-   * **ID del paquete (Bundle ID)**: `com.perretxikotan.app`
+   * **ID del paquete (Bundle ID)**: `com.perretxikotan.perretxikotan`
 2. Copia el `CLIENT_ID` y el `REVERSED_CLIENT_ID` generados y añádelos en `ios/Runner/Info.plist`:
    ```xml
    <key>GIDClientID</key>

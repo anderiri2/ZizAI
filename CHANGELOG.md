@@ -2,6 +2,26 @@
 
 Todos los cambios relevantes de **Perretxikotan** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
 
+## [1.4.0] - 2026-11-01 (`v1.4.0`)
+### Añadido
+- **Panel Deslizable Izquierdo de Configuración (`SettingsDrawer`)**:
+  - Gesto deslizable desde el borde izquierdo en todas las pantallas principales de `HomeShellScreen`.
+  - Botón de menú hamburguesa (`☰`) en la cabecera del Catálogo principal.
+  - Traslado y ocultación del selector de idioma fuera de las cabeceras públicas, ahora con tarjetas táctiles trilingües (**Euskara**, **Castellano**, **English**) en el panel lateral.
+  - Atajos directos a gestión de cuenta, Instantáneas ZIP locales, guía de diagnóstico OAuth y decálogo de seguridad micológica.
+- **Salidas Manuales al Monte sin GPS (`isManual`)**:
+  - Selector de modalidad al pulsar *Nueva Salida*: **Ruta GPS en Vivo**, **Salida Manual en Directo (Sin GPS)** (0% gasto de batería satelital) o **Salida Pasada Retrospectiva** (con selección de fecha y duración).
+  - Selección de setas a pantalla completa con aviso interactivo (`MapSpotPickerScreen`): permite tocar directamente sobre cualquier punto del mapa para ubicar y registrar especies, fotos, cantidad y peso en la salida.
+  - Etiqueta distintiva *"Salida Manual (Sin GPS)"* en las tarjetas de salida y ficha técnica.
+- **Transparencia en Modo IA y Gating Fotográfico con Google**:
+  - Bloqueo explicativo previo para el análisis de fotos con visión artificial multimodal de Gemini en caso de no haber iniciado sesión con Google.
+  - Banner permanente de *Modo Local Offline* (asistente morfológico de 126 especies) para consultas de texto en monte sin cobertura.
+- **Diagnóstico y Corrección de Google Sign-In y Google Drive**:
+  - Limpieza de scopes en `GoogleSignIn` a `drive.appdata` y `email`, evitando excepciones por scopes no autorizados en Google Play Services.
+  - Corrección de `GOOGLE_SETUP.md` con el applicationId exacto `com.perretxikotan.perretxikotan`.
+  - Diálogo modal de diagnóstico en caso de fallo de Google OAuth con instrucciones para la huella SHA-1 y alternativa inmediata de Snapshot Local (ZIP).
+
+
 ## [1.3.0] - 2026-11-01 (`v1.3.0`)
 ### Cambiado
 - **Nuevo Logo Ilustrado de *Amanita caesarea* y Splash Animado de 2.0 Segundos (`feature/custom-caesarea-logo-and-2s-splash`)**:

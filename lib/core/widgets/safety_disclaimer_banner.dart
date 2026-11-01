@@ -22,10 +22,23 @@ class SafetyDisclaimerBanner extends ConsumerWidget {
       prefs.getString('perretxikotan_app_language'),
     );
     final s = AppStrings(lang);
+    if (!context.mounted) return;
+    await showSafetyDialog(context, customStrings: s);
+  }
+
+  static Future<void> showSafetyDialog(
+    BuildContext context, {
+    AppStrings? customStrings,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lang = AppLanguage.fromCode(
+      prefs.getString('perretxikotan_app_language'),
+    );
+    final s = customStrings ?? AppStrings(lang);
+    if (!context.mounted) return;
 
     await showDialog<void>(
       context: context,
-      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: AutumnColors.parchmentBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

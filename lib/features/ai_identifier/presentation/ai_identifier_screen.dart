@@ -39,7 +39,129 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
     super.dispose();
   }
 
+  Future<void> _showGoogleSignInRequiredDialog(BuildContext context) async {
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
+
+    final signIn = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AutumnColors.parchmentBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.account_circle_rounded,
+              color: AutumnColors.boletusBrown,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                s.tr(
+                  eu: 'Google Saioa Beharrezkoa da',
+                  es: 'Inicio de Sesión Requerido',
+                  en: 'Google Sign-in Required',
+                ),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AutumnColors.boletusBrown,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              s.tr(
+                eu: 'Gemini IA multimodalak hodeian argazkiak aztertzeko Google kontua behar du. Hasi saioa zure Google kontuarekin segurtasun-kopiak eta adimen artifiziala aktibatzeko.',
+                es: 'Para utilizar la visión artificial de Gemini y analizar fotografías de setas en la nube, es necesario iniciar sesión con tu cuenta de Google.',
+                en: 'Multimodal image identification with Gemini cloud AI requires signing in with your personal Google account.',
+              ),
+              style: const TextStyle(
+                fontSize: 13.5,
+                color: AutumnColors.textSecondary,
+                height: 1.42,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AutumnColors.amberLeaf.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AutumnColors.amberLeaf.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.menu_book_rounded,
+                    color: AutumnColors.boletusBrown,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      s.tr(
+                        eu: 'Saioa hasi gabe, tokiko laguntzaile morfologikoari idatzitako kontsultak egin diezazkiokezu oraindik ere.',
+                        es: 'Sin iniciar sesión, aún puedes hacer consultas de texto al asistente morfológico local con las 126 especies.',
+                        en: 'Without signing in, text queries still work with the offline morphological guide.',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AutumnColors.boletusBrown,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel'),
+            ),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AutumnColors.boletusBrown,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.login_rounded, size: 18),
+            label: Text(
+              s.tr(
+                eu: 'Hasi Saioa Google-rekin',
+                es: 'Iniciar sesión con Google',
+                en: 'Sign in with Google',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (signIn == true) {
+      await ref.read(googleDriveBackupProvider.notifier).signInWithGoogle();
+    }
+  }
+
   Future<void> _pickMushroomPhoto(ImageSource source) async {
+    final authState = ref.read(googleDriveBackupProvider);
+    if (!authState.isAuthenticatedWithGoogle) {
+      await _showGoogleSignInRequiredDialog(context);
+      return;
+    }
+
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(
@@ -203,8 +325,6 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const LanguageSelectorPill(darkSurface: false),
                     IconButton(
                       onPressed: () {
                         ref
@@ -224,6 +344,92 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
                   ],
                 ),
               ),
+
+              // Banner explicativo si estamos en Modo Local (sin Google Sign-In)
+              if (!authState.isAuthenticatedWithGoogle)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AutumnColors.amberLeaf.withValues(alpha: 0.5),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AutumnColors.amberLeaf.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.cloud_off_rounded,
+                            color: AutumnColors.boletusBrown,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.tr(
+                                  eu: 'Tokiko Modua (126 espezieko gida)',
+                                  es: 'Modo Local (Asistente de 126 especies)',
+                                  en: 'Local Mode (126 species guide)',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AutumnColors.boletusBrown,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                s.tr(
+                                  eu: 'Argazkiak Gemini-rekin aztertzeko, hasi Google saioa.',
+                                  es: 'Para fotos con visión Gemini, inicia sesión.',
+                                  en: 'Sign in with Google to enable photo AI.',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AutumnColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            foregroundColor: AutumnColors.boletusBrown,
+                          ),
+                          onPressed: () =>
+                              _showGoogleSignInRequiredDialog(context),
+                          child: Text(
+                            s.tr(eu: 'Konektatu', es: 'Conectar', en: 'Connect'),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // Banner de consultas pendientes si el usuario fotografió setas sin cobertura
               if (aiState.pendingSyncCount > 0)
