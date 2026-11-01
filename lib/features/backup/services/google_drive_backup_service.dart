@@ -109,7 +109,6 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[
       drive.DriveApi.driveAppdataScope,
-      'https://www.googleapis.com/auth/generative-language.retriever',
       'email',
     ],
   );

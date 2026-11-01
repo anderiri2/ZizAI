@@ -24,7 +24,7 @@ class OutingsDatabase {
       final fullPath = p.join(dbDir, 'perretxikotan_outings_v1.db');
       _db = await openDatabase(
         fullPath,
-        version: 1,
+        version: 2,
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE $_tableName (
@@ -35,9 +35,19 @@ class OutingsDatabase {
               durationSeconds INTEGER NOT NULL,
               distanceMeters REAL NOT NULL,
               routePointsJson TEXT NOT NULL,
-              notes TEXT NOT NULL
+              notes TEXT NOT NULL,
+              isManual INTEGER DEFAULT 0
             )
           ''');
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            try {
+              await db.execute(
+                'ALTER TABLE $_tableName ADD COLUMN isManual INTEGER DEFAULT 0',
+              );
+            } catch (_) {}
+          }
         },
       );
       return _db;
@@ -278,6 +288,7 @@ class ActiveOutingState {
   final double distanceMeters;
   final List<LatLng> routePoints;
   final String notes;
+  final bool isManual;
 
   const ActiveOutingState({
     this.isRecording = false,
@@ -289,6 +300,7 @@ class ActiveOutingState {
     this.distanceMeters = 0.0,
     this.routePoints = const [],
     this.notes = '',
+    this.isManual = false,
   });
 
   ActiveOutingState copyWith({
@@ -301,6 +313,7 @@ class ActiveOutingState {
     double? distanceMeters,
     List<LatLng>? routePoints,
     String? notes,
+    bool? isManual,
   }) {
     return ActiveOutingState(
       isRecording: isRecording ?? this.isRecording,
@@ -312,6 +325,7 @@ class ActiveOutingState {
       distanceMeters: distanceMeters ?? this.distanceMeters,
       routePoints: routePoints ?? this.routePoints,
       notes: notes ?? this.notes,
+      isManual: isManual ?? this.isManual,
     );
   }
 }
@@ -323,7 +337,11 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
 
   ActiveOutingRecorder() : super(const ActiveOutingState());
 
-  Future<void> startOuting(String title, {LatLng? initialPoint}) async {
+  Future<void> startOuting(
+    String title, {
+    LatLng? initialPoint,
+    bool isManual = false,
+  }) async {
     final now = DateTime.now();
     final id = 'outing_${now.millisecondsSinceEpoch}';
     final startPts = initialPoint != null ? <LatLng>[initialPoint] : <LatLng>[];
@@ -337,10 +355,33 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
       elapsedSeconds: 0,
       distanceMeters: 0.0,
       routePoints: startPts,
+      isManual: isManual,
     );
 
     _startTimer();
-    await _startGpsStream();
+    if (!isManual) {
+      await _startGpsStream();
+    }
+  }
+
+  ForagingOuting createRetrospectiveOuting({
+    required String title,
+    required DateTime startedAt,
+    required int durationSeconds,
+    required String notes,
+  }) {
+    final id = 'outing_${DateTime.now().millisecondsSinceEpoch}';
+    return ForagingOuting(
+      id: id,
+      title: title.trim().isEmpty ? 'Salida al monte' : title.trim(),
+      startedAt: startedAt,
+      endedAt: startedAt.add(Duration(seconds: durationSeconds)),
+      durationSeconds: durationSeconds,
+      distanceMeters: 0.0,
+      routePoints: const [],
+      notes: notes,
+      isManual: true,
+    );
   }
 
   void _startTimer() {
@@ -416,6 +457,7 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
       distanceMeters: state.distanceMeters,
       routePoints: state.routePoints,
       notes: state.notes,
+      isManual: state.isManual,
     );
 
     state = const ActiveOutingState();

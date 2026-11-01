@@ -9,10 +9,12 @@ import 'mushroom_detail_screen.dart';
 
 class CatalogScreen extends ConsumerStatefulWidget {
   final void Function(Mushroom mushroom)? onRegisterSpotInMap;
+  final VoidCallback? onOpenSettingsDrawer;
 
   const CatalogScreen({
     super.key,
     this.onRegisterSpotInMap,
+    this.onOpenSettingsDrawer,
   });
 
   @override
@@ -118,7 +120,20 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const LanguageSelectorPill(darkSurface: false),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.menu_rounded,
+                      color: AutumnColors.boletusBrown,
+                      size: 26,
+                    ),
+                    tooltip: s.tr(
+                      eu: 'Ireki ezarpenen panela',
+                      es: 'Abrir panel de ajustes',
+                      en: 'Open settings panel',
+                    ),
+                    onPressed: widget.onOpenSettingsDrawer ??
+                        () => Scaffold.of(context).openDrawer(),
+                  ),
                   const SizedBox(width: 6),
                   PopupMenuButton<CatalogSortMode>(
                     tooltip: s.tr(
