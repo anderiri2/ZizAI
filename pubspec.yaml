@@ -1,7 +1,7 @@
 name: perretxikotan
 description: "Perretxikotan - Guía micológica de Euskadi y España y mapa privado de setales con backup en Google Drive."
 publish_to: 'none'
-version: 1.2.0+7
+version: 1.3.0+8
 
 environment:
   sdk: ^3.5.0
