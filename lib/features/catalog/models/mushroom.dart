@@ -46,6 +46,8 @@ enum EdibilityLevel {
     }
   }
 
+  String get labelEs => displayLabel;
+
   String get shortLabel {
     switch (this) {
       case EdibilityLevel.excellent:
@@ -146,13 +148,23 @@ class MushroomConfusion {
 
   factory MushroomConfusion.fromJson(Map<String, dynamic> json) {
     return MushroomConfusion(
-      mushroomId: json['mushroomId'] as String? ?? '',
+      mushroomId:
+          json['mushroomId'] as String? ?? json['targetId'] as String? ?? '',
       scientificName: json['scientificName'] as String? ?? '',
-      commonName: json['commonName'] as String? ?? '',
-      riskLevel: EdibilityLevel.fromString(json['riskLevel'] as String? ?? ''),
-      difference: json['difference'] as String? ?? '',
+      commonName:
+          json['commonName'] as String? ?? json['speciesName'] as String? ?? '',
+      riskLevel: EdibilityLevel.fromString(
+        json['riskLevel'] as String? ?? json['edibilityWarning'] as String? ?? '',
+      ),
+      difference:
+          json['difference'] as String? ?? json['differences'] as String? ?? '',
     );
   }
+
+  String get targetId => mushroomId;
+  String get speciesName =>
+      scientificName.isNotEmpty ? '$commonName ($scientificName)' : commonName;
+  String get edibilityWarning => riskLevel.displayLabel;
 }
 
 class Mushroom {
@@ -189,24 +201,39 @@ class Mushroom {
   String get primaryImage =>
       images.isNotEmpty ? images.first : 'assets/images/logo_perretxikotan.png';
 
+  String get primaryImageAsset => primaryImage;
+  String get commonNameEs => spanishName;
+  String get nameEu => basqueName;
+  String get capDescription => morphology.cap;
+  String get hymeniumDescription => morphology.hymenium;
+
   factory Mushroom.fromJson(Map<String, dynamic> json) {
     final edibility = EdibilityLevel.fromString(
       json['edibility'] as String? ?? 'non_edible',
     );
+    final morphMap = (json['morphology'] as Map<String, dynamic>?) ??
+        <String, dynamic>{
+          'cap': json['capDescription'] as String? ?? '',
+          'hymenium': json['hymeniumDescription'] as String? ?? '',
+          'stem': json['stipeDescription'] as String? ?? '',
+          'flesh': json['fleshDescription'] as String? ?? '',
+        };
     return Mushroom(
       id: json['id'] as String,
       scientificName: json['scientificName'] as String? ?? '',
-      spanishName: json['spanishName'] as String? ?? '',
-      basqueName: json['basqueName'] as String? ?? '',
+      spanishName:
+          json['spanishName'] as String? ?? json['commonNameEs'] as String? ?? '',
+      basqueName:
+          json['basqueName'] as String? ?? json['nameEu'] as String? ?? '',
       family: json['family'] as String? ?? '',
       edibility: edibility,
-      edibilityLabel: json['edibilityLabel'] as String? ?? edibility.displayLabel,
+      edibilityLabel: json['edibilityLabel'] as String? ??
+          json['edibilityDetail'] as String? ??
+          edibility.displayLabel,
       season: json['season'] as String? ?? '',
       habitat: json['habitat'] as String? ?? '',
       summary: json['summary'] as String? ?? '',
-      morphology: MushroomMorphology.fromJson(
-        (json['morphology'] as Map<String, dynamic>?) ?? const {},
-      ),
+      morphology: MushroomMorphology.fromJson(morphMap),
       confusions: ((json['confusions'] as List<dynamic>?) ?? const [])
           .map((e) => MushroomConfusion.fromJson(e as Map<String, dynamic>))
           .toList(),

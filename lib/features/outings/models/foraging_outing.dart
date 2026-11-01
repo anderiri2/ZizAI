@@ -45,6 +45,8 @@ class ForagingOuting {
     this.notes = '',
   });
 
+  double get distanceKm => distanceMeters / 1000.0;
+
   String get formattedDistanceKm {
     final km = distanceMeters / 1000.0;
     return '${km.toStringAsFixed(2)} km';
@@ -146,4 +148,9 @@ class ForagingOuting {
       notes: map['notes'] as String? ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => toMap();
+
+  factory ForagingOuting.fromJson(Map<String, dynamic> json) =>
+      ForagingOuting.fromMap(json);
 }

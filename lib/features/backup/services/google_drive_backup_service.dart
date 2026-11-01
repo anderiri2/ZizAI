@@ -327,7 +327,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     });
 
     final encodedZip = ZipEncoder().encode(archive);
-    return Uint8List.fromList(encodedZip ?? <int>[]);
+    return Uint8List.fromList(encodedZip);
   }
 
   /// Extrae un paquete ZIP completo con toda la actividad del usuario y restaura las fotos en disco.

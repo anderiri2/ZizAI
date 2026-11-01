@@ -95,6 +95,11 @@ class OfflineMapRegion {
       isTopoLayer: map['isTopoLayer'] as bool? ?? true,
     );
   }
+
+  Map<String, dynamic> toJson() => toMap();
+
+  factory OfflineMapRegion.fromJson(Map<String, dynamic> json) =>
+      OfflineMapRegion.fromMap(json);
 }
 
 /// Zonas micológicas recomendadas listas para descargar con un toque.
@@ -169,6 +174,8 @@ class OfflineMapsState {
     this.progress = 0.0,
     this.statusMessage,
   });
+
+  List<OfflineMapRegion> get regions => downloadedRegions;
 
   int get totalCacheBytes =>
       downloadedRegions.fold<int>(0, (sum, r) => sum + r.sizeBytes);
@@ -267,6 +274,23 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
     final prefs = await SharedPreferences.getInstance();
     final encoded = json.encode(list.map((r) => r.toMap()).toList());
     await prefs.setString(_prefsKey, encoded);
+  }
+
+  Future<void> replaceAllRegions(List<OfflineMapRegion> regions) async {
+    state = state.copyWith(downloadedRegions: regions);
+    await _persistRegions(regions);
+  }
+
+  Future<void> mergeRegions(List<OfflineMapRegion> incoming) async {
+    final byId = <String, OfflineMapRegion>{
+      for (final r in state.downloadedRegions) r.id: r,
+    };
+    for (final inc in incoming) {
+      byId[inc.id] = inc;
+    }
+    final merged = byId.values.toList()
+      ..sort((a, b) => b.downloadedAt.compareTo(a.downloadedAt));
+    await replaceAllRegions(merged);
   }
 
   static Future<String?> getTileFilePath({

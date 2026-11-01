@@ -311,8 +311,7 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
                           MaterialPageRoute<void>(
                             builder: (_) => MushroomDetailScreen(
                               mushroom: mushroom,
-                              allMushrooms: allMushrooms,
-                              onRegisterInMap: (m) {
+                              onRegisterSpotInMap: (m) {
                                 Navigator.of(context).pop();
                                 widget.onRegisterIdentifiedMushroomInMap
                                     ?.call(m, lastUserPhotoPath);

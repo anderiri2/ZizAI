@@ -363,7 +363,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 10),
-                                  Expanded(
+                                  const Expanded(
                                     child: Divider(
                                       color: AutumnColors.warmSand,
                                       thickness: 1.2,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import '../../../core/theme/autumn_theme.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
@@ -15,10 +15,14 @@ import '../models/foraging_outing.dart';
 
 class OutingsScreen extends ConsumerStatefulWidget {
   final void Function(String outingId)? onViewOutingOnGlobalMap;
+  final void Function(String outingId)? onViewOutingInGlobalMap;
+  final VoidCallback? onAddSpotInMapDuringOuting;
 
   const OutingsScreen({
     super.key,
     this.onViewOutingOnGlobalMap,
+    this.onViewOutingInGlobalMap,
+    this.onAddSpotInMapDuringOuting,
   });
 
   @override
@@ -375,9 +379,12 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                             ),
                           );
                         },
-                        onViewOnGlobalMap: widget.onViewOutingOnGlobalMap == null
+                        onViewOnGlobalMap: (widget.onViewOutingOnGlobalMap ??
+                                    widget.onViewOutingInGlobalMap) ==
+                                null
                             ? null
-                            : () => widget.onViewOutingOnGlobalMap!(outing.id),
+                            : () => (widget.onViewOutingOnGlobalMap ??
+                                widget.onViewOutingInGlobalMap)!(outing.id),
                         onDelete: () => _confirmDeleteOuting(
                           outing,
                           outingSpots.length,
@@ -1292,7 +1299,7 @@ class _OutingFindFormSheetState extends State<_OutingFindFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<Mushroom>(
-              value: _selectedMushroom,
+              initialValue: _selectedMushroom,
               isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Especie del catálogo',

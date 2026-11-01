@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.perretxikotan.app">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Permisos de red (para mapas OpenTopoMap/OSM y Backup en Google Drive) -->
     <uses-permission android:name="android.permission.INTERNET" />

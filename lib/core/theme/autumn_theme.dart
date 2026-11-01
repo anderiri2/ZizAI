@@ -8,6 +8,7 @@ class AutumnColors {
   // Fondos cálidos y orgánicos
   static const Color parchmentBg = Color(0xFFFBF6EE);
   static const Color creamCard = Color(0xFFF5EBDC);
+  static const Color parchmentCard = creamCard;
   static const Color warmSand = Color(0xFFEADBC4);
 
   // Tonos oscuros de corteza y bosque nocturno
@@ -32,8 +33,10 @@ class AutumnColors {
   static const Color edibilityExcellent = Color(0xFF2E6F40);
   static const Color edibilityGood = Color(0xFF558B2F);
   static const Color edibilityCaution = Color(0xFFD97706);
+  static const Color cautionOrange = edibilityCaution;
   static const Color edibilityNonEdible = Color(0xFF6B7280);
   static const Color edibilityToxic = Color(0xFFDC2626);
+  static const Color dangerRed = edibilityToxic;
   static const Color edibilityDeadly = Color(0xFF7F1D1D);
 }
 

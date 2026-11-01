@@ -252,6 +252,12 @@ class OutingsNotifier extends StateNotifier<AsyncValue<List<ForagingOuting>>> {
     }
     await loadOutings();
   }
+
+  Future<void> mergeOutings(List<ForagingOuting> outings) =>
+      restoreOutings(outings, merge: true);
+
+  Future<void> replaceAllOutings(List<ForagingOuting> outings) =>
+      restoreOutings(outings, merge: false);
 }
 
 final outingsProvider =

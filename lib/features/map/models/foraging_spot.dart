@@ -102,4 +102,9 @@ class ForagingSpot {
       weightGrams: (map['weightGrams'] as num?)?.toInt(),
     );
   }
+
+  Map<String, dynamic> toJson() => toMap();
+
+  factory ForagingSpot.fromJson(Map<String, dynamic> json) =>
+      ForagingSpot.fromMap(json);
 }

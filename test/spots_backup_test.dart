@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:perretxikotan/features/ai_identifier/models/chat_message.dart';
@@ -17,7 +18,7 @@ void main() {
         longitude: -2.8451,
         mushroomId: 'boletus_edulis',
         mushroomName: 'Hongo calabaza • Onddo zuria',
-        note: 'Tres ejemplares sanos junto al arroyo bajo hojarasca húmeda.',
+        notes: 'Tres ejemplares sanos junto al arroyo bajo hojarasca húmeda.',
         foundAt: DateTime.utc(2026, 10, 18, 9, 30),
         outingId: 'outing_001',
         outingTitle: 'Vuelta circular por Altube',
@@ -49,7 +50,7 @@ void main() {
           longitude: -2.1620,
           mushroomId: 'boletus_aereus',
           mushroomName: 'Hongo negro • Onddo beltza',
-          note: 'Ejemplares firmes tras lluvias de otoño.',
+          notes: 'Ejemplares firmes tras lluvias de otoño.',
           foundAt: DateTime.utc(2026, 10, 15, 10, 0),
           outingId: 'out_urbasa_1',
           outingTitle: 'Salida por Urbasa Norte',
@@ -62,10 +63,10 @@ void main() {
         ForagingOuting(
           id: 'out_urbasa_1',
           title: 'Salida por Urbasa Norte',
-          forestZone: 'Parque Natural de Urbasa y Andia',
           notes: 'Mañana fresca con niebla baja.',
           startedAt: DateTime.utc(2026, 10, 15, 8, 0),
           endedAt: DateTime.utc(2026, 10, 15, 11, 30),
+          durationSeconds: 12600,
           distanceMeters: 6420,
           routePoints: const <LatLng>[
             LatLng(42.8500, -2.1600),
@@ -91,14 +92,15 @@ void main() {
         OfflineMapRegion(
           id: 'region_gorbeia',
           name: 'Parque Natural del Gorbeia',
-          minLat: 42.98,
-          maxLat: 43.09,
-          minLon: -2.90,
-          maxLon: -2.72,
+          description: 'Hayedos de Otzarreta y Altube',
+          north: 43.09,
+          south: 42.98,
+          east: -2.72,
+          west: -2.90,
           minZoom: 11,
           maxZoom: 14,
           isTopoLayer: true,
-          tileCount: 145,
+          tilesCount: 145,
           sizeBytes: 3100000,
           downloadedAt: DateTime.utc(2026, 10, 14, 18, 0),
         ),
@@ -116,6 +118,7 @@ void main() {
       final payload =
           await GoogleDriveBackupService.extractFullActivityBackupBytes(
         zipBytes,
+        customPhotosParentDir: Directory.systemTemp,
       );
 
       expect(payload.spots.length, 1);

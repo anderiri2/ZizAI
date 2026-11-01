@@ -326,6 +326,12 @@ class ForagingSpotsNotifier extends StateNotifier<AsyncValue<List<ForagingSpot>>
     }
     await loadSpots();
   }
+
+  Future<void> mergeSpots(List<ForagingSpot> spots) =>
+      restoreSpots(spots, merge: true);
+
+  Future<void> replaceAllSpots(List<ForagingSpot> spots) =>
+      restoreSpots(spots, merge: false);
 }
 
 final foragingSpotsProvider =

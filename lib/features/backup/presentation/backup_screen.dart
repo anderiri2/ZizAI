@@ -324,7 +324,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   children: [
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      activeColor: AutumnColors.mossGreen,
+                      activeThumbColor: AutumnColors.mossGreen,
                       title: const Text(
                         'Fusión Inteligente al Restaurar (Recomendado)',
                         style: TextStyle(
@@ -349,7 +349,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     const Divider(height: 12),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      activeColor: AutumnColors.ochreGold,
+                      activeThumbColor: AutumnColors.ochreGold,
                       title: const Text(
                         'Copia automática tras registrar salidas',
                         style: TextStyle(
