@@ -8,8 +8,8 @@ import '../models/foraging_spot.dart';
 
 class SpotsDatabase {
   static const String _tableName = 'foraging_spots';
-  static const String _prefsFallbackKey = 'perretxikotan_spots_json';
-  static const String _seededKey = 'perretxikotan_spots_seeded';
+  static const String _prefsFallbackKey = 'perretxikotan_spots_json_v2';
+  static const String _seededKey = 'perretxikotan_spots_seeded_v2';
 
   Database? _db;
 
@@ -18,10 +18,10 @@ class SpotsDatabase {
     if (_db != null) return _db;
     try {
       final dbDir = await getDatabasesPath();
-      final fullPath = p.join(dbDir, 'perretxikotan_spots.db');
+      final fullPath = p.join(dbDir, 'perretxikotan_spots_v2.db');
       _db = await openDatabase(
         fullPath,
-        version: 1,
+        version: 2,
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE $_tableName (
@@ -33,7 +33,11 @@ class SpotsDatabase {
               mushroomName TEXT,
               notes TEXT NOT NULL,
               foundAt TEXT NOT NULL,
-              photoPath TEXT
+              photoPath TEXT,
+              outingId TEXT,
+              outingTitle TEXT,
+              quantityCount INTEGER NOT NULL DEFAULT 1,
+              weightGrams INTEGER
             )
           ''');
         },
@@ -48,25 +52,63 @@ class SpotsDatabase {
     return [
       ForagingSpot(
         id: 'sample_gorbeia_otzarreta',
-        title: 'Hayedo de Otzarreta (Gorbeia)',
+        title: 'Hayedo de Otzarreta - Regata Zubizabala',
         latitude: 43.0358,
         longitude: -2.7289,
         mushroomId: 'boletus_aereus',
-        mushroomName: 'Onddo beltza / Hongo negro (Boletus aereus)',
+        mushroomName: 'Onddo beltza / Hongo negro',
         notes:
-            'Zona húmeda junto al arroyo de Zubizabala entre hayas trasnoches. Salieron 4 ejemplares sanos en la ladera orientada al sur tras tres días de lluvia templada.',
-        foundAt: DateTime(2026, 10, 18),
+            'Zona húmeda junto al arroyo entre hayas trasmochas. Salieron 4 ejemplares sanos en la ladera orientada al sur tras tres días de lluvia templada.',
+        foundAt: DateTime(2026, 10, 18, 9, 40),
+        outingId: 'outing_gorbeia_otzarreta',
+        outingTitle: 'Vuelta circular por Otzarreta (Gorbeia)',
+        quantityCount: 4,
+        weightGrams: 720,
+      ),
+      ForagingSpot(
+        id: 'sample_gorbeia_gibelurdina',
+        title: 'Ladera alta de Otzarreta',
+        latitude: 43.0392,
+        longitude: -2.7341,
+        mushroomId: 'russula_cyanoxantha',
+        mushroomName: 'Urretxa / Gibelurdina / Carbonera',
+        notes:
+            'Entre la hojarasca de haya subiendo hacia el collado. Ejemplares muy firmes y limpios.',
+        foundAt: DateTime(2026, 10, 18, 10, 55),
+        outingId: 'outing_gorbeia_otzarreta',
+        outingTitle: 'Vuelta circular por Otzarreta (Gorbeia)',
+        quantityCount: 6,
+        weightGrams: 480,
       ),
       ForagingSpot(
         id: 'sample_urbasa_baquedano',
-        title: 'Robledal y Hayedo de Urbasa',
+        title: 'Vaguada sombría de Urbasa',
         latitude: 42.8331,
         longitude: -2.1164,
         mushroomId: 'cantharellus_cibarius',
-        mushroomName: 'Ziza horia / Rebozuelo (Cantharellus cibarius)',
+        mushroomName: 'Ziza horia / Rebozuelo',
         notes:
             'Corro abundante entre el musgo húmedo en una vaguada sombría. Buscar también lengua de gato (Tripaki argia) unos 30 metros más arriba.',
-        foundAt: DateTime(2026, 10, 24),
+        foundAt: DateTime(2026, 10, 24, 10, 15),
+        outingId: 'outing_urbasa_hayedo',
+        outingTitle: 'Ruta micológica por Urbasa',
+        quantityCount: 14,
+        weightGrams: 390,
+      ),
+      ForagingSpot(
+        id: 'sample_urbasa_tripaki',
+        title: 'Hayedo kárstico de Urbasa',
+        latitude: 42.8364,
+        longitude: -2.1215,
+        mushroomId: 'hydnum_repandum',
+        mushroomName: 'Tripaki argia / Lengua de gato',
+        notes:
+            'Hilera larga junto a las rocas calizas cubiertas de musgo.',
+        foundAt: DateTime(2026, 10, 24, 11, 30),
+        outingId: 'outing_urbasa_hayedo',
+        outingTitle: 'Ruta micológica por Urbasa',
+        quantityCount: 9,
+        weightGrams: 410,
       ),
       ForagingSpot(
         id: 'sample_aralar_lizarrusti',
@@ -74,10 +116,12 @@ class SpotsDatabase {
         latitude: 42.9635,
         longitude: -2.0992,
         mushroomId: 'calocybe_gambosa',
-        mushroomName: 'Udaberriko ziza / Perretxiko (Calocybe gambosa)',
+        mushroomName: 'Udaberriko ziza / Perretxiko',
         notes:
-            'Pradera montana junto a espinos albares (elorri zuri). El corro marca una medialuna más verde en la hierba cada mes de mayo.',
-        foundAt: DateTime(2026, 5, 12),
+            'Punto suelto registrado en el Mapa Global: pradera montana junto a espinos albares (elorri zuri). El corro marca una medialuna más verde cada mes de mayo.',
+        foundAt: DateTime(2026, 5, 12, 9, 0),
+        quantityCount: 11,
+        weightGrams: 540,
       ),
     ];
   }
@@ -104,7 +148,6 @@ class SpotsDatabase {
       return rows.map((r) => ForagingSpot.fromMap(r)).toList();
     }
 
-    // Fallback en SharedPreferences (para tests o plataformas sin sqflite nativo)
     final raw = prefs.getString(_prefsFallbackKey);
     if (raw == null && !alreadySeeded) {
       final samples = _initialSampleSpots();
@@ -158,6 +201,35 @@ class SpotsDatabase {
     await _saveFallbackList(prefs, current);
   }
 
+  /// Desvincula los puntos de una salida para que se conserven como puntos sueltos en el Mapa Global.
+  Future<void> detachSpotsFromOuting(String outingId) async {
+    final current = await getAllSpots();
+    final updated = current.map((s) {
+      if (s.outingId == outingId) {
+        return s.copyWith(clearOuting: true);
+      }
+      return s;
+    }).toList();
+    await replaceAllSpots(updated);
+  }
+
+  /// Elimina todos los puntos asociados a una salida concreta.
+  Future<void> deleteSpotsByOuting(String outingId) async {
+    final db = await _getDatabase();
+    if (db != null) {
+      await db.delete(
+        _tableName,
+        where: 'outingId = ?',
+        whereArgs: [outingId],
+      );
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final current = await getAllSpots();
+    current.removeWhere((s) => s.outingId == outingId);
+    await _saveFallbackList(prefs, current);
+  }
+
   Future<void> replaceAllSpots(List<ForagingSpot> spots) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_seededKey, true);
@@ -178,6 +250,20 @@ class SpotsDatabase {
     }
 
     await _saveFallbackList(prefs, spots);
+  }
+
+  /// Fusión inteligente por ID (combina los puntos locales con los recibidos sin perder ninguno).
+  Future<void> mergeSpots(List<ForagingSpot> incomingSpots) async {
+    final existing = await getAllSpots();
+    final byId = <String, ForagingSpot>{
+      for (final s in existing) s.id: s,
+    };
+    for (final inc in incomingSpots) {
+      byId[inc.id] = inc;
+    }
+    final merged = byId.values.toList()
+      ..sort((a, b) => b.foundAt.compareTo(a.foundAt));
+    await replaceAllSpots(merged);
   }
 
   Future<void> _saveFallbackList(
@@ -219,8 +305,25 @@ class ForagingSpotsNotifier extends StateNotifier<AsyncValue<List<ForagingSpot>>
     await loadSpots();
   }
 
-  Future<void> restoreSpots(List<ForagingSpot> spots) async {
-    await _db.replaceAllSpots(spots);
+  Future<void> detachOutingSpots(String outingId) async {
+    await _db.detachSpotsFromOuting(outingId);
+    await loadSpots();
+  }
+
+  Future<void> deleteOutingSpots(String outingId) async {
+    await _db.deleteSpotsByOuting(outingId);
+    await loadSpots();
+  }
+
+  Future<void> restoreSpots(
+    List<ForagingSpot> spots, {
+    bool merge = true,
+  }) async {
+    if (merge) {
+      await _db.mergeSpots(spots);
+    } else {
+      await _db.replaceAllSpots(spots);
+    }
     await loadSpots();
   }
 }
