@@ -8,6 +8,10 @@ class ForagingSpot {
   final String notes;
   final DateTime foundAt;
   final String? photoPath;
+  final String? outingId;
+  final String? outingTitle;
+  final int quantityCount;
+  final int? weightGrams;
 
   const ForagingSpot({
     required this.id,
@@ -19,7 +23,13 @@ class ForagingSpot {
     required this.notes,
     required this.foundAt,
     this.photoPath,
+    this.outingId,
+    this.outingTitle,
+    this.quantityCount = 1,
+    this.weightGrams,
   });
+
+  bool get isFromOuting => outingId != null && outingId!.isNotEmpty;
 
   ForagingSpot copyWith({
     String? id,
@@ -31,7 +41,13 @@ class ForagingSpot {
     String? notes,
     DateTime? foundAt,
     String? photoPath,
+    String? outingId,
+    String? outingTitle,
+    int? quantityCount,
+    int? weightGrams,
     bool clearPhoto = false,
+    bool clearOuting = false,
+    bool clearWeight = false,
   }) {
     return ForagingSpot(
       id: id ?? this.id,
@@ -43,6 +59,10 @@ class ForagingSpot {
       notes: notes ?? this.notes,
       foundAt: foundAt ?? this.foundAt,
       photoPath: clearPhoto ? null : (photoPath ?? this.photoPath),
+      outingId: clearOuting ? null : (outingId ?? this.outingId),
+      outingTitle: clearOuting ? null : (outingTitle ?? this.outingTitle),
+      quantityCount: quantityCount ?? this.quantityCount,
+      weightGrams: clearWeight ? null : (weightGrams ?? this.weightGrams),
     );
   }
 
@@ -57,6 +77,10 @@ class ForagingSpot {
       'notes': notes,
       'foundAt': foundAt.toIso8601String(),
       'photoPath': photoPath,
+      'outingId': outingId,
+      'outingTitle': outingTitle,
+      'quantityCount': quantityCount,
+      'weightGrams': weightGrams,
     };
   }
 
@@ -72,6 +96,10 @@ class ForagingSpot {
       foundAt: DateTime.tryParse(map['foundAt'] as String? ?? '') ??
           DateTime.now(),
       photoPath: map['photoPath'] as String?,
+      outingId: map['outingId'] as String?,
+      outingTitle: map['outingTitle'] as String?,
+      quantityCount: (map['quantityCount'] as num?)?.toInt() ?? 1,
+      weightGrams: (map['weightGrams'] as num?)?.toInt(),
     );
   }
 }
