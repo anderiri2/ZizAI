@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
@@ -204,6 +205,8 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final outingsAsync = ref.watch(outingsProvider);
     final allSpots =
         ref.watch(foragingSpotsProvider).valueOrNull ?? const <ForagingSpot>[];
@@ -218,7 +221,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabecera
+            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
               child: Row(
@@ -235,13 +238,17 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                       size: 26,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Salidas al Monte',
+                          s.tr(
+                            eu: 'Mendiko Irteerak',
+                            es: 'Salidas al Monte',
+                            en: 'Foraging Outings',
+                          ),
                           style: Theme.of(context)
                               .textTheme
                               .headlineSmall
@@ -250,29 +257,44 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
-                        const Text(
-                          'Rutas GPS grabadas y resumen de setas recogidas',
-                          style: TextStyle(
-                            fontSize: 12.5,
+                        Text(
+                          s.tr(
+                            eu: 'GPS ibilbideak eta bildutako perretxikoen laburpena',
+                            es: 'Rutas GPS grabadas y resumen de setas recogidas',
+                            en: 'Recorded GPS routes & harvested mushroom summary',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
                             color: AutumnColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 6),
+                  const LanguageSelectorPill(darkSurface: false),
+                  const SizedBox(width: 6),
                   if (!activeOuting.isRecording)
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AutumnColors.mossGreen,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
+                          horizontal: 12,
                           vertical: 10,
                         ),
                       ),
                       onPressed: _promptStartNewOuting,
-                      icon: const Icon(Icons.play_circle_fill_rounded, size: 19),
-                      label: const Text('Nueva Salida'),
+                      icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
+                      label: Text(
+                        s.tr(
+                          eu: 'Irteera Berria',
+                          es: 'Nueva Salida',
+                          en: 'New Outing',
+                        ),
+                      ),
                     ),
                 ],
               ),

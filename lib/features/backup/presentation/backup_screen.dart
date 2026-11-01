@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 import '../../ai_identifier/services/gemini_mushroom_service.dart';
 import '../../catalog/data/catalog_repository.dart';
@@ -23,6 +24,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final authState = ref.watch(googleDriveBackupProvider);
     final spots =
         ref.watch(foragingSpotsProvider).valueOrNull ?? const <ForagingSpot>[];
@@ -33,7 +36,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     final offlineRegions = ref.watch(offlineMapServiceProvider).regions;
 
     final photosCount = spots
-            .where((s) => s.photoPath != null && s.photoPath!.isNotEmpty)
+            .where((sp) => sp.photoPath != null && sp.photoPath!.isNotEmpty)
             .length +
         aiMessages
             .where((m) => m.imagePath != null && m.imagePath!.isNotEmpty)
@@ -72,22 +75,30 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       size: 22,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Copia de Seguridad Integral',
+                          s.tr(
+                            eu: 'Segurtasun-kopia Osoa',
+                            es: 'Copia de Seguridad Integral',
+                            en: 'Full Activity Cloud Backup',
+                          ),
                           style:
                               Theme.of(context).textTheme.titleLarge?.copyWith(
                                     color: AutumnColors.boletusBrown,
                                     fontWeight: FontWeight.w800,
                                   ),
                         ),
-                        const Text(
-                          'Google Drive personal (estilo WhatsApp) • 100% sin servidor propio',
-                          style: TextStyle(
+                        Text(
+                          s.tr(
+                            eu: 'Google Drive pertsonala (WhatsApp erara) • %100 pribatua',
+                            es: 'Google Drive personal (estilo WhatsApp) • 100% sin servidor propio',
+                            en: 'Personal Google Drive (WhatsApp style) • 100% private',
+                          ),
+                          style: const TextStyle(
                             color: AutumnColors.textSecondary,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -96,6 +107,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 6),
+                  const LanguageSelectorPill(darkSurface: false),
                 ],
               ),
               const SizedBox(height: 18),

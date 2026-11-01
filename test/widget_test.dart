@@ -4,7 +4,8 @@ import 'package:perretxikotan/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('PerretxikotanApp renders SplashScreen and transitions to LoginScreen',
+  testWidgets(
+      'PerretxikotanApp renders Amanita caesarea SplashScreen and transitions to LoginScreen in Basque (EU) by default, and switches to ES and EN',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
 
@@ -16,11 +17,42 @@ void main() {
 
     expect(find.text('Perretxikotan'), findsOneWidget);
 
-    // Advance past the splash screen timer (2600ms) and animations
+    // Advance past the Amanita caesarea splash animation (2600ms)
     await tester.pump(const Duration(milliseconds: 2800));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Iniciar sesión con Google'), findsOneWidget);
-    expect(find.textContaining('Continuar en modo local (Offline)'), findsOneWidget);
+    // Default language is Basque (EU)
+    expect(
+      find.textContaining('Hasi saioa Google-rekin'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Jarraitu tokiko moduan (Offline)'),
+      findsOneWidget,
+    );
+
+    // Switch language to Castellano (ES)
+    await tester.tap(find.text('ES'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Iniciar sesión con Google'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Continuar en modo local (Offline)'),
+      findsOneWidget,
+    );
+
+    // Switch language to English (EN)
+    await tester.tap(find.text('EN'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Sign in with Google'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Continue in local mode (Offline)'),
+      findsOneWidget,
+    );
   });
 }

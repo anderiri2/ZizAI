@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../localization/app_localizations.dart';
 import '../theme/autumn_theme.dart';
 
-class TranslucentBottomNavBar extends StatelessWidget {
+class TranslucentBottomNavBar extends ConsumerWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
 
@@ -13,7 +15,10 @@ class TranslucentBottomNavBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
+
     return SafeArea(
       top: false,
       child: Padding(
@@ -45,31 +50,31 @@ class TranslucentBottomNavBar extends StatelessWidget {
                 children: [
                   _NavItem(
                     icon: Icons.menu_book_rounded,
-                    label: 'Setas',
+                    label: s.navMushrooms,
                     selected: currentIndex == 0,
                     onTap: () => onTabSelected(0),
                   ),
                   _NavItem(
                     icon: Icons.map_rounded,
-                    label: 'Mapa',
+                    label: s.navMap,
                     selected: currentIndex == 1,
                     onTap: () => onTabSelected(1),
                   ),
                   _NavItem(
                     icon: Icons.hiking_rounded,
-                    label: 'Salidas',
+                    label: s.navOutings,
                     selected: currentIndex == 2,
                     onTap: () => onTabSelected(2),
                   ),
                   _NavItem(
                     icon: Icons.auto_awesome_rounded,
-                    label: 'IA Foto',
+                    label: s.navAiPhoto,
                     selected: currentIndex == 3,
                     onTap: () => onTabSelected(3),
                   ),
                   _NavItem(
                     icon: Icons.cloud_sync_rounded,
-                    label: 'Backup',
+                    label: s.navBackup,
                     selected: currentIndex == 4,
                     onTap: () => onTabSelected(4),
                   ),

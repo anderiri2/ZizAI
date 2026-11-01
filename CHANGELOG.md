@@ -2,6 +2,19 @@
 
 Todos los cambios relevantes de **Perretxikotan** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
 
+## [1.2.0] - 2026-11-01 (`v1.2.0`)
+### Añadido
+- **Soporte Trilingüe Completo (`EU` / `ES` / `EN`) con Euskera (`eu`) como idioma principal por defecto (`feature/trilingual-eu-es-en`)**:
+  - Sistema de localización reactivo (`appLanguageProvider`, `AppStrings`, `LanguageSelectorPill`) persistido en `SharedPreferences`, iniciando por defecto en **Euskera (`AppLanguage.eu`)**.
+  - Selector rápido `EU | ES | EN` integrado en `LoginScreen`, `CatalogScreen`, `MushroomDetailScreen`, `OutingsScreen`, `AiIdentifierScreen` y `BackupScreen`.
+  - Catálogo de **126 especies** enriquecido con nombres, hábitats, temporadas, resúmenes y morfologías en **Euskera, Castellano e Inglés**, ordenado por defecto alfabéticamente en **Euskara (A–Z)**.
+
+## [1.1.0] - 2026-11-01 (`v1.1.0`)
+### Añadido
+- **Nuevo Logo e Iconos Nativos con *Amanita caesarea* (`feature/amanita-caesarea-branding`)**:
+  - Nuevo emblema principal (`assets/images/logo_perretxikotan.png`) e iconos nativos de Android (`mipmap-*`) e iOS (`AppIcon.appiconset`) basados en un primer plano de *Amanita caesarea* (*Gorringo / Oronja*) en una campa.
+  - **Splash Screen Animado del Nacimiento y Apertura de la *Amanita caesarea***: animación en 3 fases botánicas (ruptura de la volva blanca en la hierba → emergencia del pie amarillo oro → apertura del sombrero naranja intenso y esporas doradas).
+
 ## [1.0.0] - 2026-11-01 (`v1.0.0`)
 ### Añadido
 - **Backup Integral de toda la actividad en Google Drive (`appDataFolder`)**: empaquetado de `spots.json`, `outings.json`, `favorites.json`, `ai_chats.json`, `offline_regions.json` y carpeta `photos/` dentro de `perretxikotan_backup.zip`.
