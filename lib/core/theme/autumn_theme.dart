@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Paleta de colores inspirada en el otoño de los bosques vascos y peninsulares.
+/// Paleta de colores inspirada en el otoño de los bosques.
 class AutumnColors {
   AutumnColors._();
 
