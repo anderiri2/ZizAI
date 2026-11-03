@@ -56,7 +56,7 @@ class SpotsDatabase {
         latitude: 43.0358,
         longitude: -2.7289,
         mushroomId: 'boletus_aereus',
-        mushroomName: 'Onddo beltza / Hongo negro',
+        mushroomName: 'Onddo beltza',
         notes:
             'Zona húmeda junto al arroyo entre hayas trasmochas. Salieron 4 ejemplares sanos en la ladera orientada al sur tras tres días de lluvia templada.',
         foundAt: DateTime(2026, 10, 18, 9, 40),
@@ -71,7 +71,7 @@ class SpotsDatabase {
         latitude: 43.0392,
         longitude: -2.7341,
         mushroomId: 'russula_cyanoxantha',
-        mushroomName: 'Urretxa / Gibelurdina / Carbonera',
+        mushroomName: 'Urretxa (Gibelurdina)',
         notes:
             'Entre la hojarasca de haya subiendo hacia el collado. Ejemplares muy firmes y limpios.',
         foundAt: DateTime(2026, 10, 18, 10, 55),
@@ -86,7 +86,7 @@ class SpotsDatabase {
         latitude: 42.8331,
         longitude: -2.1164,
         mushroomId: 'cantharellus_cibarius',
-        mushroomName: 'Ziza horia / Rebozuelo',
+        mushroomName: 'Ziza horia',
         notes:
             'Corro abundante entre el musgo húmedo en una vaguada sombría. Buscar también lengua de gato (Tripaki argia) unos 30 metros más arriba.',
         foundAt: DateTime(2026, 10, 24, 10, 15),
@@ -101,7 +101,7 @@ class SpotsDatabase {
         latitude: 42.8364,
         longitude: -2.1215,
         mushroomId: 'hydnum_repandum',
-        mushroomName: 'Tripaki argia / Lengua de gato',
+        mushroomName: 'Tripaki argia',
         notes:
             'Hilera larga junto a las rocas calizas cubiertas de musgo.',
         foundAt: DateTime(2026, 10, 24, 11, 30),
@@ -116,7 +116,7 @@ class SpotsDatabase {
         latitude: 42.9635,
         longitude: -2.0992,
         mushroomId: 'calocybe_gambosa',
-        mushroomName: 'Udaberriko ziza / Perretxiko',
+        mushroomName: 'Udaberriko ziza',
         notes:
             'Punto suelto registrado en el Mapa Global: pradera montana junto a espinos albares (elorri zuri). El corro marca una medialuna más verde cada mes de mayo.',
         foundAt: DateTime(2026, 5, 12, 9, 0),

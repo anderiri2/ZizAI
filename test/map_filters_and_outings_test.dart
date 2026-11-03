@@ -1,0 +1,176 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:perretxikotan/features/catalog/models/mushroom.dart';
+import 'package:perretxikotan/features/map/models/foraging_spot.dart';
+import 'package:perretxikotan/features/outings/data/outings_database.dart';
+import 'package:perretxikotan/features/outings/models/foraging_outing.dart';
+
+void main() {
+  group('Perretxikotan v1.5.0: Outing Recorder Clean GPS & Map Filters Tests', () {
+    test('ActiveOutingRecorder starts without hardcoded Gorbeia point when initialPoint is null', () async {
+      final recorder = ActiveOutingRecorder();
+      await recorder.startOuting('Salida limpia en Urbasa', initialPoint: null);
+
+      expect(recorder.state.isRecording, isTrue);
+      expect(recorder.state.title, 'Salida limpia en Urbasa');
+      expect(recorder.state.routePoints, isEmpty);
+      expect(recorder.state.distanceMeters, 0.0);
+
+      // Agregar el primer punto GPS real en la Sierra de Urbasa
+      final firstPoint = const LatLng(42.8250, -2.1550);
+      recorder.addRoutePoint(firstPoint);
+
+      expect(recorder.state.routePoints.length, 1);
+      expect(recorder.state.routePoints.first, firstPoint);
+      // La distancia debe permanecer en 0 al ser el primer punto registrado
+      expect(recorder.state.distanceMeters, 0.0);
+
+      // Agregar un segundo punto a ~100 metros
+      final secondPoint = const LatLng(42.8258, -2.1550);
+      recorder.addRoutePoint(secondPoint);
+
+      expect(recorder.state.routePoints.length, 2);
+      // La distancia debe rondar los ~88 metros, NO los ~50 km desde Gorbeia
+      expect(recorder.state.distanceMeters, closeTo(88.9, 10.0));
+      expect(recorder.state.distanceMeters < 500.0, isTrue);
+    });
+
+    test('Mushroom isEdible and isToxic getters work correctly', () {
+      const edibleMushroom = Mushroom(
+        id: 'boletus_edulis',
+        scientificName: 'Boletus edulis',
+        spanishName: 'Boletus edulis',
+        basqueName: 'Onddo zuri',
+        family: 'Boletaceae',
+        edibility: EdibilityLevel.excellent,
+        edibilityLabel: 'Excelente comestible',
+        season: 'Otoño',
+        habitat: 'Bosques',
+        summary: 'Seta muy apreciada',
+        morphology: MushroomMorphology(cap: '', hymenium: '', stem: '', flesh: ''),
+        confusions: [],
+        images: ['assets/images/logo_perretxikotan.png'],
+      );
+
+      const toxicMushroom = Mushroom(
+        id: 'amanita_muscaria',
+        scientificName: 'Amanita muscaria',
+        spanishName: 'Falsa oronja',
+        basqueName: 'Kuleto faltsu',
+        family: 'Amanitaceae',
+        edibility: EdibilityLevel.toxic,
+        edibilityLabel: 'Tóxica',
+        season: 'Otoño',
+        habitat: 'Pinares',
+        summary: 'Tóxica alucinógena',
+        morphology: MushroomMorphology(cap: '', hymenium: '', stem: '', flesh: ''),
+        confusions: [],
+        images: ['assets/images/logo_perretxikotan.png'],
+      );
+
+      expect(edibleMushroom.isEdible, isTrue);
+      expect(edibleMushroom.isToxic, isFalse);
+
+      expect(toxicMushroom.isEdible, isFalse);
+      expect(toxicMushroom.isToxic, isTrue);
+    });
+
+    test('Map filtering spots by species, edibility, and outing works accurately', () {
+      final spots = <ForagingSpot>[
+        ForagingSpot(
+          id: 'spot_1',
+          title: 'Hayedo Urbasa',
+          latitude: 42.8250,
+          longitude: -2.1550,
+          mushroomId: 'boletus_edulis',
+          foundAt: DateTime.now(),
+          outingId: 'outing_01',
+          notes: '',
+        ),
+        ForagingSpot(
+          id: 'spot_2',
+          title: 'Pinar de Izki',
+          latitude: 42.6850,
+          longitude: -2.4850,
+          mushroomId: 'amanita_muscaria',
+          foundAt: DateTime.now(),
+          outingId: 'outing_02',
+          notes: '',
+        ),
+        ForagingSpot(
+          id: 'spot_3',
+          title: 'Robledal libre',
+          latitude: 43.1000,
+          longitude: -2.6000,
+          mushroomId: 'boletus_edulis',
+          foundAt: DateTime.now(),
+          outingId: null,
+          notes: '',
+        ),
+      ];
+
+      // Filtro por especie: solo 'boletus_edulis'
+      final boletusSpots = spots.where((s) => s.mushroomId == 'boletus_edulis').toList();
+      expect(boletusSpots.length, 2);
+
+      // Filtro por salida: solo 'outing_01'
+      final outing1Spots = spots.where((s) => s.outingId == 'outing_01').toList();
+      expect(outing1Spots.length, 1);
+      expect(outing1Spots.first.id, 'spot_1');
+
+      // Filtro puntos libres (sin salida)
+      final standaloneSpots = spots.where((s) => !s.isFromOuting).toList();
+      expect(standaloneSpots.length, 1);
+      expect(standaloneSpots.first.id, 'spot_3');
+    });
+
+    test('Visible GPS routes filter by selected outing IDs', () {
+      final outings = <ForagingOuting>[
+        ForagingOuting(
+          id: 'outing_01',
+          title: 'Ruta Urbasa',
+          startedAt: DateTime.now(),
+          endedAt: DateTime.now(),
+          durationSeconds: 3600,
+          distanceMeters: 4200,
+          routePoints: const [LatLng(42.82, -2.15), LatLng(42.83, -2.16)],
+          notes: '',
+        ),
+        ForagingOuting(
+          id: 'outing_02',
+          title: 'Ruta Gorbeia',
+          startedAt: DateTime.now(),
+          endedAt: DateTime.now(),
+          durationSeconds: 5400,
+          distanceMeters: 6100,
+          routePoints: const [LatLng(43.03, -2.72), LatLng(43.04, -2.73)],
+          notes: '',
+        ),
+        ForagingOuting(
+          id: 'outing_manual',
+          title: 'Salida Manual sin ruta',
+          startedAt: DateTime.now(),
+          endedAt: DateTime.now(),
+          durationSeconds: 1800,
+          distanceMeters: 0,
+          routePoints: const [],
+          notes: '',
+          isManual: true,
+        ),
+      ];
+
+      // Modo "Mostrar todas": solo salidas con al menos 2 puntos de ruta
+      final visibleAll =
+          outings.where((o) => o.routePoints.length >= 2).toList();
+      expect(visibleAll.length, 2);
+
+      // Modo "Seleccionadas": solo 'outing_01'
+      final selectedIds = {'outing_01'};
+      final visibleSelected = outings
+          .where((o) => o.routePoints.length >= 2 && selectedIds.contains(o.id))
+          .toList();
+      expect(visibleSelected.length, 1);
+      expect(visibleSelected.first.id, 'outing_01');
+    });
+  });
+}

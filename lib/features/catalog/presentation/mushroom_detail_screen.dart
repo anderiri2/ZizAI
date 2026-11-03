@@ -455,9 +455,9 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                       _DetailRow(
                         icon: Icons.view_stream_rounded,
                         label: s.tr(
-                          eu: 'Himenioa (Orriak / Poroak / Tolesturak)',
-                          es: 'Himenio (Láminas / Poros / Pliegues)',
-                          en: 'Hymenium (Gills / Pores / Ridges)',
+                          eu: 'Himenioa (Orriak, poroak edo tolesturak)',
+                          es: 'Himenio (Láminas, poros o pliegues)',
+                          en: 'Hymenium (Gills, pores or ridges)',
                         ),
                         value: morph.hymenium,
                       ),
@@ -465,9 +465,9 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                       _DetailRow(
                         icon: Icons.vertical_align_bottom_rounded,
                         label: s.tr(
-                          eu: 'Hanka / Oina',
-                          es: 'Pie (Hanka)',
-                          en: 'Stem / Stipe',
+                          eu: 'Hanka',
+                          es: 'Pie',
+                          en: 'Stem',
                         ),
                         value: morph.stem,
                       ),

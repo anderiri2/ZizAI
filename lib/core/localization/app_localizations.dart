@@ -200,7 +200,7 @@ class AppStrings {
   String get filterEdible =>
       tr(eu: 'Jangarriak', es: 'Comestibles', en: 'Edible');
   String get filterToxic =>
-      tr(eu: 'Toxikoak / Hilgarriak', es: 'Tóxicas / Mortales', en: 'Toxic / Deadly');
+      tr(eu: 'Toxikoak eta hilgarriak', es: 'Tóxicas y mortales', en: 'Toxic & deadly');
 
   String get sortLabel => tr(eu: 'Ordena:', es: 'Orden:', en: 'Sort:');
 }

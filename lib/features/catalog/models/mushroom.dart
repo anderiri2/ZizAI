@@ -301,6 +301,12 @@ class Mushroom {
       images.isNotEmpty ? images.first : 'assets/images/logo_perretxikotan.png';
 
   String get primaryImageAsset => primaryImage;
+  bool get isEdible =>
+      edibility == EdibilityLevel.excellent ||
+      edibility == EdibilityLevel.good ||
+      edibility == EdibilityLevel.caution;
+  bool get isToxic =>
+      edibility == EdibilityLevel.toxic || edibility == EdibilityLevel.deadly;
   String get commonNameEs => spanishName;
   String get nameEu => basqueName;
   String get commonNameEn =>

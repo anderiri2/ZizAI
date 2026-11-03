@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import '../../../core/localization/app_localizations.dart';
@@ -13,6 +14,7 @@ import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
 import '../data/outings_database.dart';
 import '../models/foraging_outing.dart';
+import 'live_outing_map_screen.dart';
 import 'map_spot_picker_screen.dart';
 
 class OutingsScreen extends ConsumerStatefulWidget {
@@ -38,7 +40,8 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
     final lang = ref.read(appLanguageProvider);
     final s = AppStrings(lang);
     final titleCtrl = TextEditingController(
-      text: 'Salida de otoño (${DateFormat('dd/MM').format(DateTime.now())})',
+      text:
+          '${s.tr(eu: "Udazkeneko irteera", es: "Salida de otoño", en: "Autumn outing")} (${DateFormat('dd/MM').format(DateTime.now())})',
     );
     int selectedMode = 0; // 0 = GPS en Vivo, 1 = Manual en Directo, 2 = Retrospectiva
     DateTime selectedDate = DateTime.now();
@@ -295,11 +298,15 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                   controller: titleCtrl,
                   decoration: InputDecoration(
                     labelText: s.tr(
-                      eu: 'Irteeraren izena / gunea',
-                      es: 'Nombre de la salida / zona',
-                      en: 'Outing / zone name',
+                      eu: 'Irteeraren izena',
+                      es: 'Nombre de la salida',
+                      en: 'Outing name',
                     ),
-                    hintText: 'Ej. Hayedo de Altube',
+                    hintText: s.tr(
+                      eu: 'Adib. Altubeko pagadia',
+                      es: 'Ej. Hayedo de Altube',
+                      en: 'E.g. Altube beech forest',
+                    ),
                     prefixIcon: const Icon(Icons.hiking_rounded),
                   ),
                 ),
@@ -332,9 +339,14 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                       Expanded(
                         child: DropdownButtonFormField<int>(
                           initialValue: durationMinutes,
-                          decoration: const InputDecoration(
-                            labelText: 'Duración aprox.',
-                            contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                          decoration: InputDecoration(
+                            labelText: s.tr(
+                              eu: 'Iraupen gutxi gorabeherakoa',
+                              es: 'Duración aprox.',
+                              en: 'Approx. duration',
+                            ),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 10),
                           ),
                           items: const [
                             DropdownMenuItem(value: 60, child: Text('1h 00m')),
@@ -394,7 +406,11 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
               title: titleCtrl.text,
               startedAt: selectedDate,
               durationSeconds: durationMinutes * 60,
-              notes: 'Salida manual registrada retrospectivamente.',
+              notes: s.tr(
+                eu: 'Eskuz erregistratutako irteera.',
+                es: 'Salida manual registrada retrospectivamente.',
+                en: 'Manually logged outing.',
+              ),
             );
         await ref.read(outingsProvider.notifier).saveOuting(outing);
         if (mounted) {
@@ -402,10 +418,18 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
             SnackBar(
               backgroundColor: AutumnColors.mossGreen,
               content: Text(
-                'Salida "${outing.title}" guardada. Ya puedes añadir setas tocando en el mapa.',
+                s.tr(
+                  eu: '"${outing.title}" irteera gorde da. Orain perretxikoak gehitu ditzakezu mapan.',
+                  es: 'Salida "${outing.title}" guardada. Ya puedes añadir setas tocando en el mapa.',
+                  en: 'Outing "${outing.title}" saved. You can now add mushrooms by tapping the map.',
+                ),
               ),
               action: SnackBarAction(
-                label: 'Añadir seta',
+                label: s.tr(
+                  eu: 'Seta gehitu',
+                  es: 'Añadir seta',
+                  en: 'Add mushroom',
+                ),
                 textColor: Colors.white,
                 onPressed: () =>
                     _openMapSpotPickerForOuting(outing.id, outing.title),
@@ -416,9 +440,19 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
       } else {
         // Salida en Vivo (GPS o Manual)
         final isManual = selectedMode == 1;
+        LatLng? initialPoint;
+        if (!isManual) {
+          try {
+            final pos = await Geolocator.getLastKnownPosition() ??
+                await Geolocator.getCurrentPosition().timeout(
+                  const Duration(seconds: 2),
+                );
+            initialPoint = LatLng(pos.latitude, pos.longitude);
+          } catch (_) {}
+        }
         await ref.read(activeOutingRecorderProvider.notifier).startOuting(
               titleCtrl.text,
-              initialPoint: const LatLng(43.0340, -2.7270),
+              initialPoint: initialPoint,
               isManual: isManual,
             );
       }
@@ -429,6 +463,8 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
     String outingId,
     String outingTitle,
   ) async {
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
     final newSpot = await Navigator.of(context).push<ForagingSpot>(
       MaterialPageRoute(
         builder: (_) => MapSpotPickerScreen(
@@ -443,7 +479,11 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
         SnackBar(
           backgroundColor: AutumnColors.mossGreen,
           content: Text(
-            'Seta "${newSpot.mushroomName ?? 'hallazgo'}" añadida a la salida "$outingTitle"',
+            s.tr(
+              eu: '"${newSpot.mushroomName ?? 'aurkikuntza'}" perretxikoa gehitu da "$outingTitle" irteerara',
+              es: 'Seta "${newSpot.mushroomName ?? 'hallazgo'}" añadida a la salida "$outingTitle"',
+              en: 'Mushroom "${newSpot.mushroomName ?? 'find'}" added to outing "$outingTitle"',
+            ),
           ),
         ),
       );
@@ -489,21 +529,31 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
       return;
     }
 
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
+
     final choice = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AutumnColors.parchmentBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
-          'Eliminar Salida del Historial',
-          style: TextStyle(
+        title: Text(
+          s.tr(
+            eu: 'Ezabatu Irteera Historialetik',
+            es: 'Eliminar Salida del Historial',
+            en: 'Delete Outing from History',
+          ),
+          style: const TextStyle(
             fontWeight: FontWeight.w800,
             color: AutumnColors.boletusBrown,
           ),
         ),
         content: Text(
-          'Esta salida ("${outing.title}") tiene $associatedSpotsCount ubicaciones de setas registradas.\n\n'
-          '¿Qué deseas hacer con las ubicaciones de setas encontradas en esta vuelta?',
+          s.tr(
+            eu: '"${outing.title}" irteera honek $associatedSpotsCount perretxiko-leku ditu erregistratuta.\n\nZer egin nahi duzu aurkitutako perretxikoekin?',
+            es: 'Esta salida ("${outing.title}") tiene $associatedSpotsCount ubicaciones de setas registradas.\n\n¿Qué deseas hacer con las ubicaciones de setas encontradas en esta vuelta?',
+            en: 'This outing ("${outing.title}") has $associatedSpotsCount mushroom spots recorded.\n\nWhat would you like to do with them?',
+          ),
           style: const TextStyle(
             fontSize: 14,
             height: 1.42,
@@ -514,7 +564,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop('cancel'),
-            child: const Text('Cancelar'),
+            child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
           ),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
@@ -523,7 +573,13 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
             ),
             onPressed: () => Navigator.of(ctx).pop('keep_spots'),
             icon: const Icon(Icons.place_rounded, size: 18),
-            label: const Text('Conservar setas en Mapa Global'),
+            label: Text(
+              s.tr(
+                eu: 'Mantendu setak Mapa Orokorrean',
+                es: 'Conservar setas en Mapa Global',
+                en: 'Keep spots on Global Map',
+              ),
+            ),
           ),
           FilledButton.icon(
             style: FilledButton.styleFrom(
@@ -532,7 +588,13 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
             ),
             onPressed: () => Navigator.of(ctx).pop('delete_all'),
             icon: const Icon(Icons.delete_forever_rounded, size: 18),
-            label: const Text('Borrar salida y sus puntos'),
+            label: Text(
+              s.tr(
+                eu: 'Ezabatu irteera eta bere puntuak',
+                es: 'Borrar salida y sus puntos',
+                en: 'Delete outing and spots',
+              ),
+            ),
           ),
         ],
       ),
@@ -556,6 +618,16 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
     final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
     final s = (seconds % 60).toString().padLeft(2, '0');
     return '$h:$m:$s';
+  }
+
+  void _openFullscreenLiveOutingMap() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LiveOutingMapScreen(
+          externalMapController: _liveMapController,
+        ),
+      ),
+    );
   }
 
   @override
@@ -659,11 +731,13 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
                 child: _ActiveOutingRecorderCard(
                   activeState: activeOuting,
+                  lang: lang,
                   mapController: _liveMapController,
                   elapsedFormatted: _formatElapsed(activeOuting.elapsedSeconds),
                   outingSpots: allSpots
                       .where((s) => s.outingId == activeOuting.activeOutingId)
                       .toList(),
+                  onOpenFullscreenLiveMap: _openFullscreenLiveOutingMap,
                   onAddPointTap: (latLng) {
                     ref
                         .read(activeOutingRecorderProvider.notifier)
@@ -717,10 +791,14 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                                   AutumnColors.textMuted.withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 12),
-                            const Text(
-                              'Aún no has documentado ninguna salida al monte.\nPulsa "Nueva Salida" para grabar tu recorrido GPS y las setas que recojas.',
+                            Text(
+                              s.tr(
+                                eu: 'Oraindik ez duzu mendiko irteerarik dokumentatu.\nSakatu "Irteera Berria" zure GPS ibilbidea eta jasotako perretxikoak grabatzeko.',
+                                es: 'Aún no has documentado ninguna salida al monte.\nPulsa "Nueva Salida" para grabar tu recorrido GPS y las setas que recojas.',
+                                en: 'You have not documented any foraging outing yet.\nTap "New Outing" to record your GPS track and found mushrooms.',
+                              ),
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AutumnColors.textSecondary,
                                 height: 1.45,
                               ),
@@ -743,6 +821,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
 
                       return _OutingSummaryCard(
                         outing: outing,
+                        lang: lang,
                         outingSpots: outingSpots,
                         harvestItems: harvest,
                         catalogMushrooms: allMushrooms,
@@ -785,6 +864,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
 
 class _ActiveOutingRecorderCard extends StatelessWidget {
   final ActiveOutingState activeState;
+  final AppLanguage lang;
   final MapController mapController;
   final String elapsedFormatted;
   final List<ForagingSpot> outingSpots;
@@ -793,9 +873,11 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
   final VoidCallback onTogglePause;
   final VoidCallback onFinish;
   final VoidCallback? onPickSpotOnMap;
+  final VoidCallback? onOpenFullscreenLiveMap;
 
   const _ActiveOutingRecorderCard({
     required this.activeState,
+    required this.lang,
     required this.mapController,
     required this.elapsedFormatted,
     required this.outingSpots,
@@ -804,16 +886,20 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
     required this.onTogglePause,
     required this.onFinish,
     this.onPickSpotOnMap,
+    this.onOpenFullscreenLiveMap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings(lang);
     final center = activeState.routePoints.isNotEmpty
         ? activeState.routePoints.last
-        : const LatLng(43.0340, -2.7270);
+        : (outingSpots.isNotEmpty
+            ? LatLng(outingSpots.last.latitude, outingSpots.last.longitude)
+            : const LatLng(43.0340, -2.7270));
     final km = (activeState.distanceMeters / 1000.0).toStringAsFixed(2);
     final totalSpecimens =
-        outingSpots.fold<int>(0, (sum, s) => sum + s.quantityCount);
+        outingSpots.fold<int>(0, (sum, sp) => sum + sp.quantityCount);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -843,7 +929,7 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Grabando: ${activeState.title}',
+                      '${s.tr(eu: "Grabatzen", es: "Grabando", en: "Recording")}: ${activeState.title}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -856,7 +942,11 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          'Salida Manual (Sin GPS activo)',
+                          s.tr(
+                            eu: 'Eskuzko irteera (GPS aktiborik gabe)',
+                            es: 'Salida Manual (Sin GPS activo)',
+                            en: 'Manual Outing (No active GPS)',
+                          ),
                           style: TextStyle(
                             color: AutumnColors.amberLeaf.withValues(alpha: 0.9),
                             fontSize: 11,
@@ -878,72 +968,132 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          // Mapa en vivo de la ruta (puedes tocar sobre él para simular pasos GPS)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              height: 135,
-              child: FlutterMap(
-                mapController: mapController,
-                options: MapOptions(
-                  initialCenter: center,
-                  initialZoom: 14.2,
-                  onTap: (_, latLng) => onAddPointTap(latLng),
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.perretxikotan.perretxikotan',
-                  ),
-                  if (activeState.routePoints.length >= 2)
-                    PolylineLayer(
-                      polylines: [
-                        Polyline(
-                          points: activeState.routePoints,
-                          color: AutumnColors.terracotta,
-                          strokeWidth: 4.5,
+          // Mapa en vivo de la ruta (pulsar para ampliar a pantalla completa)
+          GestureDetector(
+            onTap: onOpenFullscreenLiveMap,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                height: 145,
+                child: Stack(
+                  children: [
+                    FlutterMap(
+                      mapController: mapController,
+                      options: MapOptions(
+                        initialCenter: center,
+                        initialZoom: 14.2,
+                        interactionOptions: const InteractionOptions(
+                          flags: InteractiveFlag.none,
+                        ),
+                        onTap: (_, __) => onOpenFullscreenLiveMap?.call(),
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.perretxikotan.perretxikotan',
+                        ),
+                        if (activeState.routePoints.length >= 2)
+                          PolylineLayer(
+                            polylines: [
+                              Polyline(
+                                points: activeState.routePoints,
+                                color: AutumnColors.terracotta,
+                                strokeWidth: 4.5,
+                              ),
+                            ],
+                          ),
+                        MarkerLayer(
+                          markers: [
+                            ...outingSpots.map(
+                              (sp) => Marker(
+                                point: LatLng(sp.latitude, sp.longitude),
+                                width: 30,
+                                height: 30,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AutumnColors.mossGreen,
+                                    shape: BoxShape.circle,
+                                    border:
+                                        Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                  child: const Icon(
+                                    Icons.eco_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (activeState.routePoints.isNotEmpty)
+                              Marker(
+                                point: activeState.routePoints.last,
+                                width: 22,
+                                height: 22,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.blueAccent,
+                                    shape: BoxShape.circle,
+                                    border:
+                                        Border.all(color: Colors.white, width: 2.5),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),
-                  MarkerLayer(
-                    markers: [
-                      ...outingSpots.map(
-                        (s) => Marker(
-                          point: LatLng(s.latitude, s.longitude),
-                          width: 30,
-                          height: 30,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AutumnColors.mossGreen,
-                              shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: Colors.white, width: 1.5),
+                    // Botón flotante para ampliar a pantalla completa
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.75),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white30),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              s.tr(eu: 'Handitu', es: 'Ampliar', en: 'Expand'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.eco_rounded,
-                              color: Colors.white,
-                              size: 16,
-                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          s.tr(
+                            eu: 'Sakatu mapa ikuspegi murgilgarrirako',
+                            es: 'Toca el mapa para abrir vista inmersiva',
+                            en: 'Tap map to open immersive view',
+                          ),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 10,
                           ),
                         ),
                       ),
-                      if (activeState.routePoints.isNotEmpty)
-                        Marker(
-                          point: activeState.routePoints.last,
-                          width: 22,
-                          height: 22,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: Colors.white, width: 2.5),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -954,8 +1104,16 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   activeState.isManual
-                      ? 'Modo Manual (Sin GPS) · Cesta: $totalSpecimens ej. (${outingSpots.length} puntos)'
-                      : 'Distancia: $km km · Cesta: $totalSpecimens ej. (${outingSpots.length} puntos)',
+                      ? s.tr(
+                          eu: 'Eskuzko modua (GPS gabe) · Saskia: $totalSpecimens ale (${outingSpots.length} leku)',
+                          es: 'Modo Manual (Sin GPS) · Cesta: $totalSpecimens ej. (${outingSpots.length} puntos)',
+                          en: 'Manual Mode (No GPS) · Basket: $totalSpecimens spec. (${outingSpots.length} spots)',
+                        )
+                      : s.tr(
+                          eu: 'Distantzia: $km km · Saskia: $totalSpecimens ale (${outingSpots.length} leku)',
+                          es: 'Distancia: $km km · Cesta: $totalSpecimens ej. (${outingSpots.length} puntos)',
+                          en: 'Distance: $km km · Basket: $totalSpecimens spec. (${outingSpots.length} spots)',
+                        ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -967,7 +1125,17 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                activeState.isManual ? 'Toca mapa para ubicar' : 'Toca el mapa para trazar paso',
+                activeState.isManual
+                    ? s.tr(
+                        eu: 'Sakatu mapa kokatzeko',
+                        es: 'Toca mapa para ubicar',
+                        en: 'Tap map to place spot',
+                      )
+                    : s.tr(
+                        eu: 'Sakatu mapa urratsa marrazteko',
+                        es: 'Toca el mapa para trazar paso',
+                        en: 'Tap map to trace step',
+                      ),
                 style: TextStyle(
                   color: AutumnColors.amberLeaf.withValues(alpha: 0.8),
                   fontSize: 11,
@@ -988,9 +1156,13 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                   ),
                   onPressed: onRegisterFind,
                   icon: const Icon(Icons.add_location_alt_rounded, size: 18),
-                  label: const Text(
-                    'Anotar Seta Aquí',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  label: Text(
+                    s.tr(
+                      eu: 'Seta Hemen Anotatu',
+                      es: 'Anotar Seta Aquí',
+                      en: 'Spot Mushroom Here',
+                    ),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -1014,9 +1186,29 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                     backgroundColor: AutumnColors.amberLeaf,
                     foregroundColor: Colors.white,
                   ),
-                  tooltip: 'Ubicar seta en el mapa a pantalla completa',
+                  tooltip: s.tr(
+                    eu: 'Kokatu seta mapan pantaila osoan',
+                    es: 'Ubicar seta en el mapa a pantalla completa',
+                    en: 'Locate mushroom on fullscreen map',
+                  ),
                   onPressed: onPickSpotOnMap,
                   icon: const Icon(Icons.touch_app_rounded, size: 20),
+                ),
+              ],
+              if (onOpenFullscreenLiveMap != null) ...[
+                const SizedBox(width: 6),
+                IconButton.filled(
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white24,
+                    foregroundColor: Colors.white,
+                  ),
+                  tooltip: s.tr(
+                    eu: 'Handitu mapa pantaila osora',
+                    es: 'Ampliar mapa a pantalla completa',
+                    en: 'Expand map to fullscreen',
+                  ),
+                  onPressed: onOpenFullscreenLiveMap,
+                  icon: const Icon(Icons.fullscreen_rounded, size: 20),
                 ),
               ],
               const SizedBox(width: 6),
@@ -1027,7 +1219,13 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                 ),
                 onPressed: onFinish,
                 icon: const Icon(Icons.check_rounded, size: 18),
-                label: const Text('Terminar'),
+                label: Text(
+                  s.tr(
+                    eu: 'Amaitu',
+                    es: 'Terminar',
+                    en: 'Finish',
+                  ),
+                ),
               ),
             ],
           ),
@@ -1039,6 +1237,7 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
 
 class _OutingSummaryCard extends StatelessWidget {
   final ForagingOuting outing;
+  final AppLanguage lang;
   final List<ForagingSpot> outingSpots;
   final List<OutingHarvestItem> harvestItems;
   final List<Mushroom> catalogMushrooms;
@@ -1049,6 +1248,7 @@ class _OutingSummaryCard extends StatelessWidget {
 
   const _OutingSummaryCard({
     required this.outing,
+    required this.lang,
     required this.outingSpots,
     required this.harvestItems,
     required this.catalogMushrooms,
@@ -1060,6 +1260,7 @@ class _OutingSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings(lang);
     final totalSpecimens =
         harvestItems.fold<int>(0, (sum, item) => sum + item.totalSpecimens);
     final totalGrams =
@@ -1092,7 +1293,7 @@ class _OutingSummaryCard extends StatelessWidget {
                       painter: _RoutePreviewPainter(
                         routePoints: outing.routePoints,
                         spotPoints: outingSpots
-                            .map((s) => LatLng(s.latitude, s.longitude))
+                            .map((sp) => LatLng(sp.latitude, sp.longitude))
                             .toList(),
                       ),
                     ),
@@ -1150,18 +1351,22 @@ class _OutingSummaryCard extends StatelessWidget {
                                     .withValues(alpha: 0.5),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.touch_app_rounded,
                                   size: 13,
                                   color: AutumnColors.boletusBrown,
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'Salida Manual (Sin GPS)',
-                                  style: TextStyle(
+                                  s.tr(
+                                    eu: 'Eskuzko Irteera (GPS gabe)',
+                                    es: 'Salida Manual (Sin GPS)',
+                                    en: 'Manual Outing (No GPS)',
+                                  ),
+                                  style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                     color: AutumnColors.boletusBrown,
@@ -1178,7 +1383,13 @@ class _OutingSummaryCard extends StatelessWidget {
                           children: [
                             _MetricBadge(
                               icon: Icons.straighten_rounded,
-                              label: outing.formattedDistanceKm,
+                              label: outing.isManual
+                                  ? s.tr(
+                                      eu: 'Eskuzkoa (GPS gabe)',
+                                      es: 'Manual (Sin GPS)',
+                                      en: 'Manual (No GPS)',
+                                    )
+                                  : outing.formattedDistanceKm,
                             ),
                             _MetricBadge(
                               icon: Icons.schedule_rounded,
@@ -1187,8 +1398,8 @@ class _OutingSummaryCard extends StatelessWidget {
                             _MetricBadge(
                               icon: Icons.shopping_basket_rounded,
                               label: totalGrams > 0
-                                  ? '$totalSpecimens ej. (${totalGrams}g)'
-                                  : '$totalSpecimens ej.',
+                                  ? '$totalSpecimens ${s.tr(eu: "ale", es: "ej.", en: "spec.")} (${totalGrams}g)'
+                                  : '$totalSpecimens ${s.tr(eu: "ale", es: "ej.", en: "spec.")}',
                               highlight: true,
                             ),
                           ],
@@ -1226,7 +1437,7 @@ class _OutingSummaryCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Setas recogidas (${outingSpots.length} ubicaciones):',
+                    '${s.tr(eu: "Bildutako perretxikoak", es: "Setas recogidas", en: "Mushroom harvest")} (${outingSpots.length} ${s.tr(eu: "leku", es: "ubicaciones", en: "spots")}):',
                     style: const TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
@@ -1237,9 +1448,13 @@ class _OutingSummaryCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               if (harvestItems.isEmpty)
-                const Text(
-                  'Ruta sin hallazgos registrados.',
-                  style: TextStyle(
+                Text(
+                  s.tr(
+                    eu: 'Ibilbidean ez da aurkikuntzarik erregistratu.',
+                    es: 'Ruta sin hallazgos registrados.',
+                    en: 'Route with no recorded finds.',
+                  ),
+                  style: const TextStyle(
                     fontSize: 12.5,
                     fontStyle: FontStyle.italic,
                     color: AutumnColors.textMuted,
@@ -1253,6 +1468,17 @@ class _OutingSummaryCard extends StatelessWidget {
                     final matchedMushroom = catalogMushrooms
                         .where((m) => m.id == item.mushroomId)
                         .firstOrNull;
+                    final itemMushroomName = matchedMushroom != null
+                        ? (lang == AppLanguage.eu
+                            ? matchedMushroom.basqueName
+                            : (lang == AppLanguage.en
+                                ? matchedMushroom.englishName
+                                : matchedMushroom.spanishName))
+                        : item.mushroomName;
+                    final weightPart = item.totalWeightGrams > 0
+                        ? ' (${item.totalWeightGrams}g)'
+                        : '';
+
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -1279,7 +1505,7 @@ class _OutingSummaryCard extends StatelessWidget {
                             const SizedBox(width: 6),
                           ],
                           Text(
-                            item.formattedSummary,
+                            '${item.totalSpecimens}x $itemMushroomName$weightPart',
                             style: const TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w700,
@@ -1312,9 +1538,13 @@ class _OutingSummaryCard extends StatelessWidget {
                         Icons.add_location_alt_rounded,
                         size: 15,
                       ),
-                      label: const Text(
-                        'Añadir en mapa',
-                        style: TextStyle(
+                      label: Text(
+                        s.tr(
+                          eu: 'Mapan gehitu',
+                          es: 'Añadir en mapa',
+                          en: 'Add on map',
+                        ),
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -1329,9 +1559,13 @@ class _OutingSummaryCard extends StatelessWidget {
                       ),
                       onPressed: onViewOnGlobalMap,
                       icon: const Icon(Icons.map_rounded, size: 16),
-                      label: const Text(
-                        'Ver en Mapa',
-                        style: TextStyle(
+                      label: Text(
+                        s.tr(
+                          eu: 'Mapan Ikusi',
+                          es: 'Ver en Mapa',
+                          en: 'View on Map',
+                        ),
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -1476,7 +1710,7 @@ class _RoutePreviewPainter extends CustomPainter {
 }
 
 /// Pantalla de detalle completo de una Salida al Monte.
-class OutingDetailScreen extends StatelessWidget {
+class OutingDetailScreen extends ConsumerWidget {
   final ForagingOuting outing;
   final List<ForagingSpot> outingSpots;
   final List<OutingHarvestItem> harvestItems;
@@ -1491,7 +1725,9 @@ class OutingDetailScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final center = outing.routePoints.isNotEmpty
         ? outing.routePoints.first
         : (outingSpots.isNotEmpty
@@ -1504,7 +1740,11 @@ class OutingDetailScreen extends StatelessWidget {
         title: Text(outing.title),
         actions: [
           IconButton(
-            tooltip: 'Añadir seta seleccionando en el mapa',
+            tooltip: s.tr(
+              eu: 'Gehitu perretxikoa mapan hautatuz',
+              es: 'Añadir seta seleccionando en el mapa',
+              en: 'Add mushroom selecting on map',
+            ),
             icon: const Icon(Icons.add_location_alt_rounded),
             onPressed: () {
               Navigator.of(context).push(
@@ -1607,18 +1847,20 @@ class OutingDetailScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _DetailStatColumn(
-                      label: 'Distancia',
-                      value: outing.formattedDistanceKm,
+                      label: s.tr(eu: 'Distantzia', es: 'Distancia', en: 'Distance'),
+                      value: outing.isManual
+                          ? s.tr(eu: 'Eskuzkoa (GPS gabe)', es: 'Manual (Sin GPS)', en: 'Manual (No GPS)')
+                          : outing.formattedDistanceKm,
                       icon: Icons.straighten_rounded,
                     ),
                     _DetailStatColumn(
-                      label: 'Duración',
+                      label: s.tr(eu: 'Iraupena', es: 'Duración', en: 'Duration'),
                       value: outing.formattedDuration,
                       icon: Icons.timer_rounded,
                     ),
                     _DetailStatColumn(
-                      label: 'Hallazgos',
-                      value: '${outingSpots.length} puntos',
+                      label: s.tr(eu: 'Aurkikuntzak', es: 'Hallazgos', en: 'Finds'),
+                      value: '${outingSpots.length} ${s.tr(eu: "leku", es: "puntos", en: "spots")}',
                       icon: Icons.place_rounded,
                     ),
                   ],
@@ -1640,7 +1882,11 @@ class OutingDetailScreen extends StatelessWidget {
           const SizedBox(height: 18),
 
           Text(
-            'Cesta de la Salida por Especie',
+            s.tr(
+              eu: 'Irteerako Saskia Espezieka',
+              es: 'Cesta de la Salida por Especie',
+              en: 'Harvest Basket by Species',
+            ),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AutumnColors.boletusBrown,
                   fontWeight: FontWeight.w800,
@@ -1651,6 +1897,14 @@ class OutingDetailScreen extends StatelessWidget {
             final mushroom = catalogMushrooms
                 .where((m) => m.id == item.mushroomId)
                 .firstOrNull;
+            final mName = mushroom != null
+                ? (lang == AppLanguage.eu
+                    ? mushroom.basqueName
+                    : (lang == AppLanguage.en
+                        ? mushroom.englishName
+                        : mushroom.spanishName))
+                : item.mushroomName;
+
             return Card(
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
@@ -1666,11 +1920,11 @@ class OutingDetailScreen extends StatelessWidget {
                       )
                     : const CircleAvatar(child: Icon(Icons.eco_rounded)),
                 title: Text(
-                  item.mushroomName,
+                  mName,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: Text(
-                  '${item.totalSpecimens} ejemplares en ${item.spotsCount} punto(s)${item.totalWeightGrams > 0 ? ' · ${item.totalWeightGrams} g' : ''}',
+                  '${item.totalSpecimens} ${s.tr(eu: "ale", es: "ejemplares", en: "specimens")} (${item.spotsCount} ${s.tr(eu: "leku", es: "punto(s)", en: "spot(s)")})${item.totalWeightGrams > 0 ? ' · ${item.totalWeightGrams} g' : ''}',
                 ),
                 trailing: mushroom != null
                     ? const Icon(Icons.chevron_right_rounded)
@@ -1731,7 +1985,7 @@ class _DetailStatColumn extends StatelessWidget {
   }
 }
 
-class OutingFindFormSheet extends StatefulWidget {
+class OutingFindFormSheet extends ConsumerStatefulWidget {
   final LatLng position;
   final String outingId;
   final String outingTitle;
@@ -1746,10 +2000,10 @@ class OutingFindFormSheet extends StatefulWidget {
   });
 
   @override
-  State<OutingFindFormSheet> createState() => _OutingFindFormSheetState();
+  ConsumerState<OutingFindFormSheet> createState() => _OutingFindFormSheetState();
 }
 
-class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
+class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
   final _titleCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   final _qtyCtrl = TextEditingController(text: '3');
@@ -1759,13 +2013,20 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
   @override
   void initState() {
     super.initState();
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
     if (widget.catalogMushrooms.isNotEmpty) {
       _selectedMushroom = widget.catalogMushrooms
           .where((m) => m.id == 'boletus_edulis')
           .firstOrNull ??
           widget.catalogMushrooms.first;
+      final mName = lang == AppLanguage.eu
+          ? _selectedMushroom!.basqueName.split('/').first.trim()
+          : (lang == AppLanguage.en
+              ? _selectedMushroom!.englishName
+              : _selectedMushroom!.spanishName);
       _titleCtrl.text =
-          'Hallazgo de ${_selectedMushroom!.basqueName.split('/').first.trim()}';
+          '${s.tr(eu: "Aurkikuntza", es: "Hallazgo de", en: "Find of")}: $mName';
     }
   }
 
@@ -1780,6 +2041,8 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+    final s = AppStrings(lang);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
@@ -1794,7 +2057,7 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Anotar Seta en "${widget.outingTitle}"',
+              '${s.tr(eu: "Seta gorde hemen", es: "Anotar Seta en", en: "Log Mushroom in")}: "${widget.outingTitle}"',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AutumnColors.boletusBrown,
                   ),
@@ -1803,15 +2066,25 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
             DropdownButtonFormField<Mushroom>(
               initialValue: _selectedMushroom,
               isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Especie del catálogo',
-                prefixIcon: Icon(Icons.eco_rounded),
+              decoration: InputDecoration(
+                labelText: s.tr(
+                  eu: 'Katalogoko espeziea',
+                  es: 'Especie del catálogo',
+                  en: 'Catalog species',
+                ),
+                prefixIcon: const Icon(Icons.eco_rounded),
               ),
               items: widget.catalogMushrooms.map((m) {
+                final mTitle = lang == AppLanguage.eu
+                    ? m.basqueName
+                    : (lang == AppLanguage.en ? m.englishName : m.spanishName);
+                final mSubtitle = lang == AppLanguage.eu
+                    ? m.spanishName
+                    : m.scientificName;
                 return DropdownMenuItem(
                   value: m,
                   child: Text(
-                    '${m.basqueName.split('/').first.trim()} · ${m.spanishName}',
+                    '$mTitle · $mSubtitle',
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
@@ -1820,8 +2093,11 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
                 setState(() {
                   _selectedMushroom = m;
                   if (m != null) {
+                    final mName = lang == AppLanguage.eu
+                        ? m.basqueName.split('/').first.trim()
+                        : (lang == AppLanguage.en ? m.englishName : m.spanishName);
                     _titleCtrl.text =
-                        'Hallazgo de ${m.basqueName.split('/').first.trim()}';
+                        '${s.tr(eu: "Aurkikuntza", es: "Hallazgo de", en: "Find of")}: $mName';
                   }
                 });
               },
@@ -1833,9 +2109,13 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
                   child: TextField(
                     controller: _qtyCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Nº ejemplares',
-                      prefixIcon: Icon(Icons.tag_rounded),
+                    decoration: InputDecoration(
+                      labelText: s.tr(
+                        eu: 'Ale kopurua',
+                        es: 'Nº ejemplares',
+                        en: 'Quantity',
+                      ),
+                      prefixIcon: const Icon(Icons.tag_rounded),
                     ),
                   ),
                 ),
@@ -1844,10 +2124,14 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
                   child: TextField(
                     controller: _weightCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Peso aprox. (g)',
-                      hintText: 'Opcional',
-                      prefixIcon: Icon(Icons.scale_rounded),
+                    decoration: InputDecoration(
+                      labelText: s.tr(
+                        eu: 'Gutxi gorabeherako pisua (g)',
+                        es: 'Peso aprox. (g)',
+                        en: 'Approx. weight (g)',
+                      ),
+                      hintText: s.tr(eu: 'Aukerakoa', es: 'Opcional', en: 'Optional'),
+                      prefixIcon: const Icon(Icons.scale_rounded),
                     ),
                   ),
                 ),
@@ -1857,9 +2141,17 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
             TextField(
               controller: _notesCtrl,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Nota descriptiva',
-                hintText: 'Ej. Junto al arroyo bajo dos hayas...',
+              decoration: InputDecoration(
+                labelText: s.tr(
+                  eu: 'Ohar deskribatzailea',
+                  es: 'Nota descriptiva',
+                  en: 'Descriptive note',
+                ),
+                hintText: s.tr(
+                  eu: 'Adib. Bi pinu azpian erreka ondoan...',
+                  es: 'Ej. Junto al arroyo bajo dos hayas...',
+                  en: 'E.g. Next to stream under two beeches...',
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -1874,14 +2166,26 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
                   final spot = ForagingSpot(
                     id: 'spot_${DateTime.now().millisecondsSinceEpoch}',
                     title: _titleCtrl.text.trim().isEmpty
-                        ? 'Hallazgo en salida'
+                        ? s.tr(
+                            eu: 'Irteerako aurkikuntza',
+                            es: 'Hallazgo en salida',
+                            en: 'Find in outing',
+                          )
                         : _titleCtrl.text.trim(),
                     latitude: widget.position.latitude,
                     longitude: widget.position.longitude,
                     mushroomId: m?.id,
                     mushroomName: m != null
-                        ? '${m.basqueName} / ${m.spanishName}'
-                        : 'Seta silvestre',
+                        ? (lang == AppLanguage.eu
+                            ? m.basqueName
+                            : (lang == AppLanguage.en
+                                ? m.englishName
+                                : m.spanishName))
+                        : s.tr(
+                            eu: 'Basoko perretxikoa',
+                            es: 'Seta silvestre',
+                            en: 'Wild mushroom',
+                          ),
                     notes: _notesCtrl.text.trim(),
                     foundAt: DateTime.now(),
                     outingId: widget.outingId,
@@ -1892,7 +2196,13 @@ class _OutingFindFormSheetState extends State<OutingFindFormSheet> {
                   Navigator.of(context).pop(spot);
                 },
                 icon: const Icon(Icons.save_rounded),
-                label: const Text('Guardar en la Salida y Mapa Global'),
+                label: Text(
+                  s.tr(
+                    eu: 'Irteeran eta Mapa Orokorrean Gorde',
+                    es: 'Guardar en la Salida y Mapa Global',
+                    en: 'Save to Outing and Global Map',
+                  ),
+                ),
               ),
             ),
           ],

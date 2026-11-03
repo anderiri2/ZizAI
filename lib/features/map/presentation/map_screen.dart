@@ -17,6 +17,7 @@ import '../../catalog/models/mushroom.dart';
 import '../../catalog/presentation/mushroom_detail_screen.dart';
 import '../../outings/data/outings_database.dart';
 import '../../outings/models/foraging_outing.dart';
+import '../../outings/presentation/map_spot_picker_screen.dart';
 import '../data/spots_database.dart';
 import '../models/foraging_spot.dart';
 import '../services/offline_map_service.dart';
@@ -50,12 +51,32 @@ class MapScreenState extends ConsumerState<MapScreen> {
       OfflineCachingTileProvider();
   bool _useTopoLayer = true;
   bool _showAllRoutes = true;
+  final Set<String> _selectedRouteOutingIds = <String>{};
+  String? _selectedMushroomSpeciesFilter;
+  String _edibilityFilter = 'all'; // 'all', 'edible', 'toxic'
+  String _spotFilterMode = 'all'; // 'all', 'standalone', or outing ID
   bool _isLocatingGps = false;
   ForagingSpot? _selectedSpot;
   LatLng? _currentUserLocation;
 
-  /// Filtro: 'all' (Todos), 'standalone' (Puntos sueltos) o el ID de una Salida concreta.
-  String _spotFilterMode = 'all';
+  bool _isPickingLocationForMushroom = false;
+  Mushroom? _pendingMushroomToPlace;
+  String? _pendingPhotoToPlace;
+
+  static const List<Color> _routePalette = [
+    AutumnColors.terracotta,
+    AutumnColors.mossGreen,
+    AutumnColors.amberLeaf,
+    AutumnColors.ochreGold,
+    Color(0xFF8D5B4C), // Castaño
+    Color(0xFFB85D19), // Caldera
+    Color(0xFF2E6B55), // Pino
+    Color(0xFF6B4226), // Roble
+  ];
+
+  Color _getRouteColor(int index) {
+    return _routePalette[index % _routePalette.length];
+  }
 
   static const LatLng _defaultBasqueCenter = LatLng(43.0150, -2.5200);
 
@@ -130,13 +151,14 @@ class MapScreenState extends ConsumerState<MapScreen> {
     if (pending != null) {
       final initialPhoto = widget.initialImagePathToRegister;
       widget.onInitialMushroomConsumed?.call();
-      final center = _currentUserLocation ?? _mapController.camera.center;
-      _openAddOrEditSpotSheet(
-        context,
-        initialLatLng: center,
-        preselectedMushroom: pending,
-        preselectedPhotoPath: initialPhoto,
-      );
+      setState(() {
+        _isPickingLocationForMushroom = true;
+        _pendingMushroomToPlace = pending;
+        _pendingPhotoToPlace = initialPhoto;
+      });
+      if (_currentUserLocation != null) {
+        _mapController.move(_currentUserLocation!, 13.5);
+      }
     }
   }
 
@@ -227,6 +249,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
             ? activeOuting.title
             : null,
         catalogMushrooms: allMushrooms,
+        lang: ref.read(appLanguageProvider),
       ),
     );
 
@@ -240,7 +263,52 @@ class MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
+  void _openMapFilterSheet(
+    List<ForagingSpot> allSpots,
+    List<ForagingOuting> allOutings,
+    List<Mushroom> allMushrooms,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _MapFilterAndRoutesSheet(
+        allSpots: allSpots,
+        allOutings: allOutings,
+        allMushrooms: allMushrooms,
+        initialSpeciesFilter: _selectedMushroomSpeciesFilter,
+        initialEdibilityFilter: _edibilityFilter,
+        initialSpotFilterMode: _spotFilterMode,
+        initialShowAllRoutes: _showAllRoutes,
+        initialSelectedRouteOutingIds: _selectedRouteOutingIds,
+        routePalette: _routePalette,
+        lang: ref.read(appLanguageProvider),
+        onApply: ({
+          String? speciesFilter,
+          required String edibilityFilter,
+          required String spotFilterMode,
+          required bool showAllRoutes,
+          required Set<String> selectedRouteOutingIds,
+        }) {
+          setState(() {
+            _selectedMushroomSpeciesFilter = speciesFilter;
+            _edibilityFilter = edibilityFilter;
+            _spotFilterMode = spotFilterMode;
+            _showAllRoutes = showAllRoutes;
+            _selectedRouteOutingIds.clear();
+            _selectedRouteOutingIds.addAll(selectedRouteOutingIds);
+          });
+          if (spotFilterMode != 'all' && spotFilterMode != 'standalone') {
+            _centerOnOutingFilter(spotFilterMode);
+          }
+        },
+      ),
+    );
+  }
+
   void _openSavedSpotsListSheet(List<ForagingSpot> spots) {
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AutumnColors.parchmentBg,
@@ -274,7 +342,11 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Ubicaciones en Vista (${spots.length})',
+                      s.tr(
+                        eu: 'Gordetako Lekuak (${spots.length})',
+                        es: 'Ubicaciones Guardadas (${spots.length})',
+                        en: 'Saved Locations (${spots.length})',
+                      ),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: AutumnColors.boletusBrown,
                           ),
@@ -283,13 +355,17 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (spots.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 28),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 28),
                     child: Center(
                       child: Text(
-                        'No hay puntos para el filtro seleccionado.',
+                        s.tr(
+                          eu: 'Ez dago punturik hautatutako iragazkiarekin.',
+                          es: 'No hay puntos para el filtro seleccionado.',
+                          en: 'No spots match the selected filter.',
+                        ),
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AutumnColors.textSecondary),
+                        style: const TextStyle(color: AutumnColors.textSecondary),
                       ),
                     ),
                   )
@@ -341,8 +417,16 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                 ),
                               Text(
                                 spot.isFromOuting
-                                    ? 'Salida: ${spot.outingTitle ?? "Ruta GPS"}'
-                                    : 'Punto suelto del Mapa Global',
+                                    ? s.tr(
+                                        eu: 'Irteera: ${spot.outingTitle ?? "GPS ibilbidea"}',
+                                        es: 'Salida: ${spot.outingTitle ?? "Ruta GPS"}',
+                                        en: 'Outing: ${spot.outingTitle ?? "GPS route"}',
+                                      )
+                                    : s.tr(
+                                        eu: 'Mapa Globaleko leku bakartua',
+                                        es: 'Punto suelto del Mapa Global',
+                                        en: 'Standalone Global Map spot',
+                                      ),
                                 style: const TextStyle(
                                   fontSize: 11.5,
                                   color: AutumnColors.textMuted,
@@ -390,18 +474,38 @@ class MapScreenState extends ConsumerState<MapScreen> {
 
     // Filtrar los puntos según el selector del Mapa Global
     final visibleSpots = allSpots.where((s) {
-      if (_spotFilterMode == 'all') return true;
-      if (_spotFilterMode == 'standalone') return !s.isFromOuting;
-      return s.outingId == _spotFilterMode;
+      if (_spotFilterMode == 'standalone' && s.isFromOuting) return false;
+      if (_spotFilterMode != 'all' &&
+          _spotFilterMode != 'standalone' &&
+          s.outingId != _spotFilterMode) {
+        return false;
+      }
+      if (_selectedMushroomSpeciesFilter != null &&
+          s.mushroomId != _selectedMushroomSpeciesFilter) {
+        return false;
+      }
+      if (_edibilityFilter != 'all' && s.mushroomId != null) {
+        final m = allMushrooms.where((sp) => sp.id == s.mushroomId).firstOrNull;
+        if (m != null) {
+          if (_edibilityFilter == 'edible' && !m.isEdible) return false;
+          if (_edibilityFilter == 'toxic' && !m.isToxic) return false;
+        }
+      }
+      return true;
     }).toList();
 
     // Filtrar las polilíneas de las rutas GPS a mostrar
     final visibleOutingRoutes = allOutings.where((o) {
       if (o.routePoints.length < 2) return false;
-      if (_spotFilterMode == 'standalone') return false;
-      if (_spotFilterMode == 'all') return _showAllRoutes;
-      return o.id == _spotFilterMode;
+      if (_showAllRoutes) return true;
+      return _selectedRouteOutingIds.contains(o.id) || _spotFilterMode == o.id;
     }).toList();
+
+    int activeFilterCount = 0;
+    if (_spotFilterMode != 'all') activeFilterCount++;
+    if (_selectedMushroomSpeciesFilter != null) activeFilterCount++;
+    if (_edibilityFilter != 'all') activeFilterCount++;
+    if (!_showAllRoutes || _selectedRouteOutingIds.isNotEmpty) activeFilterCount++;
 
     return Scaffold(
       body: Stack(
@@ -413,7 +517,24 @@ class MapScreenState extends ConsumerState<MapScreen> {
               initialZoom: 9.8,
               minZoom: 4.0,
               maxZoom: 17.5,
-              onTap: (_, __) {
+              onTap: (_, latLng) {
+                if (_isPickingLocationForMushroom &&
+                    _pendingMushroomToPlace != null) {
+                  final mushroom = _pendingMushroomToPlace!;
+                  final photo = _pendingPhotoToPlace;
+                  setState(() {
+                    _isPickingLocationForMushroom = false;
+                    _pendingMushroomToPlace = null;
+                    _pendingPhotoToPlace = null;
+                  });
+                  _openAddOrEditSpotSheet(
+                    context,
+                    initialLatLng: latLng,
+                    preselectedMushroom: mushroom,
+                    preselectedPhotoPath: photo,
+                  );
+                  return;
+                }
                 if (_selectedSpot != null) {
                   setState(() => _selectedSpot = null);
                 }
@@ -432,17 +553,19 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 tileProvider:
                     widget.customTileProvider ?? _defaultOfflineTileProvider,
               ),
-              // Capa de polilíneas de las rutas GPS de las Salidas
+              // Capa de polilíneas de las rutas GPS de las Salidas con paleta cromática otoñal
               if (visibleOutingRoutes.isNotEmpty)
                 PolylineLayer(
                   polylines: visibleOutingRoutes.map((outing) {
+                    final idx = allOutings.indexOf(outing);
+                    final routeColor = _getRouteColor(idx >= 0 ? idx : 0);
                     final isHighlighted = _spotFilterMode == outing.id;
                     return Polyline(
                       points: outing.routePoints,
                       color: isHighlighted
                           ? AutumnColors.terracotta
-                          : AutumnColors.mossGreen.withValues(alpha: 0.82),
-                      strokeWidth: isHighlighted ? 4.8 : 3.6,
+                          : routeColor.withValues(alpha: 0.88),
+                      strokeWidth: isHighlighted ? 5.2 : 3.8,
                     );
                   }).toList(),
                 ),
@@ -536,16 +659,17 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                       child: Container(
-                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                         decoration: BoxDecoration(
-                          color: AutumnColors.barkDark.withValues(alpha: 0.82),
+                          color: AutumnColors.barkDark.withValues(alpha: 0.88),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color:
-                                AutumnColors.amberLeaf.withValues(alpha: 0.35),
+                                AutumnColors.amberLeaf.withValues(alpha: 0.4),
                           ),
                         ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
@@ -559,51 +683,21 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                   child: Text(
                                     s.tr(
                                       eu: 'Perretxiko-lekuen Mapa',
-                                      es: 'Mapa Global de Setales',
-                                      en: 'Global Foraging Map',
+                                      es: 'Mapa de Setales',
+                                      en: 'Foraging Map',
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 15.5,
                                     ),
                                   ),
                                 ),
+                                const SizedBox(width: 8),
                                 _HeaderPillButton(
-                                  icon: Icons.route_rounded,
-                                  label: _showAllRoutes
-                                      ? s.tr(eu: 'Ibilb. ON', es: 'Rutas ON', en: 'Routes ON')
-                                      : s.tr(eu: 'Ibilb. OFF', es: 'Rutas OFF', en: 'Routes OFF'),
-                                  active: _showAllRoutes,
-                                  onTap: () {
-                                    setState(
-                                        () => _showAllRoutes = !_showAllRoutes);
-                                  },
-                                ),
-                                const SizedBox(width: 6),
-                                _HeaderPillButton(
-                                  icon: _useTopoLayer
-                                      ? Icons.terrain_rounded
-                                      : Icons.map_outlined,
-                                  label: _useTopoLayer
-                                      ? 'Topo'
-                                      : s.tr(eu: 'Kalea', es: 'Calle', en: 'Street'),
-                                  active: _useTopoLayer,
-                                  onTap: () {
-                                    setState(
-                                        () => _useTopoLayer = !_useTopoLayer);
-                                  },
-                                ),
-                                const SizedBox(width: 6),
-                                _HeaderPillButton(
-                                  icon: Icons.download_for_offline_rounded,
-                                  label: 'Offline',
-                                  active: true,
-                                  onTap: _openOfflineMapsModal,
-                                ),
-                                const SizedBox(width: 6),
-                                _HeaderPillButton(
-                                  icon: Icons.format_list_bulleted_rounded,
+                                  icon: Icons.eco_rounded,
                                   label: '${visibleSpots.length}',
                                   active: false,
                                   onTap: () =>
@@ -613,49 +707,186 @@ class MapScreenState extends ConsumerState<MapScreen> {
                             ),
                             const SizedBox(height: 8),
                             SizedBox(
-                              height: 30,
+                              height: 32,
                               child: ListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
-                                  _FilterChipPill(
-                                    label: s.tr(
-                                      eu: 'Guztiak (${allSpots.length})',
-                                      es: 'Todos (${allSpots.length})',
-                                      en: 'All (${allSpots.length})',
+                                  _HeaderFilterButton(
+                                    activeCount: activeFilterCount,
+                                    label: activeFilterCount > 0
+                                        ? s.tr(
+                                            eu: 'Filtroak eta Rutak ($activeFilterCount)',
+                                            es: 'Filtros y Rutas ($activeFilterCount)',
+                                            en: 'Filters & Routes ($activeFilterCount)',
+                                          )
+                                        : s.tr(
+                                            eu: 'Filtroak eta Rutak',
+                                            es: 'Filtros y Rutas',
+                                            en: 'Filters & Routes',
+                                          ),
+                                    onTap: () => _openMapFilterSheet(
+                                      allSpots,
+                                      allOutings,
+                                      allMushrooms,
                                     ),
-                                    selected: _spotFilterMode == 'all',
-                                    onTap: () =>
-                                        setState(() => _spotFilterMode = 'all'),
                                   ),
                                   const SizedBox(width: 6),
-                                  _FilterChipPill(
-                                    label: s.tr(
-                                      eu: 'Puntu solteak (${allSpots.where((sp) => !sp.isFromOuting).length})',
-                                      es: 'Puntos sueltos (${allSpots.where((sp) => !sp.isFromOuting).length})',
-                                      en: 'Standalone (${allSpots.where((sp) => !sp.isFromOuting).length})',
-                                    ),
-                                    selected: _spotFilterMode == 'standalone',
-                                    onTap: () => setState(
-                                        () => _spotFilterMode = 'standalone'),
+                                  _HeaderPillButton(
+                                    icon: _useTopoLayer
+                                        ? Icons.terrain_rounded
+                                        : Icons.map_outlined,
+                                    label: _useTopoLayer
+                                        ? 'Topo'
+                                        : s.tr(eu: 'Kalea', es: 'Calle', en: 'Street'),
+                                    active: _useTopoLayer,
+                                    onTap: () {
+                                      setState(
+                                          () => _useTopoLayer = !_useTopoLayer);
+                                    },
                                   ),
-                                  ...allOutings.map((outing) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(left: 6),
-                                      child: _FilterChipPill(
+                                  const SizedBox(width: 6),
+                                  _HeaderPillButton(
+                                    icon: Icons.download_for_offline_rounded,
+                                    label: 'Offline',
+                                    active: false,
+                                    onTap: _openOfflineMapsModal,
+                                  ),
+                                  if (activeFilterCount > 0) ...[
+                                    const SizedBox(width: 8),
+                                    if (_selectedMushroomSpeciesFilter != null) ...[
+                                      () {
+                                        final m = allMushrooms
+                                            .where((sp) =>
+                                                sp.id ==
+                                                _selectedMushroomSpeciesFilter)
+                                            .firstOrNull;
+                                        final label = m != null
+                                            ? (lang == AppLanguage.eu
+                                                ? m.basqueName.split('/').first.trim()
+                                                : (lang == AppLanguage.es
+                                                    ? m.spanishName
+                                                    : m.commonNameEn))
+                                            : s.tr(eu: 'Perretxikoa', es: 'Seta', en: 'Mushroom');
+                                        return _ActiveFilterTag(
+                                          icon: Icons.eco_rounded,
+                                          label: label,
+                                          onRemove: () => setState(() =>
+                                              _selectedMushroomSpeciesFilter =
+                                                  null),
+                                        );
+                                      }(),
+                                    ],
+                                    if (_edibilityFilter == 'edible')
+                                      _ActiveFilterTag(
+                                        icon: Icons.restaurant_rounded,
                                         label: s.tr(
-                                          eu: 'Irteera: ${outing.title}',
-                                          es: 'Salida: ${outing.title}',
-                                          en: 'Outing: ${outing.title}',
-                                        ),
-                                        selected: _spotFilterMode == outing.id,
-                                        onTap: () {
-                                          setState(() =>
-                                              _spotFilterMode = outing.id);
-                                          _centerOnOutingFilter(outing.id);
-                                        },
+                                            eu: 'Jangarriak',
+                                            es: 'Comestibles',
+                                            en: 'Edible'),
+                                        onRemove: () => setState(
+                                            () => _edibilityFilter = 'all'),
                                       ),
-                                    );
-                                  }),
+                                    if (_edibilityFilter == 'toxic')
+                                      _ActiveFilterTag(
+                                        icon: Icons.warning_rounded,
+                                        label: s.tr(
+                                            eu: 'Toxikoak',
+                                            es: 'Tóxicas',
+                                            en: 'Toxic'),
+                                        onRemove: () => setState(
+                                            () => _edibilityFilter = 'all'),
+                                      ),
+                                    if (_spotFilterMode == 'standalone')
+                                      _ActiveFilterTag(
+                                        icon: Icons.place_rounded,
+                                        label: s.tr(
+                                            eu: 'Puntu solteak',
+                                            es: 'Puntos libres',
+                                            en: 'Standalone'),
+                                        onRemove: () => setState(
+                                            () => _spotFilterMode = 'all'),
+                                      ),
+                                    if (_spotFilterMode != 'all' &&
+                                        _spotFilterMode != 'standalone') ...[
+                                      () {
+                                        final out = allOutings
+                                            .where((o) =>
+                                                o.id == _spotFilterMode)
+                                            .firstOrNull;
+                                        return _ActiveFilterTag(
+                                          icon: Icons.hiking_rounded,
+                                          label: out != null
+                                              ? out.title
+                                              : s.tr(eu: 'Irteera', es: 'Salida', en: 'Outing'),
+                                          onRemove: () => setState(
+                                              () => _spotFilterMode = 'all'),
+                                        );
+                                      }(),
+                                    ],
+                                    if (!_showAllRoutes)
+                                      _ActiveFilterTag(
+                                        icon: Icons.route_rounded,
+                                        label: _selectedRouteOutingIds.isEmpty
+                                            ? s.tr(
+                                                eu: 'Ibilbideak OFF',
+                                                es: 'Rutas ocultas',
+                                                en: 'Routes OFF')
+                                            : s.tr(
+                                                eu: '${_selectedRouteOutingIds.length} ibilbide',
+                                                es: '${_selectedRouteOutingIds.length} rutas GPS',
+                                                en: '${_selectedRouteOutingIds.length} GPS routes',
+                                              ),
+                                        onRemove: () => setState(() {
+                                          _showAllRoutes = true;
+                                          _selectedRouteOutingIds.clear();
+                                        }),
+                                      ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 4),
+                                      child: InkWell(
+                                        onTap: () => setState(() {
+                                          _spotFilterMode = 'all';
+                                          _selectedMushroomSpeciesFilter = null;
+                                          _edibilityFilter = 'all';
+                                          _showAllRoutes = true;
+                                          _selectedRouteOutingIds.clear();
+                                        }),
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.redAccent
+                                                .withValues(alpha: 0.22),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                  Icons.clear_all_rounded,
+                                                  size: 14,
+                                                  color: Colors.white),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                s.tr(
+                                                    eu: 'Garbitu',
+                                                    es: 'Limpiar',
+                                                    en: 'Clear'),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -668,6 +899,94 @@ class MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
+
+          // Banner interactivo si se viene del catálogo a ubicar una seta
+          if (_isPickingLocationForMushroom && _pendingMushroomToPlace != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 76,
+              left: 14,
+              right: 14,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AutumnColors.ochreGold.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.touch_app_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                s.tr(
+                                  eu: 'Ukitu mapan perretxikoa kokatzeko',
+                                  es: 'Toca en el mapa para ubicar la seta',
+                                  en: 'Tap on the map to place the mushroom',
+                                ),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '${_pendingMushroomToPlace!.displayNameFor(s.lang)} (${_pendingMushroomToPlace!.scientificName})',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.black26,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            minimumSize: Size.zero,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isPickingLocationForMushroom = false;
+                              _pendingMushroomToPlace = null;
+                              _pendingPhotoToPlace = null;
+                            });
+                          },
+                          child: Text(
+                            s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel'),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
           Positioned(
             right: 16,
@@ -723,6 +1042,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
               bottom: 104,
               child: _SelectedSpotCard(
                 spot: _selectedSpot!,
+                lang: lang,
                 linkedMushroom: allMushrooms
                     .where((m) => m.id == _selectedSpot!.mushroomId)
                     .firstOrNull,
@@ -804,36 +1124,55 @@ class _HeaderPillButton extends StatelessWidget {
   }
 }
 
-class _FilterChipPill extends StatelessWidget {
+class _HeaderFilterButton extends StatelessWidget {
+  final int activeCount;
   final String label;
-  final bool selected;
   final VoidCallback onTap;
 
-  const _FilterChipPill({
+  const _HeaderFilterButton({
+    required this.activeCount,
     required this.label,
-    required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final bool active = activeCount > 0;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: selected
-              ? AutumnColors.amberLeaf
-              : Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AutumnColors.barkDark : Colors.white,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
+          color: active
+              ? AutumnColors.amberLeaf.withValues(alpha: 0.32)
+              : Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: active
+                ? AutumnColors.amberLeaf
+                : Colors.white24,
+            width: 1.2,
           ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              color: active ? AutumnColors.amberLeaf : Colors.white,
+              size: 15,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? AutumnColors.amberLeaf : Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -843,6 +1182,7 @@ class _FilterChipPill extends StatelessWidget {
 class _SelectedSpotCard extends StatelessWidget {
   final ForagingSpot spot;
   final Mushroom? linkedMushroom;
+  final AppLanguage lang;
   final VoidCallback onClose;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -850,6 +1190,7 @@ class _SelectedSpotCard extends StatelessWidget {
   const _SelectedSpotCard({
     required this.spot,
     required this.linkedMushroom,
+    required this.lang,
     required this.onClose,
     required this.onEdit,
     required this.onDelete,
@@ -857,6 +1198,7 @@ class _SelectedSpotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings(lang);
     final hasLocalPhoto = !kIsWeb &&
         spot.photoPath != null &&
         spot.photoPath!.isNotEmpty &&
@@ -924,8 +1266,8 @@ class _SelectedSpotCard extends StatelessWidget {
                           ),
                           child: Text(
                             spot.isFromOuting
-                                ? 'SALIDA: ${spot.outingTitle ?? "RUTA"}'
-                                : 'PUNTO SUELTO',
+                                ? '${s.tr(eu: 'IRTEERA', es: 'SALIDA', en: 'OUTING')}: ${spot.outingTitle ?? ''}'
+                                : s.tr(eu: 'PUNTU SOLTEA', es: 'PUNTO LIBRE', en: 'STANDALONE'),
                             style: TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w800,
@@ -937,7 +1279,7 @@ class _SelectedSpotCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          '${spot.quantityCount} ej.${spot.weightGrams != null ? " (${spot.weightGrams}g)" : ""}',
+                          '${spot.quantityCount} ${s.tr(eu: "ale", es: "ej.", en: "spec.")}${spot.weightGrams != null ? " (${spot.weightGrams}g)" : ""}',
                           style: const TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
@@ -1027,7 +1369,7 @@ class _SelectedSpotCard extends StatelessWidget {
                 ),
                 onPressed: onDelete,
                 icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                label: const Text('Eliminar'),
+                label: Text(s.tr(eu: 'Ezabatu', es: 'Eliminar', en: 'Delete')),
               ),
               const SizedBox(width: 6),
               FilledButton.tonalIcon(
@@ -1038,7 +1380,7 @@ class _SelectedSpotCard extends StatelessWidget {
                 ),
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_note_rounded, size: 18),
-                label: const Text('Editar'),
+                label: Text(s.tr(eu: 'Editatu', es: 'Editar', en: 'Edit')),
               ),
             ],
           ),
@@ -1056,6 +1398,7 @@ class _SpotFormBottomSheet extends StatefulWidget {
   final String? activeOutingId;
   final String? activeOutingTitle;
   final List<Mushroom> catalogMushrooms;
+  final AppLanguage lang;
 
   const _SpotFormBottomSheet({
     required this.initialLatLng,
@@ -1065,6 +1408,7 @@ class _SpotFormBottomSheet extends StatefulWidget {
     this.activeOutingId,
     this.activeOutingTitle,
     required this.catalogMushrooms,
+    required this.lang,
   });
 
   @override
@@ -1088,12 +1432,16 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     super.initState();
     final existing = widget.existingSpot;
     final pre = widget.preselectedMushroom;
+    final defaultTitle = pre != null
+        ? (widget.lang == AppLanguage.eu
+            ? '${pre.basqueName.split('/').first.trim()} lekua'
+            : (widget.lang == AppLanguage.es
+                ? 'Setal de ${pre.spanishName.split('/').first.trim()}'
+                : 'Spot of ${pre.commonNameEn}'))
+        : '';
 
     _titleController = TextEditingController(
-      text: existing?.title ??
-          (pre != null
-              ? 'Setal de ${pre.basqueName.split('/').first.trim()}'
-              : ''),
+      text: existing?.title ?? defaultTitle,
     );
     _notesController = TextEditingController(text: existing?.notes ?? '');
     _latController = TextEditingController(
@@ -1113,7 +1461,13 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     _selectedDate = existing?.foundAt ?? DateTime.now();
     _selectedMushroomId = existing?.mushroomId ?? pre?.id;
     _selectedMushroomName = existing?.mushroomName ??
-        (pre != null ? '${pre.basqueName} / ${pre.spanishName}' : null);
+        (pre != null
+            ? (widget.lang == AppLanguage.eu
+                ? pre.basqueName
+                : (widget.lang == AppLanguage.es
+                    ? pre.spanishName
+                    : pre.commonNameEn))
+            : null);
     _photoPath = existing?.photoPath ?? widget.preselectedPhotoPath;
   }
 
@@ -1129,6 +1483,7 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
+    final s = AppStrings(widget.lang);
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(
@@ -1151,13 +1506,22 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo adjuntar la imagen: $e')),
+          SnackBar(
+            content: Text(
+              s.tr(
+                eu: 'Ezin izan da irudia erantsi: $e',
+                es: 'No se pudo adjuntar la imagen: $e',
+                en: 'Could not attach image: $e',
+              ),
+            ),
+          ),
         );
       }
     }
   }
 
   Future<void> _selectMushroomDialog() async {
+    final s = AppStrings(widget.lang);
     String filterQuery = '';
     final chosen = await showModalBottomSheet<Mushroom>(
       context: context,
@@ -1174,7 +1538,8 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
               if (q.isEmpty) return true;
               return m.spanishName.toLowerCase().contains(q) ||
                   m.basqueName.toLowerCase().contains(q) ||
-                  m.scientificName.toLowerCase().contains(q);
+                  m.scientificName.toLowerCase().contains(q) ||
+                  m.commonNameEn.toLowerCase().contains(q);
             }).toList();
 
             return DraggableScrollableSheet(
@@ -1189,19 +1554,27 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Asociar Seta del Catálogo',
+                        s.tr(
+                          eu: 'Lotu Katalogoko Perretxikoa',
+                          es: 'Asociar Seta del Catálogo',
+                          en: 'Link Catalog Mushroom',
+                        ),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: AutumnColors.boletusBrown,
+                              fontWeight: FontWeight.bold,
                             ),
                       ),
                       const SizedBox(height: 10),
                       TextField(
                         autofocus: true,
                         onChanged: (v) => setModalState(() => filterQuery = v),
-                        decoration: const InputDecoration(
-                          hintText:
-                              'Buscar por nombre vasco, castellano o científico...',
-                          prefixIcon: Icon(Icons.search_rounded),
+                        decoration: InputDecoration(
+                          hintText: s.tr(
+                            eu: 'Bilatu euskaraz, gaztelaniaz edo zientifikoki...',
+                            es: 'Buscar por castellano, euskera o científico...',
+                            en: 'Search by common or scientific name...',
+                          ),
+                          prefixIcon: const Icon(Icons.search_rounded),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -1211,6 +1584,14 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                           itemCount: list.length,
                           itemBuilder: (context, idx) {
                             final m = list[idx];
+                            final primaryTitle = widget.lang == AppLanguage.eu
+                                ? m.basqueName
+                                : (widget.lang == AppLanguage.es
+                                    ? m.spanishName
+                                    : m.commonNameEn);
+                            final secondaryTitle = widget.lang == AppLanguage.eu
+                                ? '${m.spanishName} · ${m.scientificName}'
+                                : '${m.basqueName} · ${m.scientificName}';
                             return ListTile(
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
@@ -1222,13 +1603,13 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                                 ),
                               ),
                               title: Text(
-                                m.spanishName,
+                                primaryTitle,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               subtitle: Text(
-                                '${m.basqueName} · ${m.scientificName}',
+                                secondaryTitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1250,19 +1631,31 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     if (chosen != null) {
       setState(() {
         _selectedMushroomId = chosen.id;
-        _selectedMushroomName =
-            '${chosen.basqueName} / ${chosen.spanishName}';
+        _selectedMushroomName = widget.lang == AppLanguage.eu
+            ? chosen.basqueName
+            : (widget.lang == AppLanguage.es
+                ? chosen.spanishName
+                : chosen.commonNameEn);
         if (_titleController.text.trim().isEmpty) {
-          _titleController.text =
-              'Setal de ${chosen.basqueName.split('/').first.trim()}';
+          _titleController.text = widget.lang == AppLanguage.eu
+              ? '${chosen.basqueName.split('/').first.trim()} lekua'
+              : (widget.lang == AppLanguage.es
+                  ? 'Setal de ${chosen.spanishName.split('/').first.trim()}'
+                  : 'Spot of ${chosen.commonNameEn}');
         }
       });
     }
   }
 
   void _submit() {
+    final s = AppStrings(widget.lang);
+    final fallbackTitle = s.tr(
+      eu: 'Udazkeneko perretxiko-lekua',
+      es: 'Setal de otoño',
+      en: 'Autumn foraging spot',
+    );
     final title = _titleController.text.trim().isEmpty
-        ? 'Setal de otoño'
+        ? fallbackTitle
         : _titleController.text.trim();
     final lat = double.tryParse(_latController.text.replaceAll(',', '.')) ??
         widget.initialLatLng.latitude;
@@ -1294,6 +1687,7 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings(widget.lang);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
@@ -1320,8 +1714,16 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             const SizedBox(height: 14),
             Text(
               widget.existingSpot != null
-                  ? 'Editar Setal y Nota'
-                  : 'Guardar Nueva Ubicación de Setas',
+                  ? s.tr(
+                      eu: 'Editatu Lekua eta Oharra',
+                      es: 'Editar Setal y Nota',
+                      en: 'Edit Spot & Notes',
+                    )
+                  : s.tr(
+                      eu: 'Gorde Perretxiko Leku Berria',
+                      es: 'Guardar Nueva Ubicación de Setas',
+                      en: 'Save New Mushroom Spot',
+                    ),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AutumnColors.boletusBrown,
                   ),
@@ -1336,7 +1738,11 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  'Se vinculará a tu salida activa: ${widget.activeOutingTitle}',
+                  s.tr(
+                    eu: 'Zure irteera aktiboari lotuko zaio: ${widget.activeOutingTitle}',
+                    es: 'Se vinculará a tu salida activa: ${widget.activeOutingTitle}',
+                    en: 'Will be linked to your active outing: ${widget.activeOutingTitle}',
+                  ),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -1349,10 +1755,18 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
 
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre del lugar / setal',
-                hintText: 'Ej. Hayedo norte junto a la regata - Gorbeia',
-                prefixIcon: Icon(Icons.place_rounded),
+              decoration: InputDecoration(
+                labelText: s.tr(
+                  eu: 'Perretxiko-lekuaren izena',
+                  es: 'Nombre del setal',
+                  en: 'Spot name',
+                ),
+                hintText: s.tr(
+                  eu: 'Adib. Iparraldeko pagadia errekaren ondoan',
+                  es: 'Ej. Hayedo norte junto a la regata',
+                  en: 'E.g. Northern beechwood near stream',
+                ),
+                prefixIcon: const Icon(Icons.place_rounded),
               ),
             ),
             const SizedBox(height: 12),
@@ -1361,16 +1775,24 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
               borderRadius: BorderRadius.circular(16),
               onTap: _selectMushroomDialog,
               child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Especie encontrada (Catálogo)',
-                  prefixIcon: Icon(Icons.eco_rounded),
+                decoration: InputDecoration(
+                  labelText: s.tr(
+                    eu: 'Aurkitutako espeziea (Katalogoa)',
+                    es: 'Especie encontrada (Catálogo)',
+                    en: 'Found species (Catalog)',
+                  ),
+                  prefixIcon: const Icon(Icons.eco_rounded),
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
                         _selectedMushroomName ??
-                            'Pulsa para elegir una seta del catálogo',
+                            s.tr(
+                              eu: 'Ukitu katalogoko perretxiko bat hautatzeko',
+                              es: 'Pulsa para elegir una seta del catálogo',
+                              en: 'Tap to choose a mushroom from catalog',
+                            ),
                         style: TextStyle(
                           color: _selectedMushroomName != null
                               ? AutumnColors.textPrimary
@@ -1397,9 +1819,13 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                   child: TextField(
                     controller: _qtyController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Nº ejemplares',
-                      prefixIcon: Icon(Icons.tag_rounded),
+                    decoration: InputDecoration(
+                      labelText: s.tr(
+                        eu: 'Ale kopurua',
+                        es: 'Nº ejemplares',
+                        en: 'Specimen count',
+                      ),
+                      prefixIcon: const Icon(Icons.tag_rounded),
                       isDense: true,
                     ),
                   ),
@@ -1409,10 +1835,18 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                   child: TextField(
                     controller: _weightController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Peso aprox. (g)',
-                      hintText: 'Opcional',
-                      prefixIcon: Icon(Icons.scale_rounded),
+                    decoration: InputDecoration(
+                      labelText: s.tr(
+                        eu: 'Gutxi gorabeherako pisua (g)',
+                        es: 'Peso aprox. (g)',
+                        en: 'Approx. weight (g)',
+                      ),
+                      hintText: s.tr(
+                        eu: 'Aukerakoa',
+                        es: 'Opcional',
+                        en: 'Optional',
+                      ),
+                      prefixIcon: const Icon(Icons.scale_rounded),
                       isDense: true,
                     ),
                   ),
@@ -1424,12 +1858,19 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             TextField(
               controller: _notesController,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Nota descriptiva del hallazgo',
-                hintText:
-                    'Detalla orientación de la ladera, árboles cercanos, humedad, cantidad o referencias...',
+              decoration: InputDecoration(
+                labelText: s.tr(
+                  eu: 'Aurkikuntzaren ohar deskribatzailea',
+                  es: 'Nota descriptiva del hallazgo',
+                  en: 'Descriptive note of the find',
+                ),
+                hintText: s.tr(
+                  eu: 'Zehaztu magalaren orientazioa, inguruko zuhaitzak, hezetasuna edo erreferentziak...',
+                  es: 'Detalla orientación de la ladera, árboles cercanos, humedad, cantidad o referencias...',
+                  en: 'Detail slope orientation, nearby trees, moisture, quantity or landmarks...',
+                ),
                 alignLabelWithHint: true,
-                prefixIcon: Padding(
+                prefixIcon: const Padding(
                   padding: EdgeInsets.only(bottom: 42),
                   child: Icon(Icons.notes_rounded),
                 ),
@@ -1437,36 +1878,101 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             ),
             const SizedBox(height: 12),
 
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _latController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      signed: true,
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Latitud',
-                      isDense: true,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AutumnColors.ochreGold.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AutumnColors.ochreGold.withValues(alpha: 0.5),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.pin_drop_rounded,
+                    color: AutumnColors.terracotta,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s.tr(
+                            eu: 'Kokapen Geografikoa (GPS)',
+                            es: 'Coordenadas Geográficas GPS',
+                            en: 'Geographical Coordinates (GPS)',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AutumnColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '${double.tryParse(_latController.text)?.toStringAsFixed(5) ?? _latController.text}, ${double.tryParse(_lngController.text)?.toStringAsFixed(5) ?? _lngController.text}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AutumnColors.boletusBrown,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _lngController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      signed: true,
-                      decimal: true,
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AutumnColors.terracotta,
+                      side: const BorderSide(
+                          color: AutumnColors.terracotta, width: 1.2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'Longitud',
-                      isDense: true,
+                    onPressed: () async {
+                      final currentLat = double.tryParse(_latController.text) ??
+                          widget.initialLatLng.latitude;
+                      final currentLng = double.tryParse(_lngController.text) ??
+                          widget.initialLatLng.longitude;
+                      final picked =
+                          await Navigator.of(context).push<ForagingSpot>(
+                        MaterialPageRoute(
+                          builder: (_) => MapSpotPickerScreen(
+                            outingId: widget.activeOutingId ?? 'temp',
+                            outingTitle: widget.activeOutingTitle ??
+                                s.tr(
+                                  eu: 'Perretxiko-lekua',
+                                  es: 'Setal',
+                                  en: 'Spot',
+                                ),
+                            initialCenter: LatLng(currentLat, currentLng),
+                          ),
+                        ),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _latController.text =
+                              picked.latitude.toStringAsFixed(5);
+                          _lngController.text =
+                              picked.longitude.toStringAsFixed(5);
+                        });
+                      }
+                    },
+                    icon:
+                        const Icon(Icons.edit_location_alt_rounded, size: 16),
+                    label: Text(
+                      s.tr(eu: 'Ajustatu', es: 'Ajustar', en: 'Adjust'),
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w700),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -1507,7 +2013,9 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                     onPressed: () => _pickPhoto(ImageSource.gallery),
                     icon: const Icon(Icons.add_a_photo_rounded, size: 17),
                     label: Text(
-                      _photoPath != null ? 'Cambiar foto' : 'Adjuntar foto',
+                      _photoPath != null
+                          ? s.tr(eu: 'Argazkia aldatu', es: 'Cambiar foto', en: 'Change photo')
+                          : s.tr(eu: 'Argazkia erantsi', es: 'Adjuntar foto', en: 'Attach photo'),
                     ),
                   ),
                 ),
@@ -1520,12 +2028,662 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
               child: ElevatedButton.icon(
                 onPressed: _submit,
                 icon: const Icon(Icons.save_rounded),
-                label: const Text('Guardar Ubicación y Nota'),
+                label: Text(
+                  s.tr(
+                    eu: 'Gorde Lekua eta Oharra',
+                    es: 'Guardar Ubicación y Nota',
+                    en: 'Save Spot and Note',
+                  ),
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ActiveFilterTag extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onRemove;
+
+  const _ActiveFilterTag({
+    required this.icon,
+    required this.label,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+      decoration: BoxDecoration(
+        color: AutumnColors.amberLeaf.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AutumnColors.barkDark),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AutumnColors.barkDark,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 2),
+          InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(10),
+            child: const Padding(
+              padding: EdgeInsets.all(2),
+              child: Icon(Icons.close_rounded,
+                  size: 14, color: AutumnColors.barkDark),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MapFilterAndRoutesSheet extends StatefulWidget {
+  final List<ForagingSpot> allSpots;
+  final List<ForagingOuting> allOutings;
+  final List<Mushroom> allMushrooms;
+  final String? initialSpeciesFilter;
+  final String initialEdibilityFilter;
+  final String initialSpotFilterMode;
+  final bool initialShowAllRoutes;
+  final Set<String> initialSelectedRouteOutingIds;
+  final List<Color> routePalette;
+  final AppLanguage lang;
+  final void Function({
+    String? speciesFilter,
+    required String edibilityFilter,
+    required String spotFilterMode,
+    required bool showAllRoutes,
+    required Set<String> selectedRouteOutingIds,
+  }) onApply;
+
+  const _MapFilterAndRoutesSheet({
+    required this.allSpots,
+    required this.allOutings,
+    required this.allMushrooms,
+    required this.initialSpeciesFilter,
+    required this.initialEdibilityFilter,
+    required this.initialSpotFilterMode,
+    required this.initialShowAllRoutes,
+    required this.initialSelectedRouteOutingIds,
+    required this.routePalette,
+    required this.lang,
+    required this.onApply,
+  });
+
+  @override
+  State<_MapFilterAndRoutesSheet> createState() =>
+      _MapFilterAndRoutesSheetState();
+}
+
+class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
+  late String? _speciesFilter;
+  late String _edibilityFilter;
+  late String _spotFilterMode;
+  late bool _showAllRoutes;
+  late Set<String> _selectedRouteOutingIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _speciesFilter = widget.initialSpeciesFilter;
+    _edibilityFilter = widget.initialEdibilityFilter;
+    _spotFilterMode = widget.initialSpotFilterMode;
+    _showAllRoutes = widget.initialShowAllRoutes;
+    _selectedRouteOutingIds =
+        Set<String>.from(widget.initialSelectedRouteOutingIds);
+  }
+
+  void _pickSpeciesDialog() async {
+    final s = AppStrings(widget.lang);
+    String searchQuery = '';
+    final chosen = await showModalBottomSheet<Mushroom>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AutumnColors.parchmentBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final q = searchQuery.trim().toLowerCase();
+            final list = widget.allMushrooms.where((m) {
+              if (q.isEmpty) return true;
+              return m.spanishName.toLowerCase().contains(q) ||
+                  m.basqueName.toLowerCase().contains(q) ||
+                  m.scientificName.toLowerCase().contains(q) ||
+                  m.commonNameEn.toLowerCase().contains(q);
+            }).toList();
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.75,
+              maxChildSize: 0.92,
+              minChildSize: 0.5,
+              builder: (_, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.search_rounded,
+                              color: AutumnColors.boletusBrown),
+                          const SizedBox(width: 8),
+                          Text(
+                            s.tr(
+                              eu: 'Espeziaren arabera iragazi',
+                              es: 'Filtrar por Especie',
+                              en: 'Filter by Species',
+                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  color: AutumnColors.boletusBrown,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: s.tr(
+                            eu: 'Bilatu euskaraz, gaztelaniaz edo zientifikoki...',
+                            es: 'Buscar por castellano, euskera o científico...',
+                            en: 'Search by common or scientific name...',
+                          ),
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        onChanged: (v) => setModalState(() => searchQuery = v),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          itemCount: list.length,
+                          separatorBuilder: (_, __) =>
+                              const Divider(height: 1),
+                          itemBuilder: (ctx, i) {
+                            final m = list[i];
+                            final primaryTitle = widget.lang == AppLanguage.eu
+                                ? m.basqueName
+                                : (widget.lang == AppLanguage.es
+                                    ? m.spanishName
+                                    : m.commonNameEn);
+                            final secondaryTitle = widget.lang == AppLanguage.eu
+                                ? '${m.spanishName} · ${m.scientificName}'
+                                : '${m.basqueName} · ${m.scientificName}';
+                            return ListTile(
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.asset(
+                                  m.primaryImage,
+                                  width: 44,
+                                  height: 44,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              title: Text(
+                                primaryTitle,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700),
+                              ),
+                              subtitle: Text(
+                                secondaryTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () => Navigator.of(ctx).pop(m),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+
+    if (chosen != null) {
+      setState(() {
+        _speciesFilter = chosen.id;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppStrings(widget.lang);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final outingsWithRoutes =
+        widget.allOutings.where((o) => o.routePoints.length >= 2).toList();
+    final chosenMushroom = widget.allMushrooms
+        .where((m) => m.id == _speciesFilter)
+        .firstOrNull;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, bottomInset + 20),
+      decoration: const BoxDecoration(
+        color: AutumnColors.parchmentBg,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AutumnColors.warmSand,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.tune_rounded, color: AutumnColors.boletusBrown),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    s.tr(
+                      eu: 'Mapako Filtroak eta GPS Rutak',
+                      es: 'Filtros y Rutas GPS del Mapa',
+                      en: 'Map Filters & GPS Routes',
+                    ),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AutumnColors.boletusBrown,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _speciesFilter = null;
+                      _edibilityFilter = 'all';
+                      _spotFilterMode = 'all';
+                      _showAllRoutes = true;
+                      _selectedRouteOutingIds.clear();
+                    });
+                  },
+                  child: Text(
+                    s.tr(eu: 'Berrezarri', es: 'Restablecer', en: 'Reset'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // SECCIÓN 1: SETAS Y ESPECIES
+            _sectionTitle(
+              Icons.eco_rounded,
+              s.tr(
+                eu: '1. Perretxikoak motaren eta espeziearen arabera',
+                es: '1. Setas por Tipo y Especie',
+                en: '1. Mushrooms by Type & Species',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _choiceChip(
+                  label: s.tr(eu: 'Guztiak', es: 'Todas', en: 'All'),
+                  selected: _edibilityFilter == 'all',
+                  onSelected: () => setState(() => _edibilityFilter = 'all'),
+                ),
+                const SizedBox(width: 8),
+                _choiceChip(
+                  label: s.tr(eu: 'Jangarriak', es: 'Comestibles', en: 'Edible'),
+                  selected: _edibilityFilter == 'edible',
+                  onSelected: () => setState(() => _edibilityFilter = 'edible'),
+                ),
+                const SizedBox(width: 8),
+                _choiceChip(
+                  label: s.tr(eu: 'Toxikoak', es: 'Tóxicas', en: 'Toxic'),
+                  selected: _edibilityFilter == 'toxic',
+                  onSelected: () => setState(() => _edibilityFilter = 'toxic'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (chosenMushroom != null) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AutumnColors.mossGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: AutumnColors.mossGreen.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        chosenMushroom.primaryImage,
+                        width: 38,
+                        height: 38,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.lang == AppLanguage.eu
+                                ? chosenMushroom.basqueName
+                                : (widget.lang == AppLanguage.es
+                                    ? chosenMushroom.spanishName
+                                    : chosenMushroom.commonNameEn),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          Text(
+                            widget.lang == AppLanguage.eu
+                                ? chosenMushroom.spanishName
+                                : chosenMushroom.basqueName,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AutumnColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                      onPressed: () => setState(() => _speciesFilter = null),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AutumnColors.boletusBrown,
+                  side: const BorderSide(color: AutumnColors.ochreGold),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 11),
+                ),
+                onPressed: _pickSpeciesDialog,
+                icon: const Icon(Icons.search_rounded, size: 18),
+                label: Text(
+                  s.tr(
+                    eu: 'Katalogoko espezie zehatzaren arabera iragazi (${widget.allMushrooms.length} espezie)',
+                    es: 'Filtrar por especie concreta del catálogo (${widget.allMushrooms.length} especies)',
+                    en: 'Filter by specific catalog species (${widget.allMushrooms.length} species)',
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 18),
+
+            // SECCIÓN 2: SALIDAS AL MONTE
+            _sectionTitle(
+              Icons.hiking_rounded,
+              s.tr(
+                eu: '2. Mendiko Irteeren arabera iragazi',
+                es: '2. Filtro por Salida al Monte',
+                en: '2. Filter by Mountain Outing',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _choiceChip(
+                  label: s.tr(
+                    eu: 'Irteera guztiak (${widget.allSpots.length} setal)',
+                    es: 'Todas las salidas (${widget.allSpots.length} setales)',
+                    en: 'All outings (${widget.allSpots.length} spots)',
+                  ),
+                  selected: _spotFilterMode == 'all',
+                  onSelected: () => setState(() => _spotFilterMode = 'all'),
+                ),
+                _choiceChip(
+                  label: s.tr(
+                    eu: 'Puntu solteak bakarrik (${widget.allSpots.where((s) => !s.isFromOuting).length})',
+                    es: 'Solo puntos libres (${widget.allSpots.where((s) => !s.isFromOuting).length})',
+                    en: 'Standalone spots only (${widget.allSpots.where((s) => !s.isFromOuting).length})',
+                  ),
+                  selected: _spotFilterMode == 'standalone',
+                  onSelected: () =>
+                      setState(() => _spotFilterMode = 'standalone'),
+                ),
+                ...widget.allOutings.map((out) {
+                  final outSpots = widget.allSpots
+                      .where((s) => s.outingId == out.id)
+                      .length;
+                  return _choiceChip(
+                    label: '${out.title} ($outSpots ${s.tr(eu: "perretxiko", es: "setas", en: "mushrooms")})',
+                    selected: _spotFilterMode == out.id,
+                    onSelected: () => setState(() => _spotFilterMode = out.id),
+                  );
+                }),
+              ],
+            ),
+
+            const SizedBox(height: 18),
+
+            // SECCIÓN 3: RUTAS GPS
+            _sectionTitle(
+              Icons.route_rounded,
+              s.tr(
+                eu: '3. GPS Ibilbideak Mapan gainjarri',
+                es: '3. Superposición de Rutas GPS en el Mapa',
+                en: '3. Overlay GPS Tracks on Map',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _choiceChip(
+                  label: s.tr(
+                    eu: 'Denak ikusi (${outingsWithRoutes.length})',
+                    es: 'Ver todas (${outingsWithRoutes.length})',
+                    en: 'Show all (${outingsWithRoutes.length})',
+                  ),
+                  selected: _showAllRoutes,
+                  onSelected: () {
+                    setState(() {
+                      _showAllRoutes = true;
+                      _selectedRouteOutingIds.clear();
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                _choiceChip(
+                  label: s.tr(eu: 'Denak ezkutatu', es: 'Ocultar todas', en: 'Hide all'),
+                  selected: !_showAllRoutes && _selectedRouteOutingIds.isEmpty,
+                  onSelected: () {
+                    setState(() {
+                      _showAllRoutes = false;
+                      _selectedRouteOutingIds.clear();
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (outingsWithRoutes.isNotEmpty) ...[
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: AutumnColors.warmSand.withValues(alpha: 0.5)),
+                ),
+                child: Column(
+                  children: outingsWithRoutes.map((out) {
+                    final idx = widget.allOutings.indexOf(out);
+                    final color = widget
+                        .routePalette[idx % widget.routePalette.length];
+                    final isChecked = _showAllRoutes ||
+                        _selectedRouteOutingIds.contains(out.id);
+
+                    return CheckboxListTile(
+                      activeColor: AutumnColors.mossGreen,
+                      value: isChecked,
+                      secondary: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 2)
+                          ],
+                        ),
+                      ),
+                      title: Text(
+                        out.title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        '${(out.distanceMeters / 1000.0).toStringAsFixed(2)} km · ${DateFormat('dd/MM/yyyy').format(out.startedAt)}',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          _showAllRoutes = false;
+                          if (val == true) {
+                            _selectedRouteOutingIds.add(out.id);
+                          } else {
+                            _selectedRouteOutingIds.remove(out.id);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  s.tr(
+                    eu: 'Ez dago oraindik GPS ibilbidea duten irteerarik grabatuta.',
+                    es: 'No hay salidas con tracks GPS grabados todavía.',
+                    en: 'No outings with recorded GPS tracks yet.',
+                  ),
+                  style: const TextStyle(
+                      color: AutumnColors.textSecondary, fontSize: 12),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AutumnColors.ochreGold,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  widget.onApply(
+                    speciesFilter: _speciesFilter,
+                    edibilityFilter: _edibilityFilter,
+                    spotFilterMode: _spotFilterMode,
+                    showAllRoutes: _showAllRoutes,
+                    selectedRouteOutingIds: _selectedRouteOutingIds,
+                  );
+                },
+                icon: const Icon(Icons.check_rounded),
+                label: Text(
+                  s.tr(
+                    eu: 'Filtroak Aplikatu',
+                    es: 'Aplicar Filtros',
+                    en: 'Apply Filters',
+                  ),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AutumnColors.terracotta),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AutumnColors.boletusBrown,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _choiceChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onSelected,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      selectedColor: AutumnColors.amberLeaf,
+      backgroundColor: Colors.white,
+      labelStyle: TextStyle(
+        color: selected ? AutumnColors.barkDark : AutumnColors.textPrimary,
+        fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+        fontSize: 12,
+      ),
+      onSelected: (_) => onSelected(),
     );
   }
 }

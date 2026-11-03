@@ -307,9 +307,9 @@ class _AiIdentifierScreenState extends ConsumerState<AiIdentifierScreen> {
                                           en: 'Google session active (${authState.userEmail ?? "OAuth"}) • Zero AI Studio',
                                         )
                                       : s.tr(
-                                          eu: 'Tokiko modua / Estaldurarik gabe • Ilara aktibo',
-                                          es: 'Modo Local / Sin cobertura • Cola pendiente activa',
-                                          en: 'Local / Offline mode • Pending queue active',
+                                          eu: 'Tokiko modua (estaldurarik gabe) • Zain dagoen ilara',
+                                          es: 'Modo local (sin cobertura) • Cola pendiente activa',
+                                          en: 'Offline mode • Pending queue active',
                                         ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -768,7 +768,7 @@ class _ThinkingBubble extends StatelessWidget {
   }
 }
 
-class _ChatBubbleItem extends StatelessWidget {
+class _ChatBubbleItem extends ConsumerWidget {
   final AiChatMessage message;
   final List<Mushroom> matchedSpecies;
   final VoidCallback? onRetryWithGemini;
@@ -784,7 +784,9 @@ class _ChatBubbleItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentLang = ref.watch(appLanguageProvider);
+    final s = AppStrings(currentLang);
     final isUser = message.isUser;
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -855,9 +857,13 @@ class _ChatBubbleItem extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.cloud_upload_rounded, size: 16),
-                  label: const Text(
-                    'Pendiente de conexión • Reintentar con Gemini',
-                    style: TextStyle(
+                  label: Text(
+                    s.tr(
+                      eu: 'Konexioaren zain • Gemini-rekin saiatu berriro',
+                      es: 'Pendiente de conexión • Reintentar con Gemini',
+                      en: 'Waiting for network • Retry with Gemini',
+                    ),
+                    style: const TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w800,
                     ),
@@ -869,9 +875,13 @@ class _ChatBubbleItem extends StatelessWidget {
               const SizedBox(height: 12),
               const Divider(height: 1),
               const SizedBox(height: 10),
-              const Text(
-                'Especies candidatas en el Catálogo (Pulsa para ver ficha o guardar hallazgo):',
-                style: TextStyle(
+              Text(
+                s.tr(
+                  eu: 'Katalogoko espezie hautagaiak (sakatu fitxa ikusteko edo gordetzeko):',
+                  es: 'Especies candidatas en el Catálogo (pulsa para ver ficha o guardar):',
+                  en: 'Candidate species in Catalog (tap to view details or save):',
+                ),
+                style: const TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   color: AutumnColors.boletusBrown,
@@ -915,7 +925,7 @@ class _ChatBubbleItem extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '${m.commonNameEs} • ${m.nameEu}',
+                                    m.displayNameFor(currentLang),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 13,
@@ -923,7 +933,7 @@ class _ChatBubbleItem extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    '${m.scientificName} (${m.edibility.labelEs})',
+                                    '${m.scientificName} • ${m.edibility.labelFor(currentLang)}',
                                     style: TextStyle(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w600,
@@ -961,9 +971,13 @@ class _ChatBubbleItem extends StatelessWidget {
                             Icons.add_location_alt_rounded,
                             size: 16,
                           ),
-                          label: const Text(
-                            'Guardar este hallazgo en Mapa / Salida activa',
-                            style: TextStyle(
+                          label: Text(
+                            s.tr(
+                              eu: 'Gorde aurkikuntza hau mapan edo irteeran',
+                              es: 'Guardar este hallazgo en el mapa o salida',
+                              en: 'Save this find to map or outing',
+                            ),
+                            style: const TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
                             ),
