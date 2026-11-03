@@ -513,10 +513,12 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
 
     if (newSpot != null) {
       await ref.read(foragingSpotsProvider.notifier).saveSpot(newSpot);
-      // También añadimos la coordenada del hallazgo al trazado de la ruta
-      ref
-          .read(activeOutingRecorderProvider.notifier)
-          .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
+      if (!activeState.isManual) {
+        // En salidas con ruta GPS, añadimos la coordenada del hallazgo al trazado
+        ref
+            .read(activeOutingRecorderProvider.notifier)
+            .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
+      }
     }
   }
 
@@ -1278,12 +1280,11 @@ class _OutingSummaryCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Mini-mapa con fondo cartográfico real de la ruta GPS y sus hallazgos
+                  // Mini-mapa con fondo cartográfico real de la ruta o centrado en la mayor recolección
                   _OutingRouteMiniMap(
+                    outingId: outing.id,
                     routePoints: outing.routePoints,
-                    spotPoints: outingSpots
-                        .map((sp) => LatLng(sp.latitude, sp.longitude))
-                        .toList(),
+                    outingSpots: outingSpots,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -1370,7 +1371,8 @@ class _OutingSummaryCard extends StatelessWidget {
                           children: [
                             _MetricBadge(
                               icon: Icons.straighten_rounded,
-                              label: outing.isManual
+                              label: (outing.isManual &&
+                                      outing.routePoints.length < 2)
                                   ? s.tr(
                                       eu: 'Eskuzkoa (GPS gabe)',
                                       es: 'Manual (Sin GPS)',
@@ -1616,58 +1618,113 @@ class _MetricBadge extends StatelessWidget {
   }
 }
 
-/// Miniatura de mapa real con fondo topográfico, trazado GPS y puntos de setas.
+/// Miniatura de mapa real con fondo topográfico:
+/// - Si hay ruta (>= 2 puntos, por GPS o trazada a mano), encuadra y dibuja la ruta realizada.
+/// - Si no hay ruta (< 2 puntos), centra el mapa en la recolección más grande de la salida.
 class _OutingRouteMiniMap extends StatelessWidget {
+  final String outingId;
   final List<LatLng> routePoints;
-  final List<LatLng> spotPoints;
+  final List<ForagingSpot> outingSpots;
 
   const _OutingRouteMiniMap({
+    required this.outingId,
     required this.routePoints,
-    required this.spotPoints,
+    required this.outingSpots,
   });
 
-  ({LatLng center, double zoom}) _computeCamera() {
-    final all = [...routePoints, ...spotPoints];
-    if (all.isEmpty) {
-      return (center: const LatLng(43.0340, -2.7270), zoom: 12.5);
+  static ForagingSpot? findLargestSpot(List<ForagingSpot> spots) {
+    if (spots.isEmpty) return null;
+    ForagingSpot largest = spots.first;
+    for (final sp in spots.skip(1)) {
+      if (sp.quantityCount > largest.quantityCount ||
+          (sp.quantityCount == largest.quantityCount &&
+              (sp.weightGrams ?? 0) > (largest.weightGrams ?? 0))) {
+        largest = sp;
+      }
+    }
+    return largest;
+  }
+
+  ({LatLng center, double zoom, CameraFit? cameraFit}) _computeCamera(
+    ForagingSpot? largestSpot,
+  ) {
+    // Caso 1: Salida con ruta realizada (GPS o registrada a mano)
+    if (routePoints.length >= 2) {
+      double minLat = routePoints.first.latitude;
+      double maxLat = routePoints.first.latitude;
+      double minLng = routePoints.first.longitude;
+      double maxLng = routePoints.first.longitude;
+
+      for (final pt in routePoints) {
+        minLat = math.min(minLat, pt.latitude);
+        maxLat = math.max(maxLat, pt.latitude);
+        minLng = math.min(minLng, pt.longitude);
+        maxLng = math.max(maxLng, pt.longitude);
+      }
+
+      final center = LatLng((minLat + maxLat) / 2.0, (minLng + maxLng) / 2.0);
+      final latSpan = maxLat - minLat;
+      final lngSpan = maxLng - minLng;
+
+      if (latSpan > 0.0001 || lngSpan > 0.0001) {
+        final zoomLat =
+            latSpan > 0 ? math.log(60.0 / latSpan) / math.ln2 : 15.0;
+        final zoomLng =
+            lngSpan > 0 ? math.log(82.0 / lngSpan) / math.ln2 : 15.0;
+        final computedZoom =
+            math.min(zoomLat, zoomLng).clamp(9.0, 15.5).toDouble();
+
+        return (
+          center: center,
+          zoom: computedZoom,
+          cameraFit: CameraFit.bounds(
+            bounds: LatLngBounds.fromPoints(routePoints),
+            padding: const EdgeInsets.all(11),
+            maxZoom: 15.5,
+            minZoom: 9.0,
+          ),
+        );
+      }
+
+      return (center: center, zoom: 14.8, cameraFit: null);
     }
 
-    double minLat = all.first.latitude;
-    double maxLat = all.first.latitude;
-    double minLng = all.first.longitude;
-    double maxLng = all.first.longitude;
-
-    for (final pt in all) {
-      minLat = math.min(minLat, pt.latitude);
-      maxLat = math.max(maxLat, pt.latitude);
-      minLng = math.min(minLng, pt.longitude);
-      maxLng = math.max(maxLng, pt.longitude);
+    // Caso 2: Salida sin ruta -> centrada en la recolección más grande
+    if (largestSpot != null) {
+      return (
+        center: LatLng(largestSpot.latitude, largestSpot.longitude),
+        zoom: 14.5,
+        cameraFit: null,
+      );
     }
 
-    final center = LatLng((minLat + maxLat) / 2.0, (minLng + maxLng) / 2.0);
-    final maxSpan = math.max(maxLat - minLat, maxLng - minLng);
-
-    double zoom;
-    if (maxSpan < 0.002) {
-      zoom = 15.0;
-    } else if (maxSpan < 0.006) {
-      zoom = 14.0;
-    } else if (maxSpan < 0.015) {
-      zoom = 13.0;
-    } else if (maxSpan < 0.035) {
-      zoom = 12.0;
-    } else if (maxSpan < 0.08) {
-      zoom = 11.0;
-    } else {
-      zoom = 10.0;
+    // Caso 3: Solo un punto inicial de ruta y sin setas aún
+    if (routePoints.isNotEmpty) {
+      return (
+        center: routePoints.first,
+        zoom: 14.5,
+        cameraFit: null,
+      );
     }
 
-    return (center: center, zoom: zoom);
+    return (
+      center: const LatLng(43.0340, -2.7270),
+      zoom: 12.5,
+      cameraFit: null,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final cam = _computeCamera();
+    final hasRoute = routePoints.length >= 2;
+    final largestSpot = findLargestSpot(outingSpots);
+    final cam = _computeCamera(largestSpot);
+    final mapKey = ValueKey(
+      '${outingId}_r${routePoints.length}_'
+      '${routePoints.isNotEmpty ? "${routePoints.first.latitude},${routePoints.last.longitude}" : "none"}_'
+      's${outingSpots.length}_'
+      '${largestSpot != null ? "${largestSpot.id}_${largestSpot.quantityCount}_${largestSpot.weightGrams}" : "nospot"}',
+    );
 
     return Container(
       width: 88,
@@ -1681,9 +1738,11 @@ class _OutingRouteMiniMap extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         child: IgnorePointer(
           child: FlutterMap(
+            key: mapKey,
             options: MapOptions(
               initialCenter: cam.center,
               initialZoom: cam.zoom,
+              initialCameraFit: cam.cameraFit,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.none,
               ),
@@ -1693,28 +1752,34 @@ class _OutingRouteMiniMap extends StatelessWidget {
                 urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.perretxikotan.perretxikotan',
               ),
-              if (routePoints.length >= 2)
+              if (hasRoute)
                 PolylineLayer(
                   polylines: [
                     Polyline(
                       points: routePoints,
-                      color: Colors.white.withValues(alpha: 0.85),
-                      strokeWidth: 5.0,
+                      color: AutumnColors.barkDark.withValues(alpha: 0.85),
+                      strokeWidth: 6.2,
+                    ),
+                    Polyline(
+                      points: routePoints,
+                      color: Colors.white.withValues(alpha: 0.95),
+                      strokeWidth: 4.6,
                     ),
                     Polyline(
                       points: routePoints,
                       color: AutumnColors.terracotta,
-                      strokeWidth: 3.2,
+                      strokeWidth: 3.0,
                     ),
                   ],
                 ),
               MarkerLayer(
                 markers: [
-                  ...spotPoints.map(
-                    (pt) => Marker(
-                      point: pt,
-                      width: 12,
-                      height: 12,
+                  if (hasRoute) ...[
+                    // Inicio de ruta
+                    Marker(
+                      point: routePoints.first,
+                      width: 10,
+                      height: 10,
                       child: Container(
                         decoration: BoxDecoration(
                           color: AutumnColors.mossGreen,
@@ -1723,7 +1788,62 @@ class _OutingRouteMiniMap extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ),
+                    // Fin de ruta
+                    Marker(
+                      point: routePoints.last,
+                      width: 10,
+                      height: 10,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AutumnColors.terracotta,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ],
+                  // Marcadores de recolecciones
+                  ...outingSpots.map((sp) {
+                    final isLargest =
+                        !hasRoute && largestSpot != null && sp.id == largestSpot.id;
+                    return Marker(
+                      point: LatLng(sp.latitude, sp.longitude),
+                      width: isLargest ? 28 : 12,
+                      height: isLargest ? 28 : 12,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AutumnColors.mossGreen,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isLargest
+                                ? AutumnColors.amberLeaf
+                                : Colors.white,
+                            width: isLargest ? 2.0 : 1.5,
+                          ),
+                          boxShadow: isLargest
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.35),
+                                    blurRadius: 4,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: isLargest
+                            ? Center(
+                                child: Text(
+                                  '${sp.quantityCount}x',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  }),
                 ],
               ),
             ],
@@ -1753,16 +1873,28 @@ class OutingDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(appLanguageProvider);
     final s = AppStrings(lang);
-    final center = outing.routePoints.isNotEmpty
-        ? outing.routePoints.first
-        : (outingSpots.isNotEmpty
-            ? LatLng(outingSpots.first.latitude, outingSpots.first.longitude)
+    final liveOutings = ref.watch(outingsProvider).valueOrNull;
+    final currentOuting = liveOutings
+            ?.where((o) => o.id == outing.id)
+            .firstOrNull ??
+        outing;
+    final allSpots = ref.watch(foragingSpotsProvider).valueOrNull;
+    final currentSpots = allSpots != null
+        ? allSpots.where((sp) => sp.outingId == currentOuting.id).toList()
+        : outingSpots;
+    final currentHarvest = currentOuting.summarizeHarvest(currentSpots);
+    final largestSpot = _OutingRouteMiniMap.findLargestSpot(currentSpots);
+
+    final center = currentOuting.routePoints.isNotEmpty
+        ? currentOuting.routePoints.first
+        : (largestSpot != null
+            ? LatLng(largestSpot.latitude, largestSpot.longitude)
             : const LatLng(43.0358, -2.7289));
 
     return Scaffold(
       backgroundColor: AutumnColors.parchmentBg,
       appBar: AppBar(
-        title: Text(outing.title),
+        title: Text(currentOuting.title),
         actions: [
           IconButton(
             tooltip: s.tr(
@@ -1775,8 +1907,8 @@ class OutingDetailScreen extends ConsumerWidget {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => MapSpotPickerScreen(
-                    outingId: outing.id,
-                    outingTitle: outing.title,
+                    outingId: currentOuting.id,
+                    outingTitle: currentOuting.title,
                     initialCenter: center,
                   ),
                 ),
@@ -1794,27 +1926,44 @@ class OutingDetailScreen extends ConsumerWidget {
             child: SizedBox(
               height: 270,
               child: FlutterMap(
+                key: ValueKey(
+                  'detail_${currentOuting.id}_r${currentOuting.routePoints.length}_s${currentSpots.length}',
+                ),
                 options: MapOptions(
                   initialCenter: center,
                   initialZoom: 13.8,
+                  initialCameraFit: currentOuting.routePoints.length >= 2
+                      ? CameraFit.bounds(
+                          bounds: LatLngBounds.fromPoints(
+                            currentOuting.routePoints,
+                          ),
+                          padding: const EdgeInsets.all(28),
+                          maxZoom: 16.0,
+                        )
+                      : null,
                 ),
                 children: [
                   TileLayer(
                     urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.perretxikotan.perretxikotan',
                   ),
-                  if (outing.routePoints.length >= 2)
+                  if (currentOuting.routePoints.length >= 2)
                     PolylineLayer(
                       polylines: [
                         Polyline(
-                          points: outing.routePoints,
+                          points: currentOuting.routePoints,
+                          color: Colors.white.withValues(alpha: 0.9),
+                          strokeWidth: 7.0,
+                        ),
+                        Polyline(
+                          points: currentOuting.routePoints,
                           color: AutumnColors.terracotta,
                           strokeWidth: 4.5,
                         ),
                       ],
                     ),
                   MarkerLayer(
-                    markers: outingSpots.map((spot) {
+                    markers: currentSpots.map((spot) {
                       return Marker(
                         point: LatLng(spot.latitude, spot.longitude),
                         width: 42,
@@ -1860,7 +2009,8 @@ class OutingDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  DateFormat('EEEE, dd/MM/yyyy · HH:mm').format(outing.startedAt),
+                  DateFormat('EEEE, dd/MM/yyyy · HH:mm')
+                      .format(currentOuting.startedAt),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1872,28 +2022,46 @@ class OutingDetailScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _DetailStatColumn(
-                      label: s.tr(eu: 'Distantzia', es: 'Distancia', en: 'Distance'),
-                      value: outing.isManual
-                          ? s.tr(eu: 'Eskuzkoa (GPS gabe)', es: 'Manual (Sin GPS)', en: 'Manual (No GPS)')
-                          : outing.formattedDistanceKm,
+                      label: s.tr(
+                        eu: 'Distantzia',
+                        es: 'Distancia',
+                        en: 'Distance',
+                      ),
+                      value: (currentOuting.isManual &&
+                              currentOuting.routePoints.length < 2)
+                          ? s.tr(
+                              eu: 'Eskuzkoa (GPS gabe)',
+                              es: 'Manual (Sin GPS)',
+                              en: 'Manual (No GPS)',
+                            )
+                          : currentOuting.formattedDistanceKm,
                       icon: Icons.straighten_rounded,
                     ),
                     _DetailStatColumn(
-                      label: s.tr(eu: 'Iraupena', es: 'Duración', en: 'Duration'),
-                      value: outing.formattedDuration,
+                      label: s.tr(
+                        eu: 'Iraupena',
+                        es: 'Duración',
+                        en: 'Duration',
+                      ),
+                      value: currentOuting.formattedDuration,
                       icon: Icons.timer_rounded,
                     ),
                     _DetailStatColumn(
-                      label: s.tr(eu: 'Aurkikuntzak', es: 'Hallazgos', en: 'Finds'),
-                      value: '${outingSpots.length} ${s.tr(eu: "leku", es: "puntos", en: "spots")}',
+                      label: s.tr(
+                        eu: 'Aurkikuntzak',
+                        es: 'Hallazgos',
+                        en: 'Finds',
+                      ),
+                      value:
+                          '${currentSpots.length} ${s.tr(eu: "leku", es: "puntos", en: "spots")}',
                       icon: Icons.place_rounded,
                     ),
                   ],
                 ),
-                if (outing.notes.isNotEmpty) ...[
+                if (currentOuting.notes.isNotEmpty) ...[
                   const Divider(height: 24),
                   Text(
-                    outing.notes,
+                    currentOuting.notes,
                     style: const TextStyle(
                       fontSize: 14,
                       height: 1.45,
@@ -1918,7 +2086,7 @@ class OutingDetailScreen extends ConsumerWidget {
                 ),
           ),
           const SizedBox(height: 10),
-          ...harvestItems.map((item) {
+          ...currentHarvest.map((item) {
             final mushroom = catalogMushrooms
                 .where((m) => m.id == item.mushroomId)
                 .firstOrNull;

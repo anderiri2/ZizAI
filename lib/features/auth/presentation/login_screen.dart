@@ -151,7 +151,7 @@ class LoginScreen extends ConsumerWidget {
                                     const SizedBox(height: 10),
                                     Text(
                                       s.tr(
-                                        eu: 'Hasi saioa zure Google kontuarekin zure perretxiko-lekuak, GPS irteerak, argazkiak eta IA kontsultak zure Google Drive pribatuan gordetzeko (kanpoko zerbitzaririk gabe).',
+                                        eu: 'Hasi saioa zure Google kontuarekin zure perretxiko-lekuak, GPS irteerak eta argazkiak zure Google Drive pribatuan gordetzeko (kanpoko zerbitzaririk gabe).',
                                         es: 'Inicia sesión con tu cuenta personal de Google para respaldar automáticamente tus ubicaciones de setas, rutas GPS y fotos en tu propio Google Drive (sin servidores externos).',
                                         en: 'Sign in with your personal Google account to automatically back up your mushroom spots, GPS routes, and photos in your private Google Drive (zero external servers).',
                                       ),

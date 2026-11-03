@@ -70,9 +70,11 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
 
     if (newSpot != null) {
       await ref.read(foragingSpotsProvider.notifier).saveSpot(newSpot);
-      ref
-          .read(activeOutingRecorderProvider.notifier)
-          .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
+      if (!activeState.isManual) {
+        ref
+            .read(activeOutingRecorderProvider.notifier)
+            .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
+      }
 
       if (mounted) {
         final lang = ref.read(appLanguageProvider);
@@ -116,9 +118,11 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
 
       if (newSpot != null) {
         await ref.read(foragingSpotsProvider.notifier).saveSpot(newSpot);
-        ref
-            .read(activeOutingRecorderProvider.notifier)
-            .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
+        if (!activeState.isManual) {
+          ref
+              .read(activeOutingRecorderProvider.notifier)
+              .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
+        }
 
         if (mounted) {
           final lang = ref.read(appLanguageProvider);

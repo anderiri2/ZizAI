@@ -67,16 +67,10 @@ class TranslucentBottomNavBar extends ConsumerWidget {
                     onTap: () => onTabSelected(2),
                   ),
                   _NavItem(
-                    icon: Icons.auto_awesome_rounded,
-                    label: s.navAiPhoto,
-                    selected: currentIndex == 3,
-                    onTap: () => onTabSelected(3),
-                  ),
-                  _NavItem(
                     icon: Icons.cloud_sync_rounded,
                     label: s.navBackup,
-                    selected: currentIndex == 4,
-                    onTap: () => onTabSelected(4),
+                    selected: currentIndex == 3,
+                    onTap: () => onTabSelected(3),
                   ),
                 ],
               ),

@@ -167,7 +167,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               Text(
                                 authState.isAuthenticatedWithGoogle
                                     ? (authState.userEmail ?? '')
-                                    : 'Inicia sesión para activar Backup en Google Drive e IA Gemini',
+                                    : 'Inicia sesión para activar Backup en Google Drive',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.78),
                                   fontSize: 12.5,

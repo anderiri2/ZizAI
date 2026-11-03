@@ -4,8 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:perretxikotan/core/localization/app_localizations.dart';
 import 'package:perretxikotan/core/widgets/settings_drawer.dart';
+import 'package:perretxikotan/core/widgets/translucent_bottom_nav.dart';
+import 'package:perretxikotan/features/map/data/spots_database.dart';
+import 'package:perretxikotan/features/map/models/foraging_spot.dart';
 import 'package:perretxikotan/features/map/presentation/map_screen.dart';
 import 'package:perretxikotan/features/outings/data/outings_database.dart';
+import 'package:perretxikotan/features/outings/models/foraging_outing.dart';
 import 'package:perretxikotan/features/outings/presentation/live_outing_map_screen.dart';
 import 'package:perretxikotan/features/outings/presentation/outings_screen.dart';
 import 'package:perretxikotan/main.dart';
@@ -186,5 +190,90 @@ void main() {
     // Stop the active outing timer before test teardown
     container.read(activeOutingRecorderProvider.notifier).cancelOuting();
     await tester.pump();
+  });
+
+  testWidgets(
+      'Bottom navigation bar hides AI tab and OutingsScreen centers no-route thumbnail on largest collection',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    // 1. Verify bottom nav has 4 tabs and no AI tab
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: TranslucentBottomNavBar(
+              currentIndex: 0,
+              onTabSelected: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Perretxikoak'), findsOneWidget);
+    expect(find.text('Mapa'), findsOneWidget);
+    expect(find.text('Irteerak'), findsOneWidget);
+    expect(find.text('Babeskopia'), findsOneWidget);
+    expect(find.text('IA Argazkia'), findsNothing);
+
+    // 2. Create a manual outing without route points and two mushroom collections (2x vs 12x)
+    final noRouteOuting = ForagingOuting(
+      id: 'outing_no_route_test',
+      title: 'Salida sin ruta',
+      startedAt: DateTime(2026, 10, 29, 9, 0),
+      endedAt: DateTime(2026, 10, 29, 11, 0),
+      durationSeconds: 7200,
+      distanceMeters: 0,
+      routePoints: const [],
+      notes: '',
+      isManual: true,
+    );
+    await container.read(outingsProvider.notifier).saveOuting(noRouteOuting);
+
+    await container.read(foragingSpotsProvider.notifier).saveSpot(
+          ForagingSpot(
+            id: 'spot_small',
+            title: 'Pequeño',
+            latitude: 42.9000,
+            longitude: -2.5000,
+            notes: '',
+            foundAt: DateTime(2026, 10, 29, 9, 30),
+            outingId: 'outing_no_route_test',
+            quantityCount: 2,
+          ),
+        );
+    await container.read(foragingSpotsProvider.notifier).saveSpot(
+          ForagingSpot(
+            id: 'spot_largest',
+            title: 'Recolección grande',
+            latitude: 43.1234,
+            longitude: -2.3456,
+            notes: '',
+            foundAt: DateTime(2026, 10, 29, 10, 0),
+            outingId: 'outing_no_route_test',
+            quantityCount: 12,
+            weightGrams: 850,
+          ),
+        );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: OutingsScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify the largest collection badge '12x' is rendered inside the no-route thumbnail
+    expect(find.text('12x'), findsOneWidget);
   });
 }

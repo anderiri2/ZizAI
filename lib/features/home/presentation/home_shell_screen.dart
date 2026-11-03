@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/safety_disclaimer_banner.dart';
 import '../../../core/widgets/settings_drawer.dart';
 import '../../../core/widgets/translucent_bottom_nav.dart';
-import '../../ai_identifier/presentation/ai_identifier_screen.dart';
 import '../../backup/presentation/backup_screen.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
@@ -73,7 +72,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
       drawer: SettingsDrawer(
         onNavigateToBackupTab: () {
           setState(() {
-            _currentTabIndex = 4;
+            _currentTabIndex = 3;
           });
         },
       ),
@@ -100,10 +99,6 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
           OutingsScreen(
             onViewOutingInGlobalMap: _openMapFilteredByOuting,
             onAddSpotInMapDuringOuting: _openMapToRegisterSpotOnActiveOuting,
-          ),
-          AiIdentifierScreen(
-            onRegisterIdentifiedMushroomInMap: (mushroom, photoPath) =>
-                _openMapToRegisterSpecies(mushroom, photoPath),
           ),
           const BackupScreen(),
         ],
