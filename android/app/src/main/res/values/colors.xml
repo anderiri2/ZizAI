@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="forest_splash_bg">#192718</color>
+    <color name="forest_splash_bg">#1C281A</color>
+    <color name="ic_launcher_background">#1C281A</color>
 </resources>

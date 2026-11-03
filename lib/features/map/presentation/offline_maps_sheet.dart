@@ -328,7 +328,7 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                 const SizedBox(height: 10),
               ],
 
-              // Zonas micológicas recomendadas (Euskadi / Navarra)
+              // Zonas micológicas recomendadas
               Text(
                 s.tr(
                   eu: 'Gomendatutako Eremu Mikologikoak (Ukitu 1)',

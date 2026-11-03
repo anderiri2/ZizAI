@@ -255,7 +255,7 @@ class SettingsDrawer extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Text(
-                                'v1.5.0 • Euskal Herria',
+                                'v1.5.1',
                                 style: TextStyle(
                                   color: AutumnColors.amberLeaf,
                                   fontSize: 11,
@@ -305,7 +305,7 @@ class SettingsDrawer extends ConsumerWidget {
                   _LanguageCardTile(
                     language: AppLanguage.eu,
                     title: 'Euskara',
-                    subtitle: 'Lehenetsia • Euskal Herriko gida',
+                    subtitle: 'Hizkuntza lehenetsia',
                     isSelected: currentLang == AppLanguage.eu,
                     badgeText: 'EU',
                     onTap: () {
@@ -318,7 +318,7 @@ class SettingsDrawer extends ConsumerWidget {
                   _LanguageCardTile(
                     language: AppLanguage.es,
                     title: 'Castellano',
-                    subtitle: 'Español peninsular',
+                    subtitle: 'Guía micológica en español',
                     isSelected: currentLang == AppLanguage.es,
                     badgeText: 'ES',
                     onTap: () {
@@ -331,7 +331,7 @@ class SettingsDrawer extends ConsumerWidget {
                   _LanguageCardTile(
                     language: AppLanguage.en,
                     title: 'English',
-                    subtitle: 'International mycological guide',
+                    subtitle: 'Mycological field guide',
                     isSelected: currentLang == AppLanguage.en,
                     badgeText: 'EN',
                     onTap: () {

@@ -2,6 +2,14 @@
 
 Todos los cambios relevantes de **Perretxikotan** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
 
+## [1.5.1] - 2026-11-03 (`v1.5.1`)
+### Cambiado
+- **Icono Adaptativo Nativo a Pantalla Completa en Android e iOS**:
+  - Creación de `mipmap-anydpi-v26/ic_launcher.xml` y `ic_launcher_round.xml` con fondo continuo verde bosque oscuro (`#1C281A`) y capa frontal `ic_launcher_foreground.png` escalada a la zona segura completa sin bordes dobles ni esquinas blancas, evitando que el launcher de Android reduzca el icono dentro de un círculo blanco.
+  - Regeneración de `assets/images/logo_perretxikotan.png`, `ic_launcher.png`, `ic_launcher_round.png` y `AppIcon.appiconset` sin marcos exteriores.
+- **Eliminación de Referencias Geográficas en Textos y Catálogo**:
+  - Eliminada toda referencia a *Euskal Herria*, *Península Ibérica*, *Euskadi* o *España* en cabeceras, subtítulos, panel lateral de ajustes (`SettingsDrawer`), servicio de IA y en las 126 fichas trilingües de `assets/data/mushrooms_catalog.json`.
+
 ## [1.5.0] - 2026-11-02 (`v1.5.0`)
 ### Añadido
 - **Ubicación Interactiva de Setas en Mapa desde Catálogo**:

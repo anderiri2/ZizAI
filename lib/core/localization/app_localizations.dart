@@ -76,9 +76,9 @@ class AppStrings {
 
   // Splash & Auth
   String get appSubtitle => tr(
-        eu: 'Mikologia · Perretxiko-lekuak · Euskal Herria',
-        es: 'Micología · Setales · Euskadi y España',
-        en: 'Mycology · Foraging Spots · Basque Country & Spain',
+        eu: 'Mikologia · Perretxiko-lekuak · Irteerak',
+        es: 'Micología · Setales · Salidas',
+        en: 'Mycology · Foraging Spots · Outings',
       );
 
   List<String> get splashStages => [
@@ -183,9 +183,9 @@ class AppStrings {
 
   // Catalog Screen
   String get catalogHeaderSubtitle => tr(
-        eu: 'Euskal Herriko eta Iberiar Penintsulako Gida Mikologikoa',
-        es: 'Guía Micológica de Euskadi y Península Ibérica',
-        en: 'Mycological Field Guide of the Basque Country & Iberia',
+        eu: 'Mendiko Gida Mikologikoa',
+        es: 'Guía Micológica de Campo',
+        en: 'Mycological Field Guide',
       );
 
   String get searchHint => tr(
