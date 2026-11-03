@@ -218,7 +218,7 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${widget.outingTitle} • ${existingOutingSpots.length} setales',
+                                '${widget.outingTitle} • ${existingOutingSpots.length} ${s.tr(eu: "perretxiko-leku", es: "setales", en: "spots")}',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.75),
                                   fontSize: 11.5,

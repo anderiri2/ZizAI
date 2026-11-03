@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:perretxikotan/core/localization/app_localizations.dart';
 import 'package:perretxikotan/core/widgets/settings_drawer.dart';
+import 'package:perretxikotan/features/map/presentation/map_screen.dart';
 import 'package:perretxikotan/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -84,7 +86,7 @@ void main() {
     expect(find.text('Euskara'), findsOneWidget);
     expect(find.text('Castellano'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
-    expect(find.text('v1.4.0 • Euskal Herria'), findsOneWidget);
+    expect(find.text('v1.5.0 • Euskal Herria'), findsOneWidget);
 
     // Tap Castellano in Drawer
     await tester.tap(find.text('Castellano'));
@@ -99,5 +101,44 @@ void main() {
 
     // Check that title is updated to English
     expect(find.text('App Language'), findsOneWidget);
+  });
+
+  testWidgets(
+      'MapScreen displays horizontal title and single consolidated filter pill in EU, ES, and EN',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: MapScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Default: Basque (EU)
+    expect(find.text('Perretxiko-lekuen Mapa'), findsOneWidget);
+    expect(find.text('Filtroak eta Rutak'), findsOneWidget);
+
+    // Switch to Spanish (ES)
+    await container.read(appLanguageProvider.notifier).setLanguage(AppLanguage.es);
+    await tester.pump();
+
+    expect(find.text('Mapa de Setales'), findsOneWidget);
+    expect(find.text('Filtros y Rutas'), findsOneWidget);
+
+    // Switch to English (EN)
+    await container.read(appLanguageProvider.notifier).setLanguage(AppLanguage.en);
+    await tester.pump();
+
+    expect(find.text('Foraging Map'), findsOneWidget);
+    expect(find.text('Filters & Routes'), findsOneWidget);
   });
 }

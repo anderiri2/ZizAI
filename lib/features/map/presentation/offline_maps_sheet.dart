@@ -29,14 +29,21 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
       text: 'Mi zona (${DateFormat('dd/MM').format(DateTime.now())})',
     );
 
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AutumnColors.parchmentBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
-          'Descargar Vista Actual Offline',
-          style: TextStyle(
+        title: Text(
+          s.tr(
+            eu: 'Deskargatu Uneko Ikuspegia Offline',
+            es: 'Descargar Vista Actual Offline',
+            en: 'Download Current View Offline',
+          ),
+          style: const TextStyle(
             fontWeight: FontWeight.w800,
             color: AutumnColors.boletusBrown,
           ),
@@ -44,21 +51,35 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
         content: TextField(
           controller: nameCtrl,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Nombre para identificar esta zona',
-            hintText: 'Ej. Hayedo de Ultzama',
-            prefixIcon: Icon(Icons.download_for_offline_rounded),
+          decoration: InputDecoration(
+            labelText: s.tr(
+              eu: 'Eremu hau identifikatzeko izena',
+              es: 'Nombre para identificar esta zona',
+              en: 'Region name to identify',
+            ),
+            hintText: s.tr(
+              eu: 'Adib. Ultzamako pagadia',
+              es: 'Ej. Hayedo de Ultzama',
+              en: 'E.g. Ultzama beech forest',
+            ),
+            prefixIcon: const Icon(Icons.download_for_offline_rounded),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
+            child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(ctx).pop(true),
             icon: const Icon(Icons.download_rounded),
-            label: const Text('Descargar Ahora'),
+            label: Text(
+              s.tr(
+                eu: 'Deskargatu Orain',
+                es: 'Descargar Ahora',
+                en: 'Download Now',
+              ),
+            ),
           ),
         ],
       ),
@@ -211,9 +232,13 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                       ? null
                       : _promptDownloadCurrentView,
                   icon: const Icon(Icons.crop_free_rounded),
-                  label: const Text(
-                    'Descargar Vista Actual en Pantalla',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  label: Text(
+                    s.tr(
+                      eu: 'Deskargatu Pantailako Uneko Ikuspegia',
+                      es: 'Descargar Vista Actual en Pantalla',
+                      en: 'Download Current View on Screen',
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -221,9 +246,13 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
 
               // Zonas ya descargadas en el dispositivo
               if (offlineState.downloadedRegions.isNotEmpty) ...[
-                const Text(
-                  'Zonas Descargadas en tu Teléfono',
-                  style: TextStyle(
+                Text(
+                  s.tr(
+                    eu: 'Telefonoan deskargatutako eremuak',
+                    es: 'Zonas Descargadas en tu Teléfono',
+                    en: 'Downloaded Regions on Device',
+                  ),
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: AutumnColors.boletusBrown,
@@ -250,14 +279,22 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                         ),
                       ),
                       subtitle: Text(
-                        '${region.tilesCount} teselas · ${region.formattedSizeMb} · ${DateFormat('dd/MM/yy').format(region.downloadedAt)}',
+                        s.tr(
+                          eu: '${region.tilesCount} lauza · ${region.formattedSizeMb} · ${DateFormat('dd/MM/yy').format(region.downloadedAt)}',
+                          es: '${region.tilesCount} teselas · ${region.formattedSizeMb} · ${DateFormat('dd/MM/yy').format(region.downloadedAt)}',
+                          en: '${region.tilesCount} tiles · ${region.formattedSizeMb} · ${DateFormat('dd/MM/yy').format(region.downloadedAt)}',
+                        ),
                         style: const TextStyle(fontSize: 12),
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip: 'Centrar mapa en esta zona',
+                            tooltip: s.tr(
+                              eu: 'Kokatu mapa eremu honetan',
+                              es: 'Centrar mapa en esta zona',
+                              en: 'Center map on this region',
+                            ),
                             icon: const Icon(
                               Icons.my_location_rounded,
                               color: AutumnColors.boletusBrown,
@@ -268,7 +305,11 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                             },
                           ),
                           IconButton(
-                            tooltip: 'Eliminar zona offline',
+                            tooltip: s.tr(
+                              eu: 'Ezabatu offline eremua',
+                              es: 'Eliminar zona offline',
+                              en: 'Delete offline region',
+                            ),
                             icon: const Icon(
                               Icons.delete_outline_rounded,
                               color: AutumnColors.edibilityToxic,
@@ -288,18 +329,26 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
               ],
 
               // Zonas micológicas recomendadas (Euskadi / Navarra)
-              const Text(
-                'Zonas Micológicas Recomendadas (1 Toque)',
-                style: TextStyle(
+              Text(
+                s.tr(
+                  eu: 'Gomendatutako Eremu Mikologikoak (Ukitu 1)',
+                  es: 'Zonas Micológicas Recomendadas (1 Toque)',
+                  en: 'Recommended Foraging Areas (1 Tap)',
+                ),
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                   color: AutumnColors.boletusBrown,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Descarga curvas de nivel y caminos forestales (zooms 11-14) para usar en el monte con el GPS en modo avión.',
-                style: TextStyle(
+              Text(
+                s.tr(
+                  eu: 'Deskargatu sestra-kurbak eta mendi-bideak (11-14 zoomak) mendian GPS bidez hegazkin moduan erabiltzeko.',
+                  es: 'Descarga curvas de nivel y caminos forestales (zooms 11-14) para usar en el monte con el GPS en modo avión.',
+                  en: 'Download contour lines and forest paths (zooms 11-14) to explore offline in airplane mode.',
+                ),
+                style: const TextStyle(
                   fontSize: 12.5,
                   color: AutumnColors.textSecondary,
                 ),
@@ -332,10 +381,14 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: isAlreadyDownloaded
-                        ? const Chip(
+                        ? Chip(
                             label: Text(
-                              'Descargado',
-                              style: TextStyle(
+                              s.tr(
+                                eu: 'Deskargatuta',
+                                es: 'Descargado',
+                                en: 'Downloaded',
+                              ),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: AutumnColors.mossGreen,
@@ -370,7 +423,13 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                                         );
                                   },
                             icon: const Icon(Icons.download_rounded, size: 17),
-                            label: const Text('Bajar'),
+                            label: Text(
+                              s.tr(
+                                eu: 'Deskargatu',
+                                es: 'Bajar',
+                                en: 'Get',
+                              ),
+                            ),
                           ),
                   ),
                 );
