@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
-import '../../../core/widgets/settings_drawer.dart';
 import '../../backup/services/google_drive_backup_service.dart';
 
 class LoginScreen extends ConsumerWidget {
@@ -209,11 +208,6 @@ class LoginScreen extends ConsumerWidget {
                                                   .signInWithGoogle();
                                               if (ok) {
                                                 onAuthenticated();
-                                              } else if (context.mounted) {
-                                                SettingsDrawer
-                                                    .showOauthDiagnosticDialog(
-                                                  context,
-                                                );
                                               }
                                             },
                                       icon: authState.isBusy

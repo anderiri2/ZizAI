@@ -108,17 +108,23 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[
-      drive.DriveApi.driveAppdataScope,
       'email',
     ],
   );
 
   GoogleDriveBackupService() : super(const AuthBackupState());
 
-  Future<http.Client?> getAuthenticatedHttpClient() async {
+  Future<http.Client?> getAuthenticatedHttpClient({
+    bool requireDriveScope = false,
+  }) async {
     try {
       if (_googleSignIn.currentUser == null) {
         await _googleSignIn.signInSilently();
+      }
+      if (requireDriveScope) {
+        await _googleSignIn.requestScopes(<String>[
+          drive.DriveApi.driveAppdataScope,
+        ]);
       }
       return await _googleSignIn.authenticatedClient();
     } catch (_) {
@@ -202,7 +208,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       state = state.copyWith(
         isBusy: false,
         errorMessage:
-            'No se pudo iniciar sesión en Google. Revisa GOOGLE_SETUP.md o continúa en Modo Local Sin Cuenta.',
+            'No se pudo completar el inicio de sesión con Google en este momento.',
       );
       return false;
     }
@@ -484,6 +490,9 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         return false;
       }
 
+      await _googleSignIn.requestScopes(<String>[
+        drive.DriveApi.driveAppdataScope,
+      ]);
       final httpClient = await _googleSignIn.authenticatedClient();
       if (httpClient == null) {
         state = state.copyWith(
@@ -553,7 +562,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       state = state.copyWith(
         isBusy: false,
         errorMessage:
-            'Error al conectar con Google Drive API. Verifica la configuración OAuth o utiliza el Snapshot Local.',
+            'No se pudo sincronizar con Google Drive en este momento. También tienes disponible la copia local en tu dispositivo.',
       );
       return false;
     }
@@ -576,6 +585,9 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         return null;
       }
 
+      await _googleSignIn.requestScopes(<String>[
+        drive.DriveApi.driveAppdataScope,
+      ]);
       final httpClient = await _googleSignIn.authenticatedClient();
       if (httpClient == null) {
         state = state.copyWith(

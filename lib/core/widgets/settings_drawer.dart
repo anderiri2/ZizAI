@@ -13,160 +13,6 @@ class SettingsDrawer extends ConsumerWidget {
     this.onNavigateToBackupTab,
   });
 
-  static void showOauthDiagnosticDialog(
-    BuildContext context, {
-    AppStrings? customStrings,
-  }) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        final s = customStrings ?? const AppStrings(AppLanguage.eu);
-        return AlertDialog(
-          backgroundColor: const Color(0xFFFAF4EA),
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          title: Row(
-            children: [
-              const Icon(
-                Icons.settings_suggest_rounded,
-                color: AutumnColors.ochreGold,
-                size: 26,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  s.tr(
-                    eu: 'Google Cloud eta OAuth Konfigurazioa',
-                    es: 'Configuración de Google Cloud y OAuth',
-                    en: 'Google Cloud & OAuth Configuration',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w800,
-                    color: AutumnColors.boletusBrown,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  s.tr(
-                    eu: 'Android-eko Google Play Services-ek egiaztapen zorrotza egiten du. Saioa hasteko, zure Google Cloud proiektuan Android bezeroa erregistratu behar da:',
-                    es: 'Google Play Services en Android requiere que la app esté registrada en tu consola de Google Cloud con el paquete exacto y la huella SHA-1 de tu equipo:',
-                    en: 'Google Play Services requires registering your Android client in Google Cloud Console with the exact package and SHA-1 fingerprint:',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AutumnColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AutumnColors.barkDark.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AutumnColors.boletusBrown.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '1. Package Name / Application ID:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AutumnColors.boletusBrown,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      SelectableText(
-                        'com.perretxikotan.perretxikotan',
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.bold,
-                          color: AutumnColors.mossGreen,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        '2. Obtener huella SHA-1 en terminal:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AutumnColors.boletusBrown,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      SelectableText(
-                        'keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android',
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 11,
-                          color: AutumnColors.barkDark,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        '3. Scopes necesarios:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AutumnColors.boletusBrown,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      SelectableText(
-                        'https://www.googleapis.com/auth/drive.appdata\nemail',
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 11,
-                          color: AutumnColors.barkDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  s.tr(
-                    eu: 'Aholkua: Google-ra konektatu gabe, aplikazioaren %100 erabil dezakezu "Tokiko Snapshot (ZIP)" segurtasun-kopia erabiliz.',
-                    es: 'Nota: Mientras configuras Google Cloud, puedes usar el 100% de la app con el "Snapshot Local (ZIP)" sin ninguna limitación.',
-                    en: 'Tip: You can use 100% of the app anytime with "Local Snapshot (ZIP)" without external Google setup.',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: AutumnColors.boletusBrown,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(
-                s.tr(eu: 'Itxi', es: 'Cerrar', en: 'Close'),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentLang = ref.watch(appLanguageProvider);
@@ -459,12 +305,9 @@ class SettingsDrawer extends ConsumerWidget {
                               minimumSize: const Size.fromHeight(38),
                             ),
                             onPressed: () async {
-                              final success = await ref
+                              await ref
                                   .read(googleDriveBackupProvider.notifier)
                                   .signInWithGoogle();
-                              if (!success && context.mounted) {
-                                showOauthDiagnosticDialog(context);
-                              }
                             },
                             icon: const Icon(Icons.login_rounded, size: 16),
                             label: Text(
@@ -479,26 +322,6 @@ class SettingsDrawer extends ConsumerWidget {
                               ),
                             ),
                           ),
-                        const SizedBox(height: 6),
-                        TextButton.icon(
-                          style: TextButton.styleFrom(
-                            foregroundColor: AutumnColors.boletusBrown,
-                            padding: EdgeInsets.zero,
-                          ),
-                          onPressed: () => showOauthDiagnosticDialog(context),
-                          icon: const Icon(Icons.info_outline_rounded, size: 15),
-                          label: Text(
-                            s.tr(
-                              eu: 'Google Cloud eta SHA-1 gida',
-                              es: 'Guía de Google Cloud y huella SHA-1',
-                              en: 'Google Cloud & SHA-1 guide',
-                            ),
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),

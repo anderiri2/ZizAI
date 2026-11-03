@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
-import '../../../core/widgets/settings_drawer.dart';
 import '../../ai_identifier/services/gemini_mushroom_service.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../map/data/spots_database.dart';
@@ -461,24 +460,6 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: AutumnColors.boletusBrown,
-                          padding: EdgeInsets.zero,
-                        ),
-                        onPressed: () =>
-                            SettingsDrawer.showOauthDiagnosticDialog(context),
-                        icon: const Icon(Icons.help_outline_rounded, size: 16),
-                        label: const Text(
-                          'Ver solución y guía de configuración OAuth / SHA-1',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
                       ),
                     ],
                   ),

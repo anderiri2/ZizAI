@@ -18,15 +18,16 @@ Mientras desarrollas o cuando estás en el monte sin cobertura, puedes pulsar **
    * `https://www.googleapis.com/auth/drive.appdata` (*Ver, crear y eliminar sus propios datos de configuración en tu Google Drive*).
 4. Añade tu cuenta de Google en la lista de **Usuarios de prueba (Test users)**.
 
-## 3. Credenciales para Android
-1. Obtén la huella **SHA-1** de tu keystore de desarrollo ejecutando en la terminal:
-   ```bash
-   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-   ```
-2. En **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**:
+## 3. Credenciales para Android (Valores de este equipo listos para copiar)
+1. En **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**:
    * **Tipo de aplicación**: `Android`
-   * **Nombre del paquete**: `com.perretxikotan.perretxikotan`
-   * **Huella digital del certificado SHA-1**: Pega tu huella SHA-1.
+   * **Nombre del paquete (`Package name`)**: `com.perretxikotan.perretxikotan`
+   * **Huella digital del certificado SHA-1**: `6E:E0:DE:E9:DB:FD:33:63:96:C3:84:9B:7D:5F:F9:4C:93:AF:44:C1`
+   * *(Opcional en Firebase)* **SHA-256**: `64:B7:9F:00:F1:C0:78:06:42:E6:17:B5:43:CE:FC:02:1F:51:6F:2D:FE:3C:C2:3A:8F:54:B6:5F:68:A8:C3:AB`
+2. *(Referencia)* Comando con el que se extrajo del keystore de desarrollo (`~/.android/debug.keystore`):
+   ```bash
+   /usr/bin/keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+   ```
 
 ## 4. Credenciales para iOS
 1. En **APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth**:
