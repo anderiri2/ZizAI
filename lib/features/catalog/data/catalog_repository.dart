@@ -40,7 +40,7 @@ enum CatalogCategoryFilter {
   excellent('Excelentes'),
   edible('Comestibles'),
   caution('Precaución'),
-  dangerous('Tóxicas / Mortales'),
+  dangerous('Tóxicas y mortales'),
   autumn('Otoño'),
   spring('Primavera'),
   favorites('Favoritas');
@@ -89,11 +89,11 @@ enum CatalogCategoryFilter {
       case CatalogCategoryFilter.dangerous:
         switch (lang) {
           case AppLanguage.eu:
-            return 'Toxikoak / Hilgarriak';
+            return 'Toxikoak eta hilgarriak';
           case AppLanguage.es:
-            return 'Tóxicas / Mortales';
+            return 'Tóxicas y mortales';
           case AppLanguage.en:
-            return 'Toxic / Deadly';
+            return 'Toxic & deadly';
         }
       case CatalogCategoryFilter.autumn:
         switch (lang) {

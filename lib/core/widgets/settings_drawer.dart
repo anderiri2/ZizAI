@@ -255,7 +255,7 @@ class SettingsDrawer extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Text(
-                                'v1.4.0 • Euskal Herria',
+                                'v1.5.0 • Euskal Herria',
                                 style: TextStyle(
                                   color: AutumnColors.amberLeaf,
                                   fontSize: 11,
@@ -294,7 +294,7 @@ class SettingsDrawer extends ConsumerWidget {
                   _SectionHeader(
                     icon: Icons.language_rounded,
                     title: s.tr(
-                      eu: 'Hizkuntza / Idioma',
+                      eu: 'Hizkuntza',
                       es: 'Idioma de la Aplicación',
                       en: 'App Language',
                     ),
@@ -542,7 +542,7 @@ class SettingsDrawer extends ConsumerWidget {
                     ),
                     subtitle: Text(
                       s.tr(
-                        eu: 'Esportatu / Inportatu zure datu guztiak',
+                        eu: 'Zure jarduera osoa esportatu edo leheneratu',
                         es: 'Exporta o restaura toda tu actividad localmente',
                         en: 'Export or import your full activity archive',
                       ),

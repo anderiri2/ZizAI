@@ -2,6 +2,27 @@
 
 Todos los cambios relevantes de **Perretxikotan** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
 
+## [1.5.0] - 2026-11-02 (`v1.5.0`)
+### Añadido
+- **Ubicación Interactiva de Setas en Mapa desde Catálogo**:
+  - Al pulsar *"Guardar ubicación de esta seta en el Mapa"* desde la ficha de una especie en el catálogo, la app navega al Mapa Global con un banner superior flotante interactivo (*"Ukitu mapan perretxikoa kokatzeko" / "Toca en el mapa para ubicar [Seta]"*).
+  - Tocar en cualquier punto del mapa ubica el marcador inmediatamente y despliega el formulario con las coordenadas ya asignadas, eliminando la necesidad de escribir coordenadas GPS a mano.
+  - Botón *"Ajustar en el mapa"* dentro del formulario de setal para reubicar marcadores tocando en el mapa.
+- **Panel Modal Unificado de Filtros y Rutas GPS y Cabecera Horizontal en Mapa Global**:
+  - Cabecera flotante rediseñada en dos filas: primera fila con el título completo horizontal (`Perretxiko-lekuen Mapa` / `Mapa de Setales` / `Foraging Map`) y contador de setales; segunda fila con barra de herramientas horizontal (`Filtroak eta Rutak`, `Topo`, `Offline` y píldoras activas).
+  - Unificación en un único punto de entrada `Filtroak eta Rutak` (`Icons.tune_rounded`) con insignia numérica de filtros activos, eliminando botones flotantes duplicados.
+  - Filtro por especie concreta del catálogo (126 especies con foto y buscador rápido) y por comestibilidad (Guztiak / Jangarriak / Toxikoak).
+  - Filtro por pertenencia a salidas y selector multilínea de rutas GPS con *checkboxes* para superponer las rutas deseadas simultáneamente con paleta cromática otoñal.
+- **Localización 100% Pura por Idioma Activo (`EU` / `ES` / `EN`)**:
+  - Eliminación de todas las cadenas bilingües concatenadas con barra (`A / B`) en Mapa, Salidas, Catálogo, Asistente IA y Panel de Ajustes, respetando íntegramente el idioma seleccionado (con Euskera como idioma por defecto).
+- **Grabación Limpia de Rutas GPS en Cualquier Ubicación**:
+  - Eliminación de la coordenada forzada en el Parque Natural de Gorbeia (`LatLng(43.0340, -2.7270)`).
+  - La ruta GPS arranca limpia con la posición real del dispositivo satelital (o vacía hasta la primera señal), permitiendo guardar rutas en cualquier parque natural o municipio sin polilíneas anómalas.
+- **Vista de Mapa Ampliada para Salidas GPS Activas (`LiveOutingMapScreen`)**:
+  - Modo inmersivo a pantalla completa con el track en vivo, marcadores y posición actual.
+  - Barra flotante superior con cronómetro parpadeante, distancia recorrida y recuento de setas.
+  - Botonera flotante inferior con pausa/reanudar, *"Anotar en mi GPS actual"*, *"Ubicar en el mapa"* con un toque, y *"Terminar salida"*.
+
 ## [1.4.0] - 2026-11-01 (`v1.4.0`)
 ### Añadido
 - **Panel Deslizable Izquierdo de Configuración (`SettingsDrawer`)**:
