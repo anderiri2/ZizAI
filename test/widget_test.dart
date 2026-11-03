@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:perretxikotan/core/localization/app_localizations.dart';
 import 'package:perretxikotan/core/widgets/settings_drawer.dart';
 import 'package:perretxikotan/features/map/presentation/map_screen.dart';
+import 'package:perretxikotan/features/outings/data/outings_database.dart';
+import 'package:perretxikotan/features/outings/presentation/live_outing_map_screen.dart';
+import 'package:perretxikotan/features/outings/presentation/outings_screen.dart';
 import 'package:perretxikotan/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -141,5 +145,46 @@ void main() {
 
     expect(find.text('Foraging Map'), findsOneWidget);
     expect(find.text('Filters & Routes'), findsOneWidget);
+  });
+
+  testWidgets(
+      'OutingsScreen opens LiveOutingMapScreen without MapController conflict and renders map thumbnails',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    await container
+        .read(activeOutingRecorderProvider.notifier)
+        .startOuting('Ruta de prueba', isManual: true);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: OutingsScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify the active outing recorder card is visible and history cards render FlutterMap thumbnails
+    expect(find.textContaining('Ruta de prueba'), findsOneWidget);
+    expect(find.byType(FlutterMap), findsWidgets);
+
+    // Tap the top-right expand button ('Handitu') to open LiveOutingMapScreen
+    await tester.tap(find.text('Handitu'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // Verify no ErrorWidget (red screen) and LiveOutingMapScreen is mounted
+    expect(find.byType(ErrorWidget), findsNothing);
+    expect(find.byType(LiveOutingMapScreen), findsOneWidget);
+
+    // Stop the active outing timer before test teardown
+    container.read(activeOutingRecorderProvider.notifier).cancelOuting();
+    await tester.pump();
   });
 }

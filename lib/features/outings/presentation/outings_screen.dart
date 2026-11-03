@@ -622,10 +622,8 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
 
   void _openFullscreenLiveOutingMap() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LiveOutingMapScreen(
-          externalMapController: _liveMapController,
-        ),
+      MaterialPageRoute<void>(
+        builder: (_) => const LiveOutingMapScreen(),
       ),
     );
   }
@@ -1280,23 +1278,12 @@ class _OutingSummaryCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Mini-mapa vectorial de la polilínea de la ruta GPS y sus hallazgos
-                  Container(
-                    width: 82,
-                    height: 82,
-                    decoration: BoxDecoration(
-                      color: AutumnColors.creamCard,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AutumnColors.warmSand),
-                    ),
-                    child: CustomPaint(
-                      painter: _RoutePreviewPainter(
-                        routePoints: outing.routePoints,
-                        spotPoints: outingSpots
-                            .map((sp) => LatLng(sp.latitude, sp.longitude))
-                            .toList(),
-                      ),
-                    ),
+                  // Mini-mapa con fondo cartográfico real de la ruta GPS y sus hallazgos
+                  _OutingRouteMiniMap(
+                    routePoints: outing.routePoints,
+                    spotPoints: outingSpots
+                        .map((sp) => LatLng(sp.latitude, sp.longitude))
+                        .toList(),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -1629,20 +1616,21 @@ class _MetricBadge extends StatelessWidget {
   }
 }
 
-/// Dibuja en miniatura el trazado GPS de la vuelta dada y los puntos de setas encontradas.
-class _RoutePreviewPainter extends CustomPainter {
+/// Miniatura de mapa real con fondo topográfico, trazado GPS y puntos de setas.
+class _OutingRouteMiniMap extends StatelessWidget {
   final List<LatLng> routePoints;
   final List<LatLng> spotPoints;
 
-  _RoutePreviewPainter({
+  const _OutingRouteMiniMap({
     required this.routePoints,
     required this.spotPoints,
   });
 
-  @override
-  void paint(Canvas canvas, Size size) {
+  ({LatLng center, double zoom}) _computeCamera() {
     final all = [...routePoints, ...spotPoints];
-    if (all.isEmpty) return;
+    if (all.isEmpty) {
+      return (center: const LatLng(43.0340, -2.7270), zoom: 12.5);
+    }
 
     double minLat = all.first.latitude;
     double maxLat = all.first.latitude;
@@ -1656,56 +1644,93 @@ class _RoutePreviewPainter extends CustomPainter {
       maxLng = math.max(maxLng, pt.longitude);
     }
 
-    final latSpan = math.max(maxLat - minLat, 0.002);
-    final lngSpan = math.max(maxLng - minLng, 0.002);
-    const pad = 12.0;
-    final drawW = size.width - pad * 2;
-    final drawH = size.height - pad * 2;
+    final center = LatLng((minLat + maxLat) / 2.0, (minLng + maxLng) / 2.0);
+    final maxSpan = math.max(maxLat - minLat, maxLng - minLng);
 
-    Offset project(LatLng pt) {
-      final x = pad + ((pt.longitude - minLng) / lngSpan) * drawW;
-      final y = size.height - pad - ((pt.latitude - minLat) / latSpan) * drawH;
-      return Offset(x, y);
+    double zoom;
+    if (maxSpan < 0.002) {
+      zoom = 15.0;
+    } else if (maxSpan < 0.006) {
+      zoom = 14.0;
+    } else if (maxSpan < 0.015) {
+      zoom = 13.0;
+    } else if (maxSpan < 0.035) {
+      zoom = 12.0;
+    } else if (maxSpan < 0.08) {
+      zoom = 11.0;
+    } else {
+      zoom = 10.0;
     }
 
-    if (routePoints.length >= 2) {
-      final path = Path();
-      final first = project(routePoints.first);
-      path.moveTo(first.dx, first.dy);
-      for (int i = 1; i < routePoints.length; i++) {
-        final p = project(routePoints[i]);
-        path.lineTo(p.dx, p.dy);
-      }
-
-      final linePaint = Paint()
-        ..color = AutumnColors.terracotta
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
-
-      canvas.drawPath(path, linePaint);
-    }
-
-    final dotPaint = Paint()
-      ..color = AutumnColors.mossGreen
-      ..style = PaintingStyle.fill;
-    final borderPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    for (final s in spotPoints) {
-      final center = project(s);
-      canvas.drawCircle(center, 4.2, dotPaint);
-      canvas.drawCircle(center, 4.2, borderPaint);
-    }
+    return (center: center, zoom: zoom);
   }
 
   @override
-  bool shouldRepaint(covariant _RoutePreviewPainter oldDelegate) {
-    return oldDelegate.routePoints != routePoints ||
-        oldDelegate.spotPoints != spotPoints;
+  Widget build(BuildContext context) {
+    final cam = _computeCamera();
+
+    return Container(
+      width: 88,
+      height: 88,
+      decoration: BoxDecoration(
+        color: AutumnColors.creamCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AutumnColors.warmSand, width: 1.2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: IgnorePointer(
+          child: FlutterMap(
+            options: MapOptions(
+              initialCenter: cam.center,
+              initialZoom: cam.zoom,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.none,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.perretxikotan.perretxikotan',
+              ),
+              if (routePoints.length >= 2)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: routePoints,
+                      color: Colors.white.withValues(alpha: 0.85),
+                      strokeWidth: 5.0,
+                    ),
+                    Polyline(
+                      points: routePoints,
+                      color: AutumnColors.terracotta,
+                      strokeWidth: 3.2,
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: [
+                  ...spotPoints.map(
+                    (pt) => Marker(
+                      point: pt,
+                      width: 12,
+                      height: 12,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AutumnColors.mossGreen,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

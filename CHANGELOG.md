@@ -9,6 +9,11 @@ Todos los cambios relevantes de **Perretxikotan** siguen el flujo Gitflow (`feat
   - Regeneración de `assets/images/logo_perretxikotan.png`, `ic_launcher.png`, `ic_launcher_round.png` y `AppIcon.appiconset` sin marcos exteriores.
 - **Eliminación de Referencias Geográficas en Textos y Catálogo**:
   - Eliminada toda referencia a *Euskal Herria*, *Península Ibérica*, *Euskadi* o *España* en cabeceras, subtítulos, panel lateral de ajustes (`SettingsDrawer`), servicio de IA y en las 126 fichas trilingües de `assets/data/mushrooms_catalog.json`.
+### Corregido
+- **Vista a Pantalla Completa en Grabación de Actividad (`LiveOutingMapScreen`)**:
+  - Solucionado el error de pantalla roja (`LateInitializationError` en `MapControllerImpl`) al pulsar el botón de ampliar mapa en la tarjeta de grabación activa asignando un `MapController` independiente a `LiveOutingMapScreen`.
+- **Miniatura de Ruta con Fondo de Mapa Real en el Historial de Salidas**:
+  - Sustituido el recuadro beige plano por `_OutingRouteMiniMap` con fondo cartográfico topográfico real (`FlutterMap` + `TileLayer`), polilínea GPS con borde blanco de contraste y marcadores de hallazgos autoencuadrados.
 
 ## [1.5.0] - 2026-11-02 (`v1.5.0`)
 ### Añadido

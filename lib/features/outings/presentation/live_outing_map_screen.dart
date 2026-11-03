@@ -16,12 +16,7 @@ import 'outings_screen.dart';
 /// Pantalla inmersiva a pantalla completa para el seguimiento de la salida activa (GPS o Manual)
 /// con controles flotantes superpuestos para pausar, registrar setas y terminar.
 class LiveOutingMapScreen extends ConsumerStatefulWidget {
-  final MapController? externalMapController;
-
-  const LiveOutingMapScreen({
-    super.key,
-    this.externalMapController,
-  });
+  const LiveOutingMapScreen({super.key});
 
   @override
   ConsumerState<LiveOutingMapScreen> createState() =>
@@ -29,14 +24,14 @@ class LiveOutingMapScreen extends ConsumerStatefulWidget {
 }
 
 class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
-  late final MapController _mapController;
+  final MapController _mapController = MapController();
   bool _useTopoLayer = true;
   bool _isPickingSpotOnMap = false;
 
   @override
-  void initState() {
-    super.initState();
-    _mapController = widget.externalMapController ?? MapController();
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
   }
 
   void _centerOnUserOrRoute(ActiveOutingState activeState) {
