@@ -72,67 +72,77 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: Amanita caesarea logo + Title + Language Selector Pill + A-Z Sort
+            // Header: Amanita caesarea logo (abre el menú lateral) + Title + A-Z Sort
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Image.asset(
-                      'assets/images/logo_perretxikotan.png',
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Perretxikotan',
-                            maxLines: 1,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  color: AutumnColors.boletusBrown,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                        ),
-                        Text(
-                          s.catalogHeaderSubtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AutumnColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.menu_rounded,
-                      color: AutumnColors.boletusBrown,
-                      size: 26,
-                    ),
-                    tooltip: s.tr(
+                  Semantics(
+                    button: true,
+                    label: s.tr(
                       eu: 'Ireki ezarpenen panela',
                       es: 'Abrir panel de ajustes',
                       en: 'Open settings panel',
                     ),
-                    onPressed: widget.onOpenSettingsDrawer ??
-                        () => Scaffold.of(context).openDrawer(),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: widget.onOpenSettingsDrawer ??
+                          () => Scaffold.of(context).openDrawer(),
+                      child: Tooltip(
+                        message: s.tr(
+                          eu: 'Ireki ezarpenen panela',
+                          es: 'Abrir panel de ajustes',
+                          en: 'Open settings panel',
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.asset(
+                            'assets/images/logo_perretxikotan.png',
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: widget.onOpenSettingsDrawer ??
+                          () => Scaffold.of(context).openDrawer(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Perretxikotan',
+                              maxLines: 1,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    color: AutumnColors.boletusBrown,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                          Text(
+                            s.catalogHeaderSubtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AutumnColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 6),
                   PopupMenuButton<CatalogSortMode>(

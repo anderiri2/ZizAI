@@ -77,36 +77,18 @@ class SettingsDrawer extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 14),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
+                            Text(
                               'Perretxikotan',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AutumnColors.amberLeaf.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'v1.5.1',
-                                style: TextStyle(
-                                  color: AutumnColors.amberLeaf,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
                               ),
                             ),
                           ],

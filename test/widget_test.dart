@@ -94,7 +94,7 @@ void main() {
     expect(find.text('Euskara'), findsOneWidget);
     expect(find.text('Castellano'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
-    expect(find.text('v1.5.1'), findsOneWidget);
+    expect(find.text('v1.5.1'), findsNothing);
     expect(find.textContaining('Euskal Herria'), findsNothing);
 
     // Tap Castellano in Drawer
