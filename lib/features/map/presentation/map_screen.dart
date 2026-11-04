@@ -2300,20 +2300,22 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
   Widget build(BuildContext context) {
     final s = AppStrings(widget.lang);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final sheetHeight = screenHeight * 0.52;
     final chosenMushroom = widget.allMushrooms
         .where((m) => m.id == _speciesFilter)
         .firstOrNull;
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, bottomInset + 20),
-      decoration: const BoxDecoration(
-        color: AutumnColors.parchmentBg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: SingleChildScrollView(
+    return SizedBox(
+      height: sheetHeight,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(20, 14, 20, bottomInset + 14),
+        decoration: const BoxDecoration(
+          color: AutumnColors.parchmentBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
             Center(
               child: Container(
@@ -2325,7 +2327,7 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               children: [
                 const Icon(Icons.tune_rounded, color: AutumnColors.boletusBrown),
@@ -2359,9 +2361,13 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-
-            // SECCIÓN 1: SETAS Y ESPECIES
+            const SizedBox(height: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // SECCIÓN 1: SETAS Y ESPECIES
             _sectionTitle(
               Icons.eco_rounded,
               s.tr(
@@ -2614,44 +2620,47 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AutumnColors.ochreGold,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  widget.onApply(
-                    speciesFilter: _speciesFilter,
-                    edibilityFilter: _edibilityFilter,
-                    showAllOutings: _showAllOutings,
-                    showStandaloneSpots: _showStandaloneSpots,
-                    selectedOutingIds: _selectedOutingIds,
-                  );
-                },
-                icon: const Icon(Icons.check_rounded),
-                label: Text(
-                  s.tr(
-                    eu: 'Filtroak Aplikatu',
-                    es: 'Aplicar Filtros',
-                    en: 'Apply Filters',
-                  ),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-              ),
-            ),
           ],
         ),
       ),
-    );
+    ),
+    const SizedBox(height: 10),
+    SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AutumnColors.ochreGold,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
+        ),
+        onPressed: () {
+          Navigator.of(context).pop();
+          widget.onApply(
+            speciesFilter: _speciesFilter,
+            edibilityFilter: _edibilityFilter,
+            showAllOutings: _showAllOutings,
+            showStandaloneSpots: _showStandaloneSpots,
+            selectedOutingIds: _selectedOutingIds,
+          );
+        },
+        icon: const Icon(Icons.check_rounded),
+        label: Text(
+          s.tr(
+            eu: 'Filtroak Aplikatu',
+            es: 'Aplicar Filtros',
+            en: 'Apply Filters',
+          ),
+          style: const TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 15),
+        ),
+      ),
+    ),
+  ],
+),
+),
+);
   }
 
   Widget _sectionTitle(IconData icon, String title) {
