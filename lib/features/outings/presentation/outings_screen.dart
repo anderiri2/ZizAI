@@ -12,6 +12,7 @@ import '../../catalog/models/mushroom.dart';
 import '../../catalog/presentation/mushroom_detail_screen.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
+import '../../map/presentation/widgets/foraging_spot_marker.dart';
 import '../data/outings_database.dart';
 import '../models/foraging_outing.dart';
 import 'live_outing_map_screen.dart';
@@ -198,7 +199,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                               ),
                               Text(
                                 s.tr(
-                                  eu: '%0 bateria-gastua • Mapan setalak markatu',
+                                  eu: '%0 bateria-gastua • Mapan perretxiko-lekuak markatu',
                                   es: '0% batería GPS • Ubica setas en el mapa',
                                   en: 'Zero battery drain • Place spots on map',
                                 ),
@@ -268,7 +269,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                               ),
                               Text(
                                 s.tr(
-                                  eu: 'Etxera itzultzean datak eta setak sartu',
+                                  eu: 'Etxera itzultzean datak eta perretxikoak sartu',
                                   es: 'Guarda salidas anteriores con fecha y notas',
                                   en: 'Record previous trips with date and finds',
                                 ),
@@ -426,7 +427,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
               ),
               action: SnackBarAction(
                 label: s.tr(
-                  eu: 'Seta gehitu',
+                  eu: 'Perretxikoa gehitu',
                   es: 'Añadir seta',
                   en: 'Add mushroom',
                 ),
@@ -526,24 +527,19 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
     ForagingOuting outing,
     int associatedSpotsCount,
   ) async {
-    if (associatedSpotsCount == 0) {
-      await ref.read(outingsProvider.notifier).removeOuting(outing.id);
-      return;
-    }
-
     final lang = ref.read(appLanguageProvider);
     final s = AppStrings(lang);
 
-    final choice = await showDialog<String>(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AutumnColors.parchmentBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           s.tr(
-            eu: 'Ezabatu Irteera Historialetik',
-            es: 'Eliminar Salida del Historial',
-            en: 'Delete Outing from History',
+            eu: 'Ezabatu Mendiko Irteera',
+            es: 'Eliminar Salida al Monte',
+            en: 'Delete Foraging Outing',
           ),
           style: const TextStyle(
             fontWeight: FontWeight.w800,
@@ -551,50 +547,40 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
           ),
         ),
         content: Text(
-          s.tr(
-            eu: '"${outing.title}" irteera honek $associatedSpotsCount perretxiko-leku ditu erregistratuta.\n\nZer egin nahi duzu aurkitutako perretxikoekin?',
-            es: 'Esta salida ("${outing.title}") tiene $associatedSpotsCount ubicaciones de setas registradas.\n\n¿Qué deseas hacer con las ubicaciones de setas encontradas en esta vuelta?',
-            en: 'This outing ("${outing.title}") has $associatedSpotsCount mushroom spots recorded.\n\nWhat would you like to do with them?',
-          ),
+          associatedSpotsCount > 0
+              ? s.tr(
+                  eu: '"${outing.title}" irteera eta bere $associatedSpotsCount perretxiko-lekuak betiko ezabatuko dira toki guztietatik (mapa, zerrendak eta estatistikak).\n\nZiur zaude ezabatu nahi duzula?',
+                  es: 'La salida "${outing.title}" y sus $associatedSpotsCount ubicaciones de setas se eliminarán permanentemente de todos los sitios (mapa, listas y estadísticas).\n\n¿Estás seguro de que deseas eliminarla?',
+                  en: 'Outing "${outing.title}" and its $associatedSpotsCount mushroom spots will be permanently deleted from everywhere.\n\nAre you sure you want to delete it?',
+                )
+              : s.tr(
+                  eu: '"${outing.title}" irteera ezabatuko da.\n\nZiur zaude ezabatu nahi duzula?',
+                  es: 'Se eliminará la salida "${outing.title}".\n\n¿Estás seguro de que deseas eliminarla?',
+                  en: 'Outing "${outing.title}" will be deleted.\n\nAre you sure you want to delete it?',
+                ),
           style: const TextStyle(
             fontSize: 14,
             height: 1.42,
             color: AutumnColors.textSecondary,
           ),
         ),
-        actionsAlignment: MainAxisAlignment.end,
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop('cancel'),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
-          ),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AutumnColors.mossGreen,
-              side: const BorderSide(color: AutumnColors.mossGreen),
-            ),
-            onPressed: () => Navigator.of(ctx).pop('keep_spots'),
-            icon: const Icon(Icons.place_rounded, size: 18),
-            label: Text(
-              s.tr(
-                eu: 'Mantendu setak Mapa Orokorrean',
-                es: 'Conservar setas en Mapa Global',
-                en: 'Keep spots on Global Map',
-              ),
-            ),
           ),
           FilledButton.icon(
             style: FilledButton.styleFrom(
               backgroundColor: AutumnColors.edibilityToxic,
               foregroundColor: Colors.white,
             ),
-            onPressed: () => Navigator.of(ctx).pop('delete_all'),
+            onPressed: () => Navigator.of(ctx).pop(true),
             icon: const Icon(Icons.delete_forever_rounded, size: 18),
             label: Text(
               s.tr(
-                eu: 'Ezabatu irteera eta bere puntuak',
-                es: 'Borrar salida y sus puntos',
-                en: 'Delete outing and spots',
+                eu: 'Ezabatu',
+                es: 'Eliminar',
+                en: 'Delete',
               ),
             ),
           ),
@@ -602,12 +588,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
       ),
     );
 
-    if (choice == 'keep_spots') {
-      await ref
-          .read(foragingSpotsProvider.notifier)
-          .detachOutingSpots(outing.id);
-      await ref.read(outingsProvider.notifier).removeOuting(outing.id);
-    } else if (choice == 'delete_all') {
+    if (confirmed == true) {
       await ref
           .read(foragingSpotsProvider.notifier)
           .deleteOutingSpots(outing.id);
@@ -779,18 +760,21 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                 data: (outings) {
                   if (outings.isEmpty) {
                     return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.hiking_rounded,
-                              size: 56,
+                              size: 52,
                               color:
                                   AutumnColors.textMuted.withValues(alpha: 0.5),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 10),
                             Text(
                               s.tr(
                                 eu: 'Oraindik ez duzu mendiko irteerarik dokumentatu.\nSakatu "Irteera Berria" zure GPS ibilbidea eta jasotako perretxikoak grabatzeko.',
@@ -800,7 +784,45 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: AutumnColors.textSecondary,
-                                height: 1.45,
+                                height: 1.4,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AutumnColors.mossGreen
+                                    .withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.lock_outline_rounded,
+                                    size: 13,
+                                    color: AutumnColors.mossGreen,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      s.tr(
+                                        eu: 'Ibilbideak %100 pribatuak: gailuan edo Driven bakarrik',
+                                        es: 'Rutas 100% privadas: solo en tu móvil o en tu Drive',
+                                        en: '100% private routes: on device or Drive only',
+                                      ),
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        color: AutumnColors.mossGreen,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -862,7 +884,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
   }
 }
 
-class _ActiveOutingRecorderCard extends StatelessWidget {
+class _ActiveOutingRecorderCard extends ConsumerWidget {
   final ActiveOutingState activeState;
   final AppLanguage lang;
   final MapController mapController;
@@ -890,8 +912,10 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = AppStrings(lang);
+    final allMushrooms =
+        ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     final center = activeState.routePoints.isNotEmpty
         ? activeState.routePoints.last
         : (outingSpots.isNotEmpty
@@ -1007,20 +1031,12 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                             ...outingSpots.map(
                               (sp) => Marker(
                                 point: LatLng(sp.latitude, sp.longitude),
-                                width: 30,
-                                height: 30,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: AutumnColors.mossGreen,
-                                    shape: BoxShape.circle,
-                                    border:
-                                        Border.all(color: Colors.white, width: 1.5),
-                                  ),
-                                  child: const Icon(
-                                    Icons.eco_rounded,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
+                                width: 28,
+                                height: 28,
+                                child: ForagingSpotMarkerWidget(
+                                  spot: sp,
+                                  allMushrooms: allMushrooms,
+                                  size: 26,
                                 ),
                               ),
                             ),
@@ -1158,7 +1174,7 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                   icon: const Icon(Icons.add_location_alt_rounded, size: 18),
                   label: Text(
                     s.tr(
-                      eu: 'Seta Hemen Anotatu',
+                      eu: 'Perretxikoa Hemen Gorde',
                       es: 'Anotar Seta Aquí',
                       en: 'Spot Mushroom Here',
                     ),
@@ -1187,7 +1203,7 @@ class _ActiveOutingRecorderCard extends StatelessWidget {
                     foregroundColor: Colors.white,
                   ),
                   tooltip: s.tr(
-                    eu: 'Kokatu seta mapan pantaila osoan',
+                    eu: 'Kokatu perretxikoa mapan pantaila osoan',
                     es: 'Ubicar seta en el mapa a pantalla completa',
                     en: 'Locate mushroom on fullscreen map',
                   ),
@@ -1621,7 +1637,7 @@ class _MetricBadge extends StatelessWidget {
 /// Miniatura de mapa real con fondo topográfico:
 /// - Si hay ruta (>= 2 puntos, por GPS o trazada a mano), encuadra y dibuja la ruta realizada.
 /// - Si no hay ruta (< 2 puntos), centra el mapa en la recolección más grande de la salida.
-class _OutingRouteMiniMap extends StatelessWidget {
+class _OutingRouteMiniMap extends ConsumerWidget {
   final String outingId;
   final List<LatLng> routePoints;
   final List<ForagingSpot> outingSpots;
@@ -1715,7 +1731,9 @@ class _OutingRouteMiniMap extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allMushrooms =
+        ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     final hasRoute = routePoints.length >= 2;
     final largestSpot = findLargestSpot(outingSpots);
     final cam = _computeCamera(largestSpot);
@@ -1808,39 +1826,12 @@ class _OutingRouteMiniMap extends StatelessWidget {
                         !hasRoute && largestSpot != null && sp.id == largestSpot.id;
                     return Marker(
                       point: LatLng(sp.latitude, sp.longitude),
-                      width: isLargest ? 28 : 12,
-                      height: isLargest ? 28 : 12,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AutumnColors.mossGreen,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isLargest
-                                ? AutumnColors.amberLeaf
-                                : Colors.white,
-                            width: isLargest ? 2.0 : 1.5,
-                          ),
-                          boxShadow: isLargest
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.35),
-                                    blurRadius: 4,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: isLargest
-                            ? Center(
-                                child: Text(
-                                  '${sp.quantityCount}x',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              )
-                            : null,
+                      width: isLargest ? 26 : 14,
+                      height: isLargest ? 26 : 14,
+                      child: ForagingSpotMarkerWidget(
+                        spot: sp,
+                        allMushrooms: allMushrooms,
+                        size: isLargest ? 26 : 14,
                       ),
                     );
                   }),
@@ -1873,6 +1864,8 @@ class OutingDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(appLanguageProvider);
     final s = AppStrings(lang);
+    final allMushrooms =
+        ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     final liveOutings = ref.watch(outingsProvider).valueOrNull;
     final currentOuting = liveOutings
             ?.where((o) => o.id == outing.id)
@@ -1966,27 +1959,12 @@ class OutingDetailScreen extends ConsumerWidget {
                     markers: currentSpots.map((spot) {
                       return Marker(
                         point: LatLng(spot.latitude, spot.longitude),
-                        width: 42,
-                        height: 42,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AutumnColors.mossGreen,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AutumnColors.amberLeaf,
-                              width: 2.5,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${spot.quantityCount}x',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
+                        width: 40,
+                        height: 40,
+                        child: ForagingSpotMarkerWidget(
+                          spot: spot,
+                          allMushrooms: allMushrooms,
+                          size: 38,
                         ),
                       );
                     }).toList(),
@@ -2250,7 +2228,7 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${s.tr(eu: "Seta gorde hemen", es: "Anotar Seta en", en: "Log Mushroom in")}: "${widget.outingTitle}"',
+              '${s.tr(eu: "Perretxikoa gorde hemen", es: "Anotar Seta en", en: "Log Mushroom in")}: "${widget.outingTitle}"',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AutumnColors.boletusBrown,
                   ),

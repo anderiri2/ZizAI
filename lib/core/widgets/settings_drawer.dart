@@ -151,7 +151,6 @@ class SettingsDrawer extends ConsumerWidget {
                   _LanguageCardTile(
                     language: AppLanguage.eu,
                     title: 'Euskara',
-                    subtitle: 'Hizkuntza lehenetsia',
                     isSelected: currentLang == AppLanguage.eu,
                     badgeText: 'EU',
                     onTap: () {
@@ -164,7 +163,6 @@ class SettingsDrawer extends ConsumerWidget {
                   _LanguageCardTile(
                     language: AppLanguage.es,
                     title: 'Castellano',
-                    subtitle: 'Guía micológica en español',
                     isSelected: currentLang == AppLanguage.es,
                     badgeText: 'ES',
                     onTap: () {
@@ -177,7 +175,6 @@ class SettingsDrawer extends ConsumerWidget {
                   _LanguageCardTile(
                     language: AppLanguage.en,
                     title: 'English',
-                    subtitle: 'Mycological field guide',
                     isSelected: currentLang == AppLanguage.en,
                     badgeText: 'EN',
                     onTap: () {
@@ -258,7 +255,11 @@ class SettingsDrawer extends ConsumerWidget {
                                   ),
                                   Text(
                                     authState.isAuthenticatedWithGoogle
-                                        ? 'Google Drive appDataFolder aktibo'
+                                        ? s.tr(
+                                            eu: 'Google Drive pribatua (appDataFolder)',
+                                            es: 'Google Drive privado (appDataFolder)',
+                                            en: 'Private Google Drive (appDataFolder)',
+                                          )
                                         : s.tr(
                                             eu: 'Datuak zure telefonoan bakarrik daude',
                                             es: 'Datos almacenados en este teléfono',
@@ -382,6 +383,18 @@ class SettingsDrawer extends ConsumerWidget {
                   const Divider(height: 1),
                   const SizedBox(height: 16),
 
+                  // SECCIÓN: DATUEN PRIBATUTASUNA / PRIVACIDAD DE DATOS
+                  _SectionHeader(
+                    icon: Icons.shield_rounded,
+                    title: s.privacyDrawerSectionTitle,
+                  ),
+                  const SizedBox(height: 8),
+                  _PrivacyGuaranteeCard(lang: currentLang),
+
+                  const SizedBox(height: 22),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
                   // SECCIÓN: INFORMAZIOA ETA SEGURTASUNA
                   _SectionHeader(
                     icon: Icons.health_and_safety_rounded,
@@ -476,7 +489,6 @@ class _SectionHeader extends StatelessWidget {
 class _LanguageCardTile extends StatelessWidget {
   final AppLanguage language;
   final String title;
-  final String subtitle;
   final String badgeText;
   final bool isSelected;
   final VoidCallback onTap;
@@ -484,7 +496,6 @@ class _LanguageCardTile extends StatelessWidget {
   const _LanguageCardTile({
     required this.language,
     required this.title,
-    required this.subtitle,
     required this.badgeText,
     required this.isSelected,
     required this.onTap,
@@ -540,28 +551,15 @@ class _LanguageCardTile extends StatelessWidget {
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14.5,
-                      color: isSelected
-                          ? AutumnColors.boletusBrown
-                          : AutumnColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: AutumnColors.textSecondary,
-                    ),
-                  ),
-                ],
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: isSelected
+                      ? AutumnColors.boletusBrown
+                      : AutumnColors.textPrimary,
+                ),
               ),
             ),
             if (isSelected)
@@ -577,6 +575,198 @@ class _LanguageCardTile extends StatelessWidget {
                 size: 20,
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivacyGuaranteeCard extends StatelessWidget {
+  final AppLanguage lang;
+
+  const _PrivacyGuaranteeCard({required this.lang});
+
+  void _showPrivacyDetails(BuildContext context) {
+    final s = AppStrings(lang);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AutumnColors.parchmentBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AutumnColors.mossGreen.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.shield_rounded,
+                color: AutumnColors.mossGreen,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                s.privacyDialogTitle,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AutumnColors.boletusBrown,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            s.privacyDialogBody,
+            style: const TextStyle(
+              fontSize: 13.5,
+              height: 1.5,
+              color: AutumnColors.textSecondary,
+            ),
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AutumnColors.boletusBrown,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(s.understood),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppStrings(lang);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AutumnColors.warmSand),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AutumnColors.mossGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.lock_rounded,
+                  size: 18,
+                  color: AutumnColors.mossGreen,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  s.privacyGuaranteeTitle,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: AutumnColors.boletusBrown,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            s.privacyGuaranteeDescription,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: AutumnColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              _PrivacyPill(label: s.privacyBadgeLocal),
+              _PrivacyPill(label: s.privacyBadgeDrive),
+              _PrivacyPill(label: s.privacyBadgeNoServers),
+            ],
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => _showPrivacyDetails(context),
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    s.privacyLearnMore,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AutumnColors.mossGreen,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 11,
+                    color: AutumnColors.mossGreen,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrivacyPill extends StatelessWidget {
+  final String label;
+
+  const _PrivacyPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AutumnColors.parchmentBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AutumnColors.warmSand,
+          width: 0.8,
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
+          color: AutumnColors.boletusBrown,
         ),
       ),
     );

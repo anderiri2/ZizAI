@@ -124,20 +124,60 @@ class LoginScreen extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 5,
+                                        ),
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        decoration: BoxDecoration(
+                                          color: AutumnColors.mossGreen
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: AutumnColors.mossGreen
+                                                .withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.verified_user_rounded,
+                                              size: 14,
+                                              color: AutumnColors.mossGreen,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              s.loginPrivacyBadge,
+                                              style: const TextStyle(
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: AutumnColors.mossGreen,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                     Row(
                                       children: [
                                         const Icon(
-                                          Icons.cloud_done_rounded,
-                                          color: AutumnColors.mossGreen,
-                                          size: 24,
+                                          Icons.shield_outlined,
+                                          color: AutumnColors.boletusBrown,
+                                          size: 22,
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
                                             s.tr(
-                                              eu: 'Segurtasun-kopia zure Google Drive-n',
-                                              es: 'Copia de Seguridad en tu Google Drive',
-                                              en: 'Full Activity Backup in your Google Drive',
+                                              eu: 'Zuk erabakitzen duzu non gorde',
+                                              es: 'Elige dónde guardar tus datos',
+                                              en: 'Choose where to store your data',
                                             ),
                                             style: const TextStyle(
                                               fontSize: 16.5,
@@ -150,11 +190,7 @@ class LoginScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      s.tr(
-                                        eu: 'Hasi saioa zure Google kontuarekin zure perretxiko-lekuak, GPS irteerak eta argazkiak zure Google Drive pribatuan gordetzeko (kanpoko zerbitzaririk gabe).',
-                                        es: 'Inicia sesión con tu cuenta personal de Google para respaldar automáticamente tus ubicaciones de setas, rutas GPS y fotos en tu propio Google Drive (sin servidores externos).',
-                                        en: 'Sign in with your personal Google account to automatically back up your mushroom spots, GPS routes, and photos in your private Google Drive (zero external servers).',
-                                      ),
+                                      s.loginPrivacySubtitle,
                                       style: const TextStyle(
                                         fontSize: 13.5,
                                         height: 1.44,
@@ -271,6 +307,30 @@ class LoginScreen extends ConsumerWidget {
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.lock_outline_rounded,
+                                          size: 13,
+                                          color: AutumnColors.textSecondary,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Flexible(
+                                          child: Text(
+                                            s.loginPrivacyBullet,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AutumnColors.textSecondary,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

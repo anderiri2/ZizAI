@@ -109,7 +109,69 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
+
+              // Banner de Garantía de Privacidad
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: AutumnColors.mossGreen.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AutumnColors.mossGreen.withValues(alpha: 0.28),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: AutumnColors.mossGreen.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.shield_rounded,
+                        color: AutumnColors.mossGreen,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            s.tr(
+                              eu: 'Datuen pribatutasuna bermatua',
+                              es: 'Privacidad 100% garantizada',
+                              en: '100% Privacy guaranteed',
+                            ),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                              color: AutumnColors.boletusBrown,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            s.tr(
+                              eu: 'Zure perretxiko-lekuak eta ibilbideak ez dira inorekin partekatzen. Zure gailuan edo zure Google Driven bakarrik gordetzen dira.',
+                              es: 'Tus setales y rutas no se comparten con nadie. Se guardan solo en tu móvil o en tu propio Google Drive.',
+                              en: 'Your spots and routes are never shared with anyone. Stored solely on your device or personal Google Drive.',
+                            ),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              color: AutumnColors.textSecondary,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
 
               // Tarjeta de Cuenta de Google
               Container(
@@ -155,8 +217,16 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               Text(
                                 authState.isAuthenticatedWithGoogle
                                     ? (authState.userDisplayName ??
-                                        'Cuenta de Google conectada')
-                                    : 'Modo Local (Sin vincular a Google)',
+                                        s.tr(
+                                          eu: 'Google Drive konektatuta',
+                                          es: 'Google Drive conectado',
+                                          en: 'Google Drive connected',
+                                        ))
+                                    : s.tr(
+                                        eu: 'Tokiko Modua (Gailuan bakarrik)',
+                                        es: 'Modo Local (Solo en dispositivo)',
+                                        en: 'Local Mode (Device only)',
+                                      ),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
@@ -166,8 +236,17 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 authState.isAuthenticatedWithGoogle
-                                    ? (authState.userEmail ?? '')
-                                    : 'Inicia sesión para activar Backup en Google Drive',
+                                    ? (authState.userEmail ??
+                                        s.tr(
+                                          eu: 'Google Drive pribatua (appDataFolder)',
+                                          es: 'Google Drive privado (appDataFolder)',
+                                          en: 'Private Google Drive (appDataFolder)',
+                                        ))
+                                    : s.tr(
+                                        eu: 'Datuak telefono honetan bakarrik daude. Konektatu Google Drive hodeian babesteko.',
+                                        es: 'Tus datos se guardan solo en este móvil. Vincula Drive para respaldo en la nube.',
+                                        en: 'Data is stored on this phone only. Link Drive for cloud backup.',
+                                      ),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.78),
                                   fontSize: 12.5,
@@ -193,7 +272,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                             foregroundColor: Colors.white,
                           ),
                           icon: const Icon(Icons.login_rounded, size: 18),
-                          label: const Text('Vincular Cuenta de Google'),
+                          label: Text(
+                            s.tr(
+                              eu: 'Konektatu nire Google Drive pertsonala',
+                              es: 'Vincular mi Google Drive personal',
+                              en: 'Connect personal Google Drive',
+                            ),
+                          ),
                         ),
                       )
                     else
@@ -213,7 +298,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                                 ),
                               ),
                               icon: const Icon(Icons.logout_rounded, size: 17),
-                              label: const Text('Cerrar sesión de Google'),
+                              label: Text(
+                                s.tr(
+                                  eu: 'Itxi Google saioa (Gorde lokalean)',
+                                  es: 'Cerrar sesión de Google (Guardar en local)',
+                                  en: 'Disconnect Google (Store locally)',
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -234,9 +325,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Actividad Incluida en el Paquete perretxikotan_backup.zip',
-                      style: TextStyle(
+                    Text(
+                      s.tr(
+                        eu: 'perretxikotan_backup.zip paketean sartutako jarduera',
+                        es: 'Actividad Incluida en el Paquete perretxikotan_backup.zip',
+                        en: 'Activity Included in perretxikotan_backup.zip',
+                      ),
+                      style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         color: AutumnColors.boletusBrown,
                         fontSize: 14,
@@ -249,7 +344,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           child: _MetricTile(
                             icon: Icons.place_rounded,
                             value: '${spots.length}',
-                            label: 'Setales en Mapa',
+                            label: s.tr(
+                              eu: 'Perretxiko-lekuak',
+                              es: 'Setales en Mapa',
+                              en: 'Map Spots',
+                            ),
                             color: AutumnColors.terracotta,
                           ),
                         ),
@@ -259,7 +358,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                             icon: Icons.hiking_rounded,
                             value:
                                 '${outings.length} (${totalKm.toStringAsFixed(1)} km)',
-                            label: 'Salidas GPS',
+                            label: s.tr(
+                              eu: 'GPS Ibilbideak',
+                              es: 'Salidas GPS',
+                              en: 'GPS Outings',
+                            ),
                             color: AutumnColors.mossGreen,
                           ),
                         ),
@@ -268,7 +371,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           child: _MetricTile(
                             icon: Icons.photo_camera_rounded,
                             value: '$photosCount',
-                            label: 'Fotografías',
+                            label: s.tr(
+                              eu: 'Argazkiak',
+                              es: 'Fotografías',
+                              en: 'Photos',
+                            ),
                             color: AutumnColors.ochreGold,
                           ),
                         ),
@@ -281,7 +388,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           child: _MetricTile(
                             icon: Icons.favorite_rounded,
                             value: '${favorites.length}',
-                            label: 'Setas Favoritas',
+                            label: s.tr(
+                              eu: 'Gogoko perretxikoak',
+                              es: 'Setas Favoritas',
+                              en: 'Favorites',
+                            ),
                             color: AutumnColors.dangerRed,
                           ),
                         ),
@@ -290,7 +401,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           child: _MetricTile(
                             icon: Icons.auto_awesome_rounded,
                             value: '${aiMessages.length}',
-                            label: 'Mensajes IA',
+                            label: s.tr(
+                              eu: 'AI Mezuak',
+                              es: 'Mensajes IA',
+                              en: 'AI Messages',
+                            ),
                             color: AutumnColors.boletusBrown,
                           ),
                         ),
@@ -299,7 +414,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           child: _MetricTile(
                             icon: Icons.download_for_offline_rounded,
                             value: '${offlineRegions.length}',
-                            label: 'Zonas Offline',
+                            label: s.tr(
+                              eu: 'Offline Eremuak',
+                              es: 'Zonas Offline',
+                              en: 'Offline Areas',
+                            ),
                             color: AutumnColors.mossGreen,
                           ),
                         ),
@@ -308,14 +427,24 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     const Divider(height: 22),
                     _BackupTimestampRow(
                       icon: Icons.cloud_done_rounded,
-                      label: 'Último backup en Google Drive:',
+                      label: s.tr(
+                        eu: 'Azken backup-a Google Drive-n:',
+                        es: 'Último backup en Google Drive:',
+                        en: 'Last Google Drive backup:',
+                      ),
                       date: authState.lastDriveBackupDate,
+                      lang: lang,
                     ),
                     const SizedBox(height: 6),
                     _BackupTimestampRow(
                       icon: Icons.folder_zip_rounded,
-                      label: 'Último snapshot ZIP en el dispositivo:',
+                      label: s.tr(
+                        eu: 'Azken ZIP snapshot-a gailuan:',
+                        es: 'Último snapshot ZIP en el dispositivo:',
+                        en: 'Last ZIP snapshot on device:',
+                      ),
                       date: authState.lastLocalBackupDate,
+                      lang: lang,
                     ),
                   ],
                 ),
@@ -340,9 +469,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         child: SwitchListTile.adaptive(
                           contentPadding: EdgeInsets.zero,
                           activeThumbColor: AutumnColors.mossGreen,
-                          title: const Text(
-                            'Fusión Inteligente al Restaurar (Recomendado)',
-                            style: TextStyle(
+                          title: Text(
+                            s.tr(
+                              eu: 'Fusio adimentsua leheneratzean (Gomendatua)',
+                              es: 'Fusión Inteligente al Restaurar (Recomendado)',
+                              en: 'Smart Merge on Restore (Recommended)',
+                            ),
+                            style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13.5,
                               color: AutumnColors.boletusBrown,
@@ -350,8 +483,16 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           ),
                           subtitle: Text(
                             _smartMergeOnRestore
-                                ? 'Combina los datos de Google Drive con los datos locales sin perder ninguna salida ni ubicación.'
-                                : 'Modo Reemplazo: sustituye los datos actuales del teléfono por el contenido exacto del backup.',
+                                ? s.tr(
+                                    eu: 'Google Drive-ko eta tokiko datuak bateratzen ditu irteera edo kokapenik galdu gabe.',
+                                    es: 'Combina los datos de Google Drive con los datos locales sin perder ninguna salida ni ubicación.',
+                                    en: 'Combines Google Drive and local data without losing any outings or spots.',
+                                  )
+                                : s.tr(
+                                    eu: 'Ordezkatze modua: telefonoko uneko datuak kopiako edukiarekin ordezkatzen ditu.',
+                                    es: 'Modo Reemplazo: sustituye los datos actuales del teléfono por el contenido exacto del backup.',
+                                    en: 'Replace mode: overwrites current data with the exact backup content.',
+                                  ),
                             style: const TextStyle(
                               fontSize: 11.5,
                               color: AutumnColors.textSecondary,
@@ -368,17 +509,25 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         child: SwitchListTile.adaptive(
                           contentPadding: EdgeInsets.zero,
                           activeThumbColor: AutumnColors.ochreGold,
-                          title: const Text(
-                            'Copia automática tras registrar salidas',
-                            style: TextStyle(
+                          title: Text(
+                            s.tr(
+                              eu: 'Kopia automatikoa irteerak erregistratu ondoren',
+                              es: 'Copia automática tras registrar salidas',
+                              en: 'Automatic backup after saving outings',
+                            ),
+                            style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13.5,
                               color: AutumnColors.boletusBrown,
                             ),
                           ),
-                          subtitle: const Text(
-                            'Sincroniza automáticamente tu actividad cuando tengas conexión.',
-                            style: TextStyle(
+                          subtitle: Text(
+                            s.tr(
+                              eu: 'Konexioa duzunean zure jarduera automatikoki sinkronizatzen du.',
+                              es: 'Sincroniza automáticamente tu actividad cuando tengas conexión.',
+                              en: 'Automatically syncs your activity when internet is available.',
+                            ),
+                            style: const TextStyle(
                               fontSize: 11.5,
                               color: AutumnColors.textSecondary,
                             ),
@@ -467,7 +616,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
               // Acciones en la Nube (Google Drive appDataFolder)
               Text(
-                'Nube Personal (Google Drive appDataFolder)',
+                s.tr(
+                  eu: 'Hodei Pertsonala (Google Drive appDataFolder)',
+                  es: 'Nube Personal (Google Drive appDataFolder)',
+                  en: 'Personal Cloud (Google Drive appDataFolder)',
+                ),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AutumnColors.boletusBrown,
                       fontWeight: FontWeight.w800,
@@ -486,6 +639,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               favoriteIds: favorites,
                               aiMessages: aiMessages,
                               offlineRegions: offlineRegions,
+                              lang: lang,
                             );
                       },
                 icon: authState.isBusy
@@ -498,8 +652,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         ),
                       )
                     : const Icon(Icons.cloud_upload_rounded),
-                label: const Text(
-                  'Respaldar Toda mi Actividad en Google Drive',
+                label: Text(
+                  s.tr(
+                    eu: 'Gorde nire jarduera guztia Google Drive-n',
+                    es: 'Respaldar Toda mi Actividad en Google Drive',
+                    en: 'Backup All My Activity to Google Drive',
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -509,7 +667,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     : () async {
                         final payload = await ref
                             .read(googleDriveBackupProvider.notifier)
-                            .restoreFullActivityFromGoogleDrive();
+                            .restoreFullActivityFromGoogleDrive(lang: lang);
                         if (payload != null) {
                           await ref
                               .read(googleDriveBackupProvider.notifier)
@@ -534,8 +692,16 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 icon: const Icon(Icons.cloud_download_rounded),
                 label: Text(
                   _smartMergeOnRestore
-                      ? 'Restaurar desde Google Drive (Fusión Inteligente)'
-                      : 'Restaurar desde Google Drive (Reemplazar Todo)',
+                      ? s.tr(
+                          eu: 'Leheneratu Google Drive-tik (Fusio adimentsua)',
+                          es: 'Restaurar desde Google Drive (Fusión Inteligente)',
+                          en: 'Restore from Google Drive (Smart Merge)',
+                        )
+                      : s.tr(
+                          eu: 'Leheneratu Google Drive-tik (Dena ordezkatu)',
+                          es: 'Restaurar desde Google Drive (Reemplazar Todo)',
+                          en: 'Restore from Google Drive (Replace All)',
+                        ),
                 ),
               ),
 
@@ -543,7 +709,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
               // Acciones de Copia Local Instantánea (Funciona 100% Offline)
               Text(
-                'Copia de Respaldo Local (ZIP en el Teléfono)',
+                s.tr(
+                  eu: 'Tokiko Segurtasun Kopia (ZIP telefonoan)',
+                  es: 'Copia de Respaldo Local (ZIP en el Teléfono)',
+                  en: 'Local Backup (ZIP on Phone)',
+                ),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AutumnColors.boletusBrown,
                       fontWeight: FontWeight.w800,
@@ -564,6 +734,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                                 favoriteIds: favorites,
                                 aiMessages: aiMessages,
                                 offlineRegions: offlineRegions,
+                                lang: lang,
                               ),
                       style: FilledButton.styleFrom(
                         backgroundColor: AutumnColors.warmSand,
@@ -571,7 +742,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
                       icon: const Icon(Icons.save_alt_rounded, size: 18),
-                      label: const Text('Guardar ZIP Local'),
+                      label: Text(
+                        s.tr(
+                          eu: 'Gorde Tokiko ZIP-a',
+                          es: 'Guardar ZIP Local',
+                          en: 'Save Local ZIP',
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -582,7 +759,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           : () async {
                               final payload = await ref
                                   .read(googleDriveBackupProvider.notifier)
-                                  .restoreFromLocalSnapshotFullActivity();
+                                  .restoreFromLocalSnapshotFullActivity(lang: lang);
                               if (payload != null) {
                                 await ref
                                     .read(googleDriveBackupProvider.notifier)
@@ -599,7 +776,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
                       icon: const Icon(Icons.restore_page_rounded, size: 18),
-                      label: const Text('Restaurar Local'),
+                      label: Text(
+                        s.tr(
+                          eu: 'Leheneratu Tokikotik',
+                          es: 'Restaurar Local',
+                          en: 'Restore Local',
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -664,18 +847,25 @@ class _BackupTimestampRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final DateTime? date;
+  final AppLanguage lang;
 
   const _BackupTimestampRow({
     required this.icon,
     required this.label,
     required this.date,
+    required this.lang,
   });
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings(lang);
     final formatted = date != null
         ? DateFormat('dd/MM/yyyy HH:mm').format(date!)
-        : 'Sin realizar aún';
+        : s.tr(
+            eu: 'Oraindik egin gabe',
+            es: 'Sin realizar aún',
+            en: 'Not performed yet',
+          );
     return Row(
       children: [
         Icon(icon, size: 17, color: AutumnColors.mossGreen),

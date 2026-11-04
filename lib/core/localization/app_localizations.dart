@@ -153,6 +153,85 @@ class AppStrings {
         en: 'Continue in local mode (Offline)',
       );
 
+  // Privacy & Data Ownership
+  String get loginPrivacyBadge => tr(
+        eu: 'Datuak zureak dira · %100 Pribatua',
+        es: 'Tus datos te pertenecen · 100% Privado',
+        en: 'Your data belongs to you · 100% Private',
+      );
+
+  String get loginPrivacySubtitle => tr(
+        eu: 'Aplikazioak ez ditu zure datuak inorekin partekatzen. Zuk aukeratzen duzu non gorde: gailu honetan bakarrik edo zure Google Drive pertsonalean.',
+        es: 'No compartimos tus datos con nadie. Tú decides dónde guardarlos: solo en este teléfono o en tu cuenta personal de Google Drive.',
+        en: 'We never share your data with anyone. You decide where to store it: solely on this device or in your personal Google Drive.',
+      );
+
+  String get loginPrivacyBullet => tr(
+        eu: 'Kanpoko zerbitzaririk gabe · Jarraipenik gabe · Zure perretxiko-leku sekretuak salbu',
+        es: 'Sin servidores externos · Sin rastreo · Tus setales secretos a salvo',
+        en: 'No external servers · No tracking · Your secret foraging spots are safe',
+      );
+
+  String get privacyDrawerSectionTitle => tr(
+        eu: 'Pribatutasuna eta Zure Datuak',
+        es: 'Privacidad y Tus Datos',
+        en: 'Privacy & Your Data',
+      );
+
+  String get privacyGuaranteeTitle => tr(
+        eu: 'Zure perretxiko-lekuak sekretuak dira',
+        es: 'Tus setales son 100% secretos',
+        en: 'Your spots are 100% secret',
+      );
+
+  String get privacyGuaranteeDescription => tr(
+        eu: 'Perretxikotan-ek ez du zure kokapenik, ibilbiderik edo argazkirik inorekin partekatzen. Zure telefonoan edo zure Google Drive pribatuan bakarrik gordetzen dira, zuk nahi duzun bezala.',
+        es: 'Perretxikotan no comparte tus ubicaciones, rutas o fotos con nadie. Se guardan únicamente en tu móvil o en tu propio Google Drive, como tú elijas.',
+        en: 'Perretxikotan never shares your spots, routes, or photos with anyone. Stored solely on your device or in your personal Google Drive, as you choose.',
+      );
+
+  String get privacyBadgeLocal => tr(
+        eu: '📱 Tokiko Modua',
+        es: '📱 100% Local',
+        en: '📱 100% Local',
+      );
+
+  String get privacyBadgeDrive => tr(
+        eu: '☁️ Zure Google Drive-a',
+        es: '☁️ Tu Google Drive',
+        en: '☁️ Your Google Drive',
+      );
+
+  String get privacyBadgeNoServers => tr(
+        eu: '🚫 Zerbitzari gabe',
+        es: '🚫 Cero servidores ajenos',
+        en: '🚫 Zero third-party servers',
+      );
+
+  String get privacyLearnMore => tr(
+        eu: 'Nola babesten ditugu zure datuak?',
+        es: '¿Cómo protegemos tus datos?',
+        en: 'How do we protect your data?',
+      );
+
+  String get privacyDialogTitle => tr(
+        eu: 'Datuen Pribatutasuna eta Jabetza',
+        es: 'Privacidad y Propiedad de tus Datos',
+        en: 'Privacy & Data Ownership',
+      );
+
+  String get privacyDialogBody => tr(
+        eu: '• Zerbitzari propiorik ez: Perretxikotan-ek ez du datu-base zentralik ezta kanpoko zerbitzaririk. Inork ez du zure lekuen berririk.\n\n• Tokiko biltegiratzea: Zure aurkikuntza, ohar, ibilbide eta argazkiak telefonoaren barne memorian gordetzen dira segurtasun osoz.\n\n• Google Drive pertsonala (hautazkoa): Hodeiko kopia aktibatzen baduzu, zure Google kontuko eremu pribatu eta ezkutuan (appDataFolder) bakarrik gordetzen da. Zuk bakarrik duzu sarbidea.',
+        es: '• Sin servidores centrales: Perretxikotan no dispone de bases de datos externas ni servidores donde recopilar tus ubicaciones. Nadie más tiene acceso a tus sitios secretos.\n\n• Almacenamiento local: Todos tus puntos, notas, rutas y fotos se guardan de forma segura en la memoria interna de tu móvil.\n\n• Google Drive personal (opcional): Si activas el respaldo en la nube, se almacena únicamente en la carpeta privada y oculta de tu propia cuenta de Google (appDataFolder). Es 100% tuyo y privado.',
+        en: '• No central servers: Perretxikotan has no external database or server to collect your spots. Nobody else can ever see your secret locations.\n\n• Local storage: All your spots, notes, routes, and photos are securely stored in your phone\'s internal memory.\n\n• Personal Google Drive (optional): If you enable cloud backup, it is saved solely in the private hidden folder of your own Google account (appDataFolder). It remains 100% yours and private.',
+      );
+
+  String get spotFormPrivacyNotice => tr(
+        eu: '%100 Pribatua: Zure gailuan bakarrik gordetzen da',
+        es: '100% Privado: Solo se guarda en tu dispositivo',
+        en: '100% Private: Saved on your device only',
+      );
+
   // Bottom Navigation Bar (5 tabs)
   String get navMushrooms => tr(eu: 'Perretxikoak', es: 'Setas', en: 'Mushrooms');
   String get navMap => tr(eu: 'Mapa', es: 'Mapa', en: 'Map');

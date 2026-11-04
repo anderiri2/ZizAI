@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class TileCoord {
   final int z;
@@ -320,8 +321,11 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
     required double east,
     required double west,
     bool isTopoLayer = true,
+    AppLanguage lang = AppLanguage.es,
   }) async {
     if (state.isDownloading) return;
+
+    final s = AppStrings(lang);
 
     final tiles = calculateTilesForBounds(
       north: north,
@@ -336,7 +340,11 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
       isDownloading: true,
       activeDownloadName: name,
       progress: 0.02,
-      statusMessage: 'Descargando ${tiles.length} teselas de "$name"...',
+      statusMessage: s.tr(
+        eu: '"$name" eremuko ${tiles.length} lauza deskargatzen...',
+        es: 'Descargando ${tiles.length} teselas de "$name"...',
+        en: 'Downloading ${tiles.length} tiles for "$name"...',
+      ),
     );
 
     int totalBytes = 0;
@@ -419,18 +427,26 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
       isDownloading: false,
       clearActive: true,
       progress: 1.0,
-      statusMessage:
-          'Zona "$name" lista para usar sin cobertura (${region.formattedSizeMb}).',
+      statusMessage: s.tr(
+        eu: '"$name" eremua prest konexiorik gabe erabiltzeko (${region.formattedSizeMb}).',
+        es: 'Zona "$name" lista para usar sin cobertura (${region.formattedSizeMb}).',
+        en: 'Region "$name" ready to use offline (${region.formattedSizeMb}).',
+      ),
     );
   }
 
-  Future<void> deleteRegion(String id) async {
+  Future<void> deleteRegion(String id, {AppLanguage lang = AppLanguage.es}) async {
     final updated = List<OfflineMapRegion>.from(state.downloadedRegions)
       ..removeWhere((r) => r.id == id);
     await _persistRegions(updated);
+    final s = AppStrings(lang);
     state = state.copyWith(
       downloadedRegions: updated,
-      statusMessage: 'Zona offline eliminada.',
+      statusMessage: s.tr(
+        eu: 'Offline eremua ezabatu da.',
+        es: 'Zona offline eliminada.',
+        en: 'Offline region deleted.',
+      ),
     );
   }
 

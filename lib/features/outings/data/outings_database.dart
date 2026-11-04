@@ -56,85 +56,31 @@ class OutingsDatabase {
     }
   }
 
-  List<ForagingOuting> _initialSampleOutings() {
-    return [
-      ForagingOuting(
-        id: 'outing_gorbeia_otzarreta',
-        title: 'Vuelta circular por Otzarreta (Gorbeia)',
-        startedAt: DateTime(2026, 10, 18, 9, 0),
-        endedAt: DateTime(2026, 10, 18, 11, 35),
-        durationSeconds: 9300,
-        distanceMeters: 4820,
-        routePoints: const [
-          LatLng(43.0332, -2.7254),
-          LatLng(43.0345, -2.7271),
-          LatLng(43.0358, -2.7289),
-          LatLng(43.0374, -2.7312),
-          LatLng(43.0392, -2.7341),
-          LatLng(43.0405, -2.7320),
-          LatLng(43.0388, -2.7285),
-          LatLng(43.0361, -2.7262),
-          LatLng(43.0332, -2.7254),
-        ],
-        notes:
-            'Mañana templada con niebla baja entre las hayas trasmochas. Terreno muy húmedo tras las lluvias de la semana.',
-      ),
-      ForagingOuting(
-        id: 'outing_urbasa_hayedo',
-        title: 'Ruta micológica por Urbasa',
-        startedAt: DateTime(2026, 10, 24, 9, 30),
-        endedAt: DateTime(2026, 10, 24, 12, 40),
-        durationSeconds: 11400,
-        distanceMeters: 6150,
-        routePoints: const [
-          LatLng(42.8305, -2.1120),
-          LatLng(42.8318, -2.1142),
-          LatLng(42.8331, -2.1164),
-          LatLng(42.8350, -2.1190),
-          LatLng(42.8364, -2.1215),
-          LatLng(42.8378, -2.1185),
-          LatLng(42.8348, -2.1148),
-          LatLng(42.8305, -2.1120),
-        ],
-        notes:
-            'Recorrido por las vaguadas kársticas del raso de Urbasa. Mucho musgo y abundancia de Ziza horia y Tripaki argia.',
-      ),
-    ];
-  }
+  static const Set<String> _legacySampleIds = {
+    'outing_gorbeia_otzarreta',
+    'outing_urbasa_hayedo',
+  };
 
   Future<List<ForagingOuting>> getAllOutings() async {
     final prefs = await SharedPreferences.getInstance();
-    final alreadySeeded = prefs.getBool(_seededKey) ?? false;
+    await prefs.setBool(_seededKey, true);
 
     final db = await _getDatabase();
     if (db != null) {
-      final rows = await db.query(_tableName, orderBy: 'startedAt DESC');
-      if (rows.isEmpty && !alreadySeeded) {
-        final samples = _initialSampleOutings();
-        for (final o in samples) {
-          await db.insert(
-            _tableName,
-            o.toMap(),
-            conflictAlgorithm: ConflictAlgorithm.replace,
-          );
-        }
-        await prefs.setBool(_seededKey, true);
-        return samples;
+      // Purgar salidas de ejemplo residuales si existieran
+      for (final sampleId in _legacySampleIds) {
+        await db.delete(_tableName, where: 'id = ?', whereArgs: [sampleId]);
       }
+      final rows = await db.query(_tableName, orderBy: 'startedAt DESC');
       return rows.map((r) => ForagingOuting.fromMap(r)).toList();
     }
 
     final raw = prefs.getString(_prefsFallbackKey);
-    if (raw == null && !alreadySeeded) {
-      final samples = _initialSampleOutings();
-      await _saveFallbackList(prefs, samples);
-      await prefs.setBool(_seededKey, true);
-      return samples;
-    }
     if (raw == null || raw.isEmpty) return [];
     final List<dynamic> decoded = json.decode(raw) as List<dynamic>;
     final list = decoded
         .map((e) => ForagingOuting.fromMap(e as Map<String, dynamic>))
+        .where((o) => !_legacySampleIds.contains(o.id))
         .toList();
     list.sort((a, b) => b.startedAt.compareTo(a.startedAt));
     return list;

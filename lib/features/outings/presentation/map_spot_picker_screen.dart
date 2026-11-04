@@ -13,17 +13,20 @@ import '../../map/services/offline_map_service.dart';
 import '../data/outings_database.dart';
 import '../models/foraging_outing.dart';
 import 'outings_screen.dart';
+import '../../map/presentation/widgets/foraging_spot_marker.dart';
 
 class MapSpotPickerScreen extends ConsumerStatefulWidget {
   final String outingId;
   final String outingTitle;
   final LatLng? initialCenter;
+  final bool pickCoordinatesOnly;
 
   const MapSpotPickerScreen({
     super.key,
     required this.outingId,
     required this.outingTitle,
     this.initialCenter,
+    this.pickCoordinatesOnly = false,
   });
 
   @override
@@ -98,6 +101,11 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
       _pickedPoint = point;
     });
 
+    if (widget.pickCoordinatesOnly) {
+      Navigator.of(context).pop(point);
+      return;
+    }
+
     final allMushrooms =
         ref.read(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
 
@@ -126,6 +134,8 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
   Widget build(BuildContext context) {
     final lang = ref.watch(appLanguageProvider);
     final s = AppStrings(lang);
+    final allMushrooms =
+        ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     final allSpots =
         ref.watch(foragingSpotsProvider).valueOrNull ?? const <ForagingSpot>[];
     final existingOutingSpots =
@@ -214,29 +224,16 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                       ),
                     ),
                   ),
-                  // Marcadores de setas ya registradas en esta salida
+                  // Marcadores de perretxikos ya registrados en esta salida
                   ...existingOutingSpots.map(
                     (spot) => Marker(
                       point: LatLng(spot.latitude, spot.longitude),
                       width: 36,
                       height: 36,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AutumnColors.mossGreen,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 6,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.eco_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                      child: ForagingSpotMarkerWidget(
+                        spot: spot,
+                        allMushrooms: allMushrooms,
+                        size: 34,
                       ),
                     ),
                   ),
@@ -326,17 +323,23 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    _isDrawingRoute
+                                    widget.pickCoordinatesOnly
                                         ? s.tr(
-                                            eu: 'Ukitu mapan ibilbidea eskuz marrazteko',
-                                            es: 'Toca el mapa para trazar la ruta a mano',
-                                            en: 'Tap on the map to trace route by hand',
+                                            eu: 'Ukitu mapan posizio zehatza hautatzeko',
+                                            es: 'Toca el mapa para seleccionar la posición exacta',
+                                            en: 'Tap map to select exact location',
                                           )
-                                        : s.tr(
-                                            eu: 'Ukitu mapan perretxikoa kokatzeko',
-                                            es: 'Toca en el mapa para ubicar la seta',
-                                            en: 'Tap on the map to place mushroom',
-                                          ),
+                                        : (_isDrawingRoute
+                                            ? s.tr(
+                                                eu: 'Ukitu mapan ibilbidea eskuz marrazteko',
+                                                es: 'Toca el mapa para trazar la ruta a mano',
+                                                en: 'Tap on the map to trace route by hand',
+                                              )
+                                            : s.tr(
+                                                eu: 'Ukitu mapan perretxikoa kokatzeko',
+                                                es: 'Toca en el mapa para ubicar la seta',
+                                                en: 'Tap on the map to place mushroom',
+                                              )),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w800,
@@ -364,119 +367,121 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _isDrawingRoute = false),
-                                child: Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 7),
-                                  decoration: BoxDecoration(
-                                    color: !_isDrawingRoute
-                                        ? AutumnColors.mossGreen
-                                        : Colors.white10,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.add_location_alt_rounded,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        s.tr(
-                                          eu: 'Seta kokatu',
-                                          es: 'Ubicar seta',
-                                          en: 'Place spot',
-                                        ),
-                                        style: const TextStyle(
+                        if (!widget.pickCoordinatesOnly) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      setState(() => _isDrawingRoute = false),
+                                  child: Container(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: !_isDrawingRoute
+                                          ? AutumnColors.mossGreen
+                                          : Colors.white10,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.add_location_alt_rounded,
                                           color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
+                                          size: 16,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          s.tr(
+                                            eu: 'Perretxikoa kokatu',
+                                            es: 'Ubicar seta',
+                                            en: 'Place spot',
+                                          ),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _isDrawingRoute = true),
-                                child: Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 7),
-                                  decoration: BoxDecoration(
-                                    color: _isDrawingRoute
-                                        ? AutumnColors.terracotta
-                                        : Colors.white10,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.route_rounded,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        s.tr(
-                                          eu: 'Ibilbidea marraztu',
-                                          es: 'Trazar ruta',
-                                          en: 'Trace route',
-                                        ),
-                                        style: const TextStyle(
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      setState(() => _isDrawingRoute = true),
+                                  child: Container(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: _isDrawingRoute
+                                          ? AutumnColors.terracotta
+                                          : Colors.white10,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.route_rounded,
                                           color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
+                                          size: 16,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          s.tr(
+                                            eu: 'Ibilbidea marraztu',
+                                            es: 'Trazar ruta',
+                                            en: 'Trace route',
+                                          ),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            if (_isDrawingRoute &&
-                                savedOuting != null &&
-                                routePoints.isNotEmpty) ...[
-                              const SizedBox(width: 6),
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white12,
-                                  foregroundColor: Colors.white,
+                              if (_isDrawingRoute &&
+                                  savedOuting != null &&
+                                  routePoints.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.white12,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  tooltip: s.tr(
+                                    eu: 'Desegin azken puntua',
+                                    es: 'Deshacer último punto',
+                                    en: 'Undo last point',
+                                  ),
+                                  icon: const Icon(Icons.undo_rounded, size: 18),
+                                  onPressed: () {
+                                    final next = routePoints.sublist(
+                                      0,
+                                      routePoints.length - 1,
+                                    );
+                                    _updateOutingRoutePoints(
+                                      savedOuting,
+                                      activeOuting,
+                                      next,
+                                    );
+                                  },
                                 ),
-                                tooltip: s.tr(
-                                  eu: 'Desegin azken puntua',
-                                  es: 'Deshacer último punto',
-                                  en: 'Undo last point',
-                                ),
-                                icon: const Icon(Icons.undo_rounded, size: 18),
-                                onPressed: () {
-                                  final next = routePoints.sublist(
-                                    0,
-                                    routePoints.length - 1,
-                                  );
-                                  _updateOutingRoutePoints(
-                                    savedOuting,
-                                    activeOuting,
-                                    next,
-                                  );
-                                },
-                              ),
+                              ],
                             ],
-                          ],
-                        ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

@@ -134,7 +134,7 @@ void main() {
 
     // Default: Basque (EU)
     expect(find.text('Perretxiko-lekuen Mapa'), findsOneWidget);
-    expect(find.text('Filtroak eta Rutak'), findsOneWidget);
+    expect(find.text('Filtroak eta Ibilbideak'), findsOneWidget);
 
     // Switch to Spanish (ES)
     await container.read(appLanguageProvider.notifier).setLanguage(AppLanguage.es);
@@ -273,7 +273,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Verify the largest collection badge '12x' is rendered inside the no-route thumbnail
-    expect(find.text('12x'), findsOneWidget);
+    // Verify the largest collection badge '12' is rendered inside the no-route thumbnail
+    expect(find.text('12'), findsOneWidget);
   });
 }

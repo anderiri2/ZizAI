@@ -25,12 +25,12 @@ class OfflineMapsSheet extends ConsumerStatefulWidget {
 
 class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
   Future<void> _promptDownloadCurrentView() async {
-    final nameCtrl = TextEditingController(
-      text: 'Mi zona (${DateFormat('dd/MM').format(DateTime.now())})',
-    );
-
     final lang = ref.read(appLanguageProvider);
     final s = AppStrings(lang);
+
+    final defaultName =
+        '${s.tr(eu: "Nire eremua", es: "Mi zona", en: "My area")} (${DateFormat('dd/MM').format(DateTime.now())})';
+    final nameCtrl = TextEditingController(text: defaultName);
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -90,15 +90,23 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
       await ref.read(offlineMapServiceProvider.notifier).downloadRegion(
             id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
             name: nameCtrl.text.trim().isEmpty
-                ? 'Zona personalizada'
+                ? s.tr(
+                    eu: 'Nire eremua',
+                    es: 'Zona personalizada',
+                    en: 'Custom area',
+                  )
                 : nameCtrl.text.trim(),
-            description:
-                'Encuadre descargado (${widget.isTopoLayer ? "Mapa Topográfico" : "Mapa Estándar"})',
+            description: s.tr(
+              eu: 'Deskargatutako ikuspegia (${widget.isTopoLayer ? "Mapa Topografikoa" : "Mapa Estandarra"})',
+              es: 'Encuadre descargado (${widget.isTopoLayer ? "Mapa Topográfico" : "Mapa Estándar"})',
+              en: 'Downloaded view (${widget.isTopoLayer ? "Topographic Map" : "Standard Map"})',
+            ),
             north: b.north,
             south: b.south,
             east: b.east,
             west: b.west,
             isTopoLayer: widget.isTopoLayer,
+            lang: lang,
           );
     }
   }
@@ -108,8 +116,6 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
     final lang = ref.watch(appLanguageProvider);
     final s = AppStrings(lang);
     final offlineState = ref.watch(offlineMapServiceProvider);
-    final downloadedIds =
-        offlineState.downloadedRegions.map((r) => r.id).toSet();
 
     return DraggableScrollableSheet(
       expand: false,
@@ -201,7 +207,11 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                     children: [
                       Text(
                         offlineState.statusMessage ??
-                            'Descargando teselas topográficas...',
+                            s.tr(
+                              eu: 'Lauza topografikoak deskargatzen...',
+                              es: 'Descargando teselas topográficas...',
+                              en: 'Downloading topographic tiles...',
+                            ),
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           color: AutumnColors.boletusBrown,
@@ -317,7 +327,7 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                             onPressed: () {
                               ref
                                   .read(offlineMapServiceProvider.notifier)
-                                  .deleteRegion(region.id);
+                                  .deleteRegion(region.id, lang: lang);
                             },
                           ),
                         ],
@@ -326,114 +336,26 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                   );
                 }),
                 const SizedBox(height: 10),
-              ],
-
-              // Zonas micológicas recomendadas
-              Text(
-                s.tr(
-                  eu: 'Gomendatutako Eremu Mikologikoak (Ukitu 1)',
-                  es: 'Zonas Micológicas Recomendadas (1 Toque)',
-                  en: 'Recommended Foraging Areas (1 Tap)',
-                ),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: AutumnColors.boletusBrown,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                s.tr(
-                  eu: 'Deskargatu sestra-kurbak eta mendi-bideak (11-14 zoomak) mendian GPS bidez hegazkin moduan erabiltzeko.',
-                  es: 'Descarga curvas de nivel y caminos forestales (zooms 11-14) para usar en el monte con el GPS en modo avión.',
-                  en: 'Download contour lines and forest paths (zooms 11-14) to explore offline in airplane mode.',
-                ),
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  color: AutumnColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 10),
-              ...kPredefinedMycologicalZones.map((zone) {
-                final id = zone['id'] as String;
-                final isAlreadyDownloaded = downloadedIds.contains(id);
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          AutumnColors.ochreGold.withValues(alpha: 0.18),
-                      child: const Icon(
-                        Icons.terrain_rounded,
-                        color: AutumnColors.boletusBrown,
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+                  child: Center(
+                    child: Text(
+                      s.tr(
+                        eu: 'Ez dago oraindik eremurik deskargatuta telefonoan.\nErabili goiko botoia pantailako eremua deskargatzeko.',
+                        es: 'No hay zonas descargadas en el teléfono todavía.\nUsa el botón superior para descargar la vista actual.',
+                        en: 'No offline areas saved yet.\nUse the button above to download the current view.',
                       ),
-                    ),
-                    title: Text(
-                      zone['name'] as String,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                        fontSize: 13,
+                        color: AutumnColors.textSecondary,
+                        height: 1.4,
                       ),
                     ),
-                    subtitle: Text(
-                      zone['description'] as String,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    trailing: isAlreadyDownloaded
-                        ? Chip(
-                            label: Text(
-                              s.tr(
-                                eu: 'Deskargatuta',
-                                es: 'Descargado',
-                                en: 'Downloaded',
-                              ),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AutumnColors.mossGreen,
-                              ),
-                            ),
-                          )
-                        : FilledButton.tonalIcon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AutumnColors.creamCard,
-                              foregroundColor: AutumnColors.boletusBrown,
-                            ),
-                            onPressed: offlineState.isDownloading
-                                ? null
-                                : () {
-                                    ref
-                                        .read(
-                                            offlineMapServiceProvider.notifier)
-                                        .downloadRegion(
-                                          id: id,
-                                          name: zone['name'] as String,
-                                          description:
-                                              zone['description'] as String,
-                                          north:
-                                              (zone['north'] as num).toDouble(),
-                                          south:
-                                              (zone['south'] as num).toDouble(),
-                                          east:
-                                              (zone['east'] as num).toDouble(),
-                                          west:
-                                              (zone['west'] as num).toDouble(),
-                                          isTopoLayer: true,
-                                        );
-                                  },
-                            icon: const Icon(Icons.download_rounded, size: 17),
-                            label: Text(
-                              s.tr(
-                                eu: 'Deskargatu',
-                                es: 'Bajar',
-                                en: 'Get',
-                              ),
-                            ),
-                          ),
                   ),
-                );
-              }),
+                ),
+              ],
             ],
           ),
         );

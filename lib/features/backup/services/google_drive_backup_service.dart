@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../ai_identifier/models/chat_message.dart';
 import '../../ai_identifier/services/gemini_mushroom_service.dart';
 import '../../catalog/data/catalog_repository.dart';
@@ -474,7 +475,9 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     required List<String> favoriteIds,
     required List<AiChatMessage> aiMessages,
     required List<OfflineMapRegion> offlineRegions,
+    AppLanguage lang = AppLanguage.es,
   }) async {
+    final s = AppStrings(lang);
     state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
       var account = _googleSignIn.currentUser;
@@ -484,8 +487,11 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       if (account == null) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage:
-              'Debes iniciar sesión con tu cuenta de Google para subir el backup a Google Drive.',
+          errorMessage: s.tr(
+            eu: 'Hasi saioa Google kontuarekin kopia Google Drive-ra igotzeko.',
+            es: 'Debes iniciar sesión con tu cuenta de Google para subir el backup a Google Drive.',
+            en: 'Sign in to Google to upload backup to Google Drive.',
+          ),
         );
         return false;
       }
@@ -497,8 +503,11 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       if (httpClient == null) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage:
-              'No se pudo obtener el cliente autenticado de Google Drive.',
+          errorMessage: s.tr(
+            eu: 'Ezin izan da Google Drive-ko bezero autentifikatua lortu.',
+            es: 'No se pudo obtener el cliente autenticado de Google Drive.',
+            en: 'Could not obtain authenticated Google Drive client.',
+          ),
         );
         return false;
       }
@@ -554,22 +563,31 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         userDisplayName: account.displayName ?? account.email,
         userPhotoUrl: account.photoUrl,
         lastDriveBackupDate: now,
-        statusMessage:
-            'Copia integral guardada en Google Drive (${spots.length} setales, ${outings.length} salidas, ${favoriteIds.length} favoritos).',
+        statusMessage: s.tr(
+          eu: 'Kopia osoa Google Drive-n gorde da (${spots.length} perretxiko-leku, ${outings.length} irteera, ${favoriteIds.length} gogoko).',
+          es: 'Copia integral guardada en Google Drive (${spots.length} setales, ${outings.length} salidas, ${favoriteIds.length} favoritos).',
+          en: 'Full backup saved to Google Drive (${spots.length} spots, ${outings.length} outings, ${favoriteIds.length} favorites).',
+        ),
       );
       return true;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage:
-            'No se pudo sincronizar con Google Drive en este momento. También tienes disponible la copia local en tu dispositivo.',
+        errorMessage: s.tr(
+          eu: 'Ezin izan da une honetan Google Drive-rekin sinkronizatu. Gailuko tokiko kopia ere erabilgarri duzu.',
+          es: 'No se pudo sincronizar con Google Drive en este momento. También tienes disponible la copia local en tu dispositivo.',
+          en: 'Could not sync with Google Drive right now. Local backup on your device is also available.',
+        ),
       );
       return false;
     }
   }
 
   /// Restaura toda la actividad desde Google Drive (appDataFolder).
-  Future<FullBackupPayload?> restoreFullActivityFromGoogleDrive() async {
+  Future<FullBackupPayload?> restoreFullActivityFromGoogleDrive({
+    AppLanguage lang = AppLanguage.es,
+  }) async {
+    final s = AppStrings(lang);
     state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
       var account = _googleSignIn.currentUser;
@@ -579,8 +597,11 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       if (account == null) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage:
-              'Inicia sesión en Google para buscar copias de seguridad en tu Google Drive.',
+          errorMessage: s.tr(
+            eu: 'Hasi saioa Google-n zure Google Drive-n segurtasun-kopiak bilatzeko.',
+            es: 'Inicia sesión en Google para buscar copias de seguridad en tu Google Drive.',
+            en: 'Sign in to Google to search for backups in your Google Drive.',
+          ),
         );
         return null;
       }
@@ -592,7 +613,11 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       if (httpClient == null) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage: 'No se pudo autenticar con Google Drive.',
+          errorMessage: s.tr(
+            eu: 'Ezin izan da Google Drive-rekin autentifikatu.',
+            es: 'No se pudo autenticar con Google Drive.',
+            en: 'Could not authenticate with Google Drive.',
+          ),
         );
         return null;
       }
@@ -607,8 +632,11 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       if (fileList.files == null || fileList.files!.isEmpty) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage:
-              'No se encontró ninguna copia previa ($_backupFileName) en tu cuenta de Google Drive.',
+          errorMessage: s.tr(
+            eu: 'Ez da aldez aurreko kopiarik aurkitu ($_backupFileName) zure Google Drive kontuan.',
+            es: 'No se encontró ninguna copia previa ($_backupFileName) en tu cuenta de Google Drive.',
+            en: 'No prior backup ($_backupFileName) found in your Google Drive account.',
+          ),
         );
         return null;
       }
@@ -630,15 +658,21 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
 
       state = state.copyWith(
         isBusy: false,
-        statusMessage:
-            'Restauración completada desde Google Drive (${payload.spots.length} setales, ${payload.outings.length} salidas, ${payload.favoriteIds.length} favoritos).',
+        statusMessage: s.tr(
+          eu: 'Google Drive-tik leheneratzea osatu da (${payload.spots.length} perretxiko-leku, ${payload.outings.length} irteera, ${payload.favoriteIds.length} gogoko).',
+          es: 'Restauración completada desde Google Drive (${payload.spots.length} setales, ${payload.outings.length} salidas, ${payload.favoriteIds.length} favoritos).',
+          en: 'Restoration completed from Google Drive (${payload.spots.length} spots, ${payload.outings.length} outings, ${payload.favoriteIds.length} favorites).',
+        ),
       );
       return payload;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage:
-            'No se pudo descargar el backup desde Google Drive. Puedes restaurar desde tu Snapshot Local.',
+        errorMessage: s.tr(
+          eu: 'Ezin izan da backup-a Google Drive-tik deskargatu. Tokiko Snapshot-etik lehenera dezakezu.',
+          es: 'No se pudo descargar el backup desde Google Drive. Puedes restaurar desde tu Snapshot Local.',
+          en: 'Could not download backup from Google Drive. You can restore from your Local Snapshot.',
+        ),
       );
       return null;
     }
@@ -658,7 +692,9 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     required List<String> favoriteIds,
     required List<AiChatMessage> aiMessages,
     required List<OfflineMapRegion> offlineRegions,
+    AppLanguage lang = AppLanguage.es,
   }) async {
+    final s = AppStrings(lang);
     state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
       final zipBytes = await createBackupArchiveBytes(
@@ -677,27 +713,41 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       state = state.copyWith(
         isBusy: false,
         lastLocalBackupDate: now,
-        statusMessage:
-            'Snapshot ZIP completo guardado en el dispositivo (${spots.length} setales, ${outings.length} salidas, ${favoriteIds.length} favoritos).',
+        statusMessage: s.tr(
+          eu: 'ZIP snapshot osoa gailuan gorde da (${spots.length} perretxiko-leku, ${outings.length} irteera, ${favoriteIds.length} gogoko).',
+          es: 'Snapshot ZIP completo guardado en el dispositivo (${spots.length} setales, ${outings.length} salidas, ${favoriteIds.length} favoritos).',
+          en: 'Full ZIP snapshot saved on device (${spots.length} spots, ${outings.length} outings, ${favoriteIds.length} favorites).',
+        ),
       );
       return true;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage: 'Error al crear la copia local: $e',
+        errorMessage: s.tr(
+          eu: 'Errorea tokiko kopia sortzean: $e',
+          es: 'Error al crear la copia local: $e',
+          en: 'Error creating local backup: $e',
+        ),
       );
       return false;
     }
   }
 
   /// Restaura toda la actividad desde la instantánea ZIP local del dispositivo.
-  Future<FullBackupPayload?> restoreFromLocalSnapshotFullActivity() async {
+  Future<FullBackupPayload?> restoreFromLocalSnapshotFullActivity({
+    AppLanguage lang = AppLanguage.es,
+  }) async {
+    final s = AppStrings(lang);
     state = state.copyWith(isBusy: true, clearError: true, clearStatus: true);
     try {
       if (kIsWeb) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage: 'La restauración desde archivo local requiere móvil.',
+          errorMessage: s.tr(
+            eu: 'Fitxategi lokaletik leheneratzeko gailu mugikorra behar da.',
+            es: 'La restauración desde archivo local requiere móvil.',
+            en: 'Restoring from local file requires a mobile device.',
+          ),
         );
         return null;
       }
@@ -706,8 +756,11 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       if (!await backupFile.exists()) {
         state = state.copyWith(
           isBusy: false,
-          errorMessage:
-              'Aún no existe ningún archivo de copia local ($_backupFileName).',
+          errorMessage: s.tr(
+            eu: 'Ez dago oraindik tokiko kopia fitxategirik ($_backupFileName).',
+            es: 'Aún no existe ningún archivo de copia local ($_backupFileName).',
+            en: 'No local backup file ($_backupFileName) exists yet.',
+          ),
         );
         return null;
       }
@@ -716,14 +769,21 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       final payload = await extractFullActivityBackupBytes(zipBytes);
       state = state.copyWith(
         isBusy: false,
-        statusMessage:
-            'Se han restaurado ${payload.spots.length} setales y ${payload.outings.length} salidas desde la copia local.',
+        statusMessage: s.tr(
+          eu: '${payload.spots.length} perretxiko-leku eta ${payload.outings.length} irteera leheneratu dira tokiko kopiatik.',
+          es: 'Se han restaurado ${payload.spots.length} setales y ${payload.outings.length} salidas desde la copia local.',
+          en: 'Restored ${payload.spots.length} spots and ${payload.outings.length} outings from local backup.',
+        ),
       );
       return payload;
     } catch (e) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage: 'Error al restaurar la copia local: $e',
+        errorMessage: s.tr(
+          eu: 'Errorea tokiko kopia leheneratzean: $e',
+          es: 'Error al restaurar la copia local: $e',
+          en: 'Error restoring local backup: $e',
+        ),
       );
       return null;
     }

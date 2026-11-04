@@ -22,6 +22,7 @@ import '../data/spots_database.dart';
 import '../models/foraging_spot.dart';
 import '../services/offline_map_service.dart';
 import 'offline_maps_sheet.dart';
+import 'widgets/foraging_spot_marker.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   final Mushroom? initialMushroomToRegister;
@@ -50,11 +51,11 @@ class MapScreenState extends ConsumerState<MapScreen> {
   final OfflineCachingTileProvider _defaultOfflineTileProvider =
       OfflineCachingTileProvider();
   bool _useTopoLayer = true;
-  bool _showAllRoutes = true;
-  final Set<String> _selectedRouteOutingIds = <String>{};
+  bool _showAllOutings = true;
+  bool _showStandaloneSpots = true;
+  final Set<String> _selectedOutingIds = <String>{};
   String? _selectedMushroomSpeciesFilter;
   String _edibilityFilter = 'all'; // 'all', 'edible', 'toxic'
-  String _spotFilterMode = 'all'; // 'all', 'standalone', or outing ID
   bool _isLocatingGps = false;
   ForagingSpot? _selectedSpot;
   LatLng? _currentUserLocation;
@@ -110,7 +111,9 @@ class MapScreenState extends ConsumerState<MapScreen> {
   void initState() {
     super.initState();
     if (widget.initialSelectedOutingFilter != null) {
-      _spotFilterMode = widget.initialSelectedOutingFilter!;
+      _showAllOutings = false;
+      _showStandaloneSpots = false;
+      _selectedOutingIds.add(widget.initialSelectedOutingFilter!);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPendingRegistration();
@@ -124,7 +127,10 @@ class MapScreenState extends ConsumerState<MapScreen> {
         widget.initialSelectedOutingFilter !=
             oldWidget.initialSelectedOutingFilter) {
       setState(() {
-        _spotFilterMode = widget.initialSelectedOutingFilter!;
+        _showAllOutings = false;
+        _showStandaloneSpots = false;
+        _selectedOutingIds.clear();
+        _selectedOutingIds.add(widget.initialSelectedOutingFilter!);
       });
       _centerOnOutingFilter(widget.initialSelectedOutingFilter!);
     }
@@ -168,10 +174,15 @@ class MapScreenState extends ConsumerState<MapScreen> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
+          final s = AppStrings(ref.read(appLanguageProvider));
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'El GPS está desactivado. Mantén pulsado cualquier punto del mapa para guardar un setal.',
+                s.tr(
+                  eu: 'GPSa desgaituta dago. Eutsi sakatuta mapako edozein puntu perretxiko-lekua gordetzeko.',
+                  es: 'El GPS está desactivado. Mantén pulsado cualquier punto del mapa para guardar un setal.',
+                  en: 'GPS is disabled. Long-press any point on the map to save a spot.',
+                ),
               ),
             ),
           );
@@ -186,10 +197,15 @@ class MapScreenState extends ConsumerState<MapScreen> {
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (mounted) {
+          final s = AppStrings(ref.read(appLanguageProvider));
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'Permiso de ubicación denegado. Mantén pulsado sobre el mapa para colocar un marcador manualmente.',
+                s.tr(
+                  eu: 'Kokapen baimena ukatuta. Eutsi sakatuta mapan markatzailea eskuz jartzeko.',
+                  es: 'Permiso de ubicación denegado. Mantén pulsado sobre el mapa para colocar un marcador manualmente.',
+                  en: 'Location permission denied. Long-press the map to place a marker manually.',
+                ),
               ),
             ),
           );
@@ -278,28 +294,28 @@ class MapScreenState extends ConsumerState<MapScreen> {
         allMushrooms: allMushrooms,
         initialSpeciesFilter: _selectedMushroomSpeciesFilter,
         initialEdibilityFilter: _edibilityFilter,
-        initialSpotFilterMode: _spotFilterMode,
-        initialShowAllRoutes: _showAllRoutes,
-        initialSelectedRouteOutingIds: _selectedRouteOutingIds,
+        initialShowAllOutings: _showAllOutings,
+        initialShowStandaloneSpots: _showStandaloneSpots,
+        initialSelectedOutingIds: _selectedOutingIds,
         routePalette: _routePalette,
         lang: ref.read(appLanguageProvider),
         onApply: ({
           String? speciesFilter,
           required String edibilityFilter,
-          required String spotFilterMode,
-          required bool showAllRoutes,
-          required Set<String> selectedRouteOutingIds,
+          required bool showAllOutings,
+          required bool showStandaloneSpots,
+          required Set<String> selectedOutingIds,
         }) {
           setState(() {
             _selectedMushroomSpeciesFilter = speciesFilter;
             _edibilityFilter = edibilityFilter;
-            _spotFilterMode = spotFilterMode;
-            _showAllRoutes = showAllRoutes;
-            _selectedRouteOutingIds.clear();
-            _selectedRouteOutingIds.addAll(selectedRouteOutingIds);
+            _showAllOutings = showAllOutings;
+            _showStandaloneSpots = showStandaloneSpots;
+            _selectedOutingIds.clear();
+            _selectedOutingIds.addAll(selectedOutingIds);
           });
-          if (spotFilterMode != 'all' && spotFilterMode != 'standalone') {
-            _centerOnOutingFilter(spotFilterMode);
+          if (!showAllOutings && selectedOutingIds.length == 1) {
+            _centerOnOutingFilter(selectedOutingIds.first);
           }
         },
       ),
@@ -309,6 +325,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
   void _openSavedSpotsListSheet(List<ForagingSpot> spots) {
     final lang = ref.read(appLanguageProvider);
     final s = AppStrings(lang);
+    final allMushrooms =
+        ref.read(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AutumnColors.parchmentBg,
@@ -382,21 +400,13 @@ class MapScreenState extends ConsumerState<MapScreen> {
                             horizontal: 6,
                             vertical: 4,
                           ),
-                          leading: CircleAvatar(
-                            backgroundColor: spot.isFromOuting
-                                ? AutumnColors.mossGreen.withValues(alpha: 0.2)
-                                : AutumnColors.ochreGold.withValues(alpha: 0.2),
-                            child: Icon(
-                              spot.isFromOuting
-                                  ? Icons.hiking_rounded
-                                  : Icons.location_on_rounded,
-                              color: spot.isFromOuting
-                                  ? AutumnColors.mossGreen
-                                  : AutumnColors.boletusBrown,
-                            ),
+                          leading: ForagingSpotMarkerWidget(
+                            spot: spot,
+                            allMushrooms: allMushrooms,
+                            size: 36,
                           ),
                           title: Text(
-                            '${spot.title} (${spot.quantityCount}x)',
+                            '${spot.title} (${spot.quantityCount})',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: AutumnColors.textPrimary,
@@ -474,11 +484,12 @@ class MapScreenState extends ConsumerState<MapScreen> {
 
     // Filtrar los puntos según el selector del Mapa Global
     final visibleSpots = allSpots.where((s) {
-      if (_spotFilterMode == 'standalone' && s.isFromOuting) return false;
-      if (_spotFilterMode != 'all' &&
-          _spotFilterMode != 'standalone' &&
-          s.outingId != _spotFilterMode) {
-        return false;
+      if (!s.isFromOuting) {
+        if (!_showStandaloneSpots) return false;
+      } else {
+        if (!_showAllOutings && !_selectedOutingIds.contains(s.outingId)) {
+          return false;
+        }
       }
       if (_selectedMushroomSpeciesFilter != null &&
           s.mushroomId != _selectedMushroomSpeciesFilter) {
@@ -497,15 +508,16 @@ class MapScreenState extends ConsumerState<MapScreen> {
     // Filtrar las polilíneas de las rutas GPS a mostrar
     final visibleOutingRoutes = allOutings.where((o) {
       if (o.routePoints.length < 2) return false;
-      if (_showAllRoutes) return true;
-      return _selectedRouteOutingIds.contains(o.id) || _spotFilterMode == o.id;
+      if (_showAllOutings) return true;
+      return _selectedOutingIds.contains(o.id);
     }).toList();
 
     int activeFilterCount = 0;
-    if (_spotFilterMode != 'all') activeFilterCount++;
+    if (!_showAllOutings || !_showStandaloneSpots || _selectedOutingIds.isNotEmpty) {
+      activeFilterCount++;
+    }
     if (_selectedMushroomSpeciesFilter != null) activeFilterCount++;
     if (_edibilityFilter != 'all') activeFilterCount++;
-    if (!_showAllRoutes || _selectedRouteOutingIds.isNotEmpty) activeFilterCount++;
 
     return Scaffold(
       body: Stack(
@@ -559,7 +571,9 @@ class MapScreenState extends ConsumerState<MapScreen> {
                   polylines: visibleOutingRoutes.map((outing) {
                     final idx = allOutings.indexOf(outing);
                     final routeColor = _getRouteColor(idx >= 0 ? idx : 0);
-                    final isHighlighted = _spotFilterMode == outing.id;
+                    final isHighlighted = !_showAllOutings &&
+                        _selectedOutingIds.length == 1 &&
+                        _selectedOutingIds.first == outing.id;
                     return Polyline(
                       points: outing.routePoints,
                       color: isHighlighted
@@ -586,16 +600,15 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     ),
                   ],
                 ),
-              // Marcadores diferenciados visualmente (Puntos de Salida vs Puntos sueltos)
+              // Marcadores con color según calidad/comestibilidad y cantidad recolectada
               MarkerLayer(
                 markers: visibleSpots.map((spot) {
                   final isSelected = _selectedSpot?.id == spot.id;
-                  final isFromOuting = spot.isFromOuting;
 
                   return Marker(
                     point: LatLng(spot.latitude, spot.longitude),
-                    width: isSelected ? 56 : 46,
-                    height: isSelected ? 56 : 46,
+                    width: isSelected ? 50 : 40,
+                    height: isSelected ? 50 : 40,
                     child: GestureDetector(
                       onTap: () {
                         setState(() => _selectedSpot = spot);
@@ -609,35 +622,11 @@ class MapScreenState extends ConsumerState<MapScreen> {
                       child: AnimatedScale(
                         scale: isSelected ? 1.15 : 1.0,
                         duration: const Duration(milliseconds: 200),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AutumnColors.terracotta
-                                : (isFromOuting
-                                    ? AutumnColors.mossGreen
-                                    : AutumnColors.boletusBrown),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isFromOuting
-                                  ? Colors.white
-                                  : AutumnColors.amberLeaf,
-                              width: isSelected ? 3 : 2.2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.35),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            isFromOuting
-                                ? Icons.hiking_rounded
-                                : Icons.park_rounded,
-                            color: Colors.white,
-                            size: 21,
-                          ),
+                        child: ForagingSpotMarkerWidget(
+                          spot: spot,
+                          allMushrooms: allMushrooms,
+                          isSelected: isSelected,
+                          size: isSelected ? 48 : 38,
                         ),
                       ),
                     ),
@@ -715,12 +704,12 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                     activeCount: activeFilterCount,
                                     label: activeFilterCount > 0
                                         ? s.tr(
-                                            eu: 'Filtroak eta Rutak ($activeFilterCount)',
+                                            eu: 'Filtroak eta Ibilbideak ($activeFilterCount)',
                                             es: 'Filtros y Rutas ($activeFilterCount)',
                                             en: 'Filters & Routes ($activeFilterCount)',
                                           )
                                         : s.tr(
-                                            eu: 'Filtroak eta Rutak',
+                                            eu: 'Filtroak eta Ibilbideak',
                                             es: 'Filtros y Rutas',
                                             en: 'Filters & Routes',
                                           ),
@@ -796,60 +785,68 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                         onRemove: () => setState(
                                             () => _edibilityFilter = 'all'),
                                       ),
-                                    if (_spotFilterMode == 'standalone')
+                                    if (!_showStandaloneSpots)
                                       _ActiveFilterTag(
                                         icon: Icons.place_rounded,
                                         label: s.tr(
-                                            eu: 'Puntu solteak',
-                                            es: 'Puntos libres',
-                                            en: 'Standalone'),
+                                            eu: 'Puntu solteak OFF',
+                                            es: 'Puntos libres OFF',
+                                            en: 'Standalone OFF'),
                                         onRemove: () => setState(
-                                            () => _spotFilterMode = 'all'),
+                                            () => _showStandaloneSpots = true),
                                       ),
-                                    if (_spotFilterMode != 'all' &&
-                                        _spotFilterMode != 'standalone') ...[
+                                    if (!_showAllOutings) ...[
                                       () {
-                                        final out = allOutings
-                                            .where((o) =>
-                                                o.id == _spotFilterMode)
-                                            .firstOrNull;
+                                        if (_selectedOutingIds.isEmpty) {
+                                          return _ActiveFilterTag(
+                                            icon: Icons.hiking_rounded,
+                                            label: s.tr(
+                                                eu: 'Irteerak OFF',
+                                                es: 'Salidas OFF',
+                                                en: 'Outings OFF'),
+                                            onRemove: () => setState(
+                                                () => _showAllOutings = true),
+                                          );
+                                        }
+                                        if (_selectedOutingIds.length == 1) {
+                                          final out = allOutings
+                                              .where((o) =>
+                                                  o.id ==
+                                                  _selectedOutingIds.first)
+                                              .firstOrNull;
+                                          return _ActiveFilterTag(
+                                            icon: Icons.hiking_rounded,
+                                            label: out != null
+                                                ? out.title
+                                                : s.tr(
+                                                    eu: 'Irteera',
+                                                    es: 'Salida',
+                                                    en: 'Outing'),
+                                            onRemove: () => setState(
+                                                () => _showAllOutings = true),
+                                          );
+                                        }
                                         return _ActiveFilterTag(
                                           icon: Icons.hiking_rounded,
-                                          label: out != null
-                                              ? out.title
-                                              : s.tr(eu: 'Irteera', es: 'Salida', en: 'Outing'),
+                                          label: s.tr(
+                                            eu: '${_selectedOutingIds.length} irteera',
+                                            es: '${_selectedOutingIds.length} salidas',
+                                            en: '${_selectedOutingIds.length} outings',
+                                          ),
                                           onRemove: () => setState(
-                                              () => _spotFilterMode = 'all'),
+                                              () => _showAllOutings = true),
                                         );
                                       }(),
                                     ],
-                                    if (!_showAllRoutes)
-                                      _ActiveFilterTag(
-                                        icon: Icons.route_rounded,
-                                        label: _selectedRouteOutingIds.isEmpty
-                                            ? s.tr(
-                                                eu: 'Ibilbideak OFF',
-                                                es: 'Rutas ocultas',
-                                                en: 'Routes OFF')
-                                            : s.tr(
-                                                eu: '${_selectedRouteOutingIds.length} ibilbide',
-                                                es: '${_selectedRouteOutingIds.length} rutas GPS',
-                                                en: '${_selectedRouteOutingIds.length} GPS routes',
-                                              ),
-                                        onRemove: () => setState(() {
-                                          _showAllRoutes = true;
-                                          _selectedRouteOutingIds.clear();
-                                        }),
-                                      ),
                                     Padding(
                                       padding: const EdgeInsets.only(left: 4),
                                       child: InkWell(
                                         onTap: () => setState(() {
-                                          _spotFilterMode = 'all';
+                                          _showAllOutings = true;
+                                          _showStandaloneSpots = true;
+                                          _selectedOutingIds.clear();
                                           _selectedMushroomSpeciesFilter = null;
                                           _edibilityFilter = 'all';
-                                          _showAllRoutes = true;
-                                          _selectedRouteOutingIds.clear();
                                         }),
                                         borderRadius:
                                             BorderRadius.circular(12),
@@ -1728,6 +1725,25 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                     color: AutumnColors.boletusBrown,
                   ),
             ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 13,
+                  color: AutumnColors.mossGreen,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  s.spotFormPrivacyNotice,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: AutumnColors.mossGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
             if (widget.activeOutingTitle != null) ...[
               const SizedBox(height: 6),
               Container(
@@ -1940,10 +1956,10 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                       final currentLng = double.tryParse(_lngController.text) ??
                           widget.initialLatLng.longitude;
                       final picked =
-                          await Navigator.of(context).push<ForagingSpot>(
+                          await Navigator.of(context).push<LatLng>(
                         MaterialPageRoute(
                           builder: (_) => MapSpotPickerScreen(
-                            outingId: widget.activeOutingId ?? 'temp',
+                            outingId: widget.activeOutingId ?? '',
                             outingTitle: widget.activeOutingTitle ??
                                 s.tr(
                                   eu: 'Perretxiko-lekua',
@@ -1951,6 +1967,7 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                                   en: 'Spot',
                                 ),
                             initialCenter: LatLng(currentLat, currentLng),
+                            pickCoordinatesOnly: true,
                           ),
                         ),
                       );
@@ -2099,17 +2116,17 @@ class _MapFilterAndRoutesSheet extends StatefulWidget {
   final List<Mushroom> allMushrooms;
   final String? initialSpeciesFilter;
   final String initialEdibilityFilter;
-  final String initialSpotFilterMode;
-  final bool initialShowAllRoutes;
-  final Set<String> initialSelectedRouteOutingIds;
+  final bool initialShowAllOutings;
+  final bool initialShowStandaloneSpots;
+  final Set<String> initialSelectedOutingIds;
   final List<Color> routePalette;
   final AppLanguage lang;
   final void Function({
     String? speciesFilter,
     required String edibilityFilter,
-    required String spotFilterMode,
-    required bool showAllRoutes,
-    required Set<String> selectedRouteOutingIds,
+    required bool showAllOutings,
+    required bool showStandaloneSpots,
+    required Set<String> selectedOutingIds,
   }) onApply;
 
   const _MapFilterAndRoutesSheet({
@@ -2118,9 +2135,9 @@ class _MapFilterAndRoutesSheet extends StatefulWidget {
     required this.allMushrooms,
     required this.initialSpeciesFilter,
     required this.initialEdibilityFilter,
-    required this.initialSpotFilterMode,
-    required this.initialShowAllRoutes,
-    required this.initialSelectedRouteOutingIds,
+    required this.initialShowAllOutings,
+    required this.initialShowStandaloneSpots,
+    required this.initialSelectedOutingIds,
     required this.routePalette,
     required this.lang,
     required this.onApply,
@@ -2134,19 +2151,19 @@ class _MapFilterAndRoutesSheet extends StatefulWidget {
 class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
   late String? _speciesFilter;
   late String _edibilityFilter;
-  late String _spotFilterMode;
-  late bool _showAllRoutes;
-  late Set<String> _selectedRouteOutingIds;
+  late bool _showAllOutings;
+  late bool _showStandaloneSpots;
+  late Set<String> _selectedOutingIds;
 
   @override
   void initState() {
     super.initState();
     _speciesFilter = widget.initialSpeciesFilter;
     _edibilityFilter = widget.initialEdibilityFilter;
-    _spotFilterMode = widget.initialSpotFilterMode;
-    _showAllRoutes = widget.initialShowAllRoutes;
-    _selectedRouteOutingIds =
-        Set<String>.from(widget.initialSelectedRouteOutingIds);
+    _showAllOutings = widget.initialShowAllOutings;
+    _showStandaloneSpots = widget.initialShowStandaloneSpots;
+    _selectedOutingIds =
+        Set<String>.from(widget.initialSelectedOutingIds);
   }
 
   void _pickSpeciesDialog() async {
@@ -2283,8 +2300,6 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
   Widget build(BuildContext context) {
     final s = AppStrings(widget.lang);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final outingsWithRoutes =
-        widget.allOutings.where((o) => o.routePoints.length >= 2).toList();
     final chosenMushroom = widget.allMushrooms
         .where((m) => m.id == _speciesFilter)
         .firstOrNull;
@@ -2318,7 +2333,7 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                 Expanded(
                   child: Text(
                     s.tr(
-                      eu: 'Mapako Filtroak eta GPS Rutak',
+                      eu: 'Mapako Filtroak eta GPS Ibilbideak',
                       es: 'Filtros y Rutas GPS del Mapa',
                       en: 'Map Filters & GPS Routes',
                     ),
@@ -2333,9 +2348,9 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                     setState(() {
                       _speciesFilter = null;
                       _edibilityFilter = 'all';
-                      _spotFilterMode = 'all';
-                      _showAllRoutes = true;
-                      _selectedRouteOutingIds.clear();
+                      _showAllOutings = true;
+                      _showStandaloneSpots = true;
+                      _selectedOutingIds.clear();
                     });
                   },
                   child: Text(
@@ -2455,61 +2470,13 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
 
             const SizedBox(height: 18),
 
-            // SECCIÓN 2: SALIDAS AL MONTE
+            // SECCIÓN 2: IRTEERAK ETA IBILBIDEAK
             _sectionTitle(
               Icons.hiking_rounded,
               s.tr(
-                eu: '2. Mendiko Irteeren arabera iragazi',
-                es: '2. Filtro por Salida al Monte',
-                en: '2. Filter by Mountain Outing',
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _choiceChip(
-                  label: s.tr(
-                    eu: 'Irteera guztiak (${widget.allSpots.length} setal)',
-                    es: 'Todas las salidas (${widget.allSpots.length} setales)',
-                    en: 'All outings (${widget.allSpots.length} spots)',
-                  ),
-                  selected: _spotFilterMode == 'all',
-                  onSelected: () => setState(() => _spotFilterMode = 'all'),
-                ),
-                _choiceChip(
-                  label: s.tr(
-                    eu: 'Puntu solteak bakarrik (${widget.allSpots.where((s) => !s.isFromOuting).length})',
-                    es: 'Solo puntos libres (${widget.allSpots.where((s) => !s.isFromOuting).length})',
-                    en: 'Standalone spots only (${widget.allSpots.where((s) => !s.isFromOuting).length})',
-                  ),
-                  selected: _spotFilterMode == 'standalone',
-                  onSelected: () =>
-                      setState(() => _spotFilterMode = 'standalone'),
-                ),
-                ...widget.allOutings.map((out) {
-                  final outSpots = widget.allSpots
-                      .where((s) => s.outingId == out.id)
-                      .length;
-                  return _choiceChip(
-                    label: '${out.title} ($outSpots ${s.tr(eu: "perretxiko", es: "setas", en: "mushrooms")})',
-                    selected: _spotFilterMode == out.id,
-                    onSelected: () => setState(() => _spotFilterMode = out.id),
-                  );
-                }),
-              ],
-            ),
-
-            const SizedBox(height: 18),
-
-            // SECCIÓN 3: RUTAS GPS
-            _sectionTitle(
-              Icons.route_rounded,
-              s.tr(
-                eu: '3. GPS Ibilbideak Mapan gainjarri',
-                es: '3. Superposición de Rutas GPS en el Mapa',
-                en: '3. Overlay GPS Tracks on Map',
+                eu: '2. Irteerak eta Ibilbideak',
+                es: '2. Salidas y Rutas',
+                en: '2. Outings & Routes',
               ),
             ),
             const SizedBox(height: 8),
@@ -2517,47 +2484,89 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
               children: [
                 _choiceChip(
                   label: s.tr(
-                    eu: 'Denak ikusi (${outingsWithRoutes.length})',
-                    es: 'Ver todas (${outingsWithRoutes.length})',
-                    en: 'Show all (${outingsWithRoutes.length})',
+                    eu: 'Denak ikusi (${widget.allOutings.length + 1})',
+                    es: 'Ver todas (${widget.allOutings.length + 1})',
+                    en: 'Show all (${widget.allOutings.length + 1})',
                   ),
-                  selected: _showAllRoutes,
+                  selected: _showAllOutings && _showStandaloneSpots,
                   onSelected: () {
                     setState(() {
-                      _showAllRoutes = true;
-                      _selectedRouteOutingIds.clear();
+                      _showAllOutings = true;
+                      _showStandaloneSpots = true;
+                      _selectedOutingIds.clear();
                     });
                   },
                 ),
                 const SizedBox(width: 8),
                 _choiceChip(
-                  label: s.tr(eu: 'Denak ezkutatu', es: 'Ocultar todas', en: 'Hide all'),
-                  selected: !_showAllRoutes && _selectedRouteOutingIds.isEmpty,
+                  label: s.tr(
+                    eu: 'Denak ezkutatu',
+                    es: 'Ocultar todas',
+                    en: 'Hide all',
+                  ),
+                  selected: !_showAllOutings &&
+                      !_showStandaloneSpots &&
+                      _selectedOutingIds.isEmpty,
                   onSelected: () {
                     setState(() {
-                      _showAllRoutes = false;
-                      _selectedRouteOutingIds.clear();
+                      _showAllOutings = false;
+                      _showStandaloneSpots = false;
+                      _selectedOutingIds.clear();
                     });
                   },
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            if (outingsWithRoutes.isNotEmpty) ...[
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                      color: AutumnColors.warmSand.withValues(alpha: 0.5)),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AutumnColors.warmSand.withValues(alpha: 0.5),
                 ),
-                child: Column(
-                  children: outingsWithRoutes.map((out) {
+              ),
+              child: Column(
+                children: [
+                  CheckboxListTile(
+                    activeColor: AutumnColors.mossGreen,
+                    value: _showStandaloneSpots,
+                    secondary: const Icon(
+                      Icons.place_rounded,
+                      color: AutumnColors.boletusBrown,
+                    ),
+                    title: Text(
+                      s.tr(
+                        eu: 'Puntu solteak (irteerarik gabe)',
+                        es: 'Puntos sueltos (sin salida)',
+                        en: 'Standalone spots (no outing)',
+                      ),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${widget.allSpots.where((s) => !s.isFromOuting).length} ${s.tr(eu: "perretxiko-leku", es: "setales", en: "spots")}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        _showStandaloneSpots = val ?? false;
+                      });
+                    },
+                  ),
+                  if (widget.allOutings.isNotEmpty) const Divider(height: 1),
+                  ...widget.allOutings.map((out) {
                     final idx = widget.allOutings.indexOf(out);
                     final color = widget
                         .routePalette[idx % widget.routePalette.length];
-                    final isChecked = _showAllRoutes ||
-                        _selectedRouteOutingIds.contains(out.id);
+                    final isChecked = _showAllOutings ||
+                        _selectedOutingIds.contains(out.id);
+                    final outSpotsCount = widget.allSpots
+                        .where((s) => s.outingId == out.id)
+                        .length;
+                    final hasRoute = out.routePoints.length >= 2;
 
                     return CheckboxListTile(
                       activeColor: AutumnColors.mossGreen,
@@ -2577,40 +2586,34 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                       title: Text(
                         out.title,
                         style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 13),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
                       subtitle: Text(
-                        '${(out.distanceMeters / 1000.0).toStringAsFixed(2)} km · ${DateFormat('dd/MM/yyyy').format(out.startedAt)}',
+                        '${hasRoute ? "${(out.distanceMeters / 1000.0).toStringAsFixed(2)} km" : s.tr(eu: "Eskuzkoa", es: "Manual", en: "Manual")} · ${DateFormat('dd/MM/yyyy').format(out.startedAt)} · $outSpotsCount ${s.tr(eu: "perretxiko-leku", es: "setales", en: "spots")}',
                         style: const TextStyle(fontSize: 11),
                       ),
                       onChanged: (val) {
                         setState(() {
-                          _showAllRoutes = false;
+                          if (_showAllOutings) {
+                            _showAllOutings = false;
+                            _selectedOutingIds.clear();
+                            _selectedOutingIds
+                                .addAll(widget.allOutings.map((o) => o.id));
+                          }
                           if (val == true) {
-                            _selectedRouteOutingIds.add(out.id);
+                            _selectedOutingIds.add(out.id);
                           } else {
-                            _selectedRouteOutingIds.remove(out.id);
+                            _selectedOutingIds.remove(out.id);
                           }
                         });
                       },
                     );
-                  }).toList(),
-                ),
+                  }),
+                ],
               ),
-            ] else ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  s.tr(
-                    eu: 'Ez dago oraindik GPS ibilbidea duten irteerarik grabatuta.',
-                    es: 'No hay salidas con tracks GPS grabados todavía.',
-                    en: 'No outings with recorded GPS tracks yet.',
-                  ),
-                  style: const TextStyle(
-                      color: AutumnColors.textSecondary, fontSize: 12),
-                ),
-              ),
-            ],
+            ),
 
             const SizedBox(height: 20),
             SizedBox(
@@ -2628,9 +2631,9 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                   widget.onApply(
                     speciesFilter: _speciesFilter,
                     edibilityFilter: _edibilityFilter,
-                    spotFilterMode: _spotFilterMode,
-                    showAllRoutes: _showAllRoutes,
-                    selectedRouteOutingIds: _selectedRouteOutingIds,
+                    showAllOutings: _showAllOutings,
+                    showStandaloneSpots: _showStandaloneSpots,
+                    selectedOutingIds: _selectedOutingIds,
                   );
                 },
                 icon: const Icon(Icons.check_rounded),

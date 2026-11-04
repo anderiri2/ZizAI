@@ -10,6 +10,7 @@ import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
+import '../../map/presentation/widgets/foraging_spot_marker.dart';
 import '../data/outings_database.dart';
 import 'outings_screen.dart';
 
@@ -168,7 +169,7 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
         ),
         content: Text(
           s.tr(
-            eu: 'Ibilbidea eta bildutako ${outingSpots.length} setal gorde egingo dira zure historian.',
+            eu: 'Ibilbidea eta bildutako ${outingSpots.length} perretxiko-leku gorde egingo dira zure historian.',
             es: 'El recorrido y los ${outingSpots.length} setales anotados se guardarán permanentemente en tu historial.',
             en: 'The route and ${outingSpots.length} recorded spots will be saved to your history.',
           ),
@@ -209,6 +210,8 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
   Widget build(BuildContext context) {
     final activeState = ref.watch(activeOutingRecorderProvider);
     final allSpots = ref.watch(foragingSpotsProvider).valueOrNull ?? const [];
+    final allMushrooms =
+        ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     final lang = ref.watch(appLanguageProvider);
     final s = AppStrings(lang);
 
@@ -282,24 +285,10 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                             ),
                           );
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AutumnColors.mossGreen,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black38,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.eco_rounded,
-                            color: Colors.white,
-                            size: 22,
-                          ),
+                        child: ForagingSpotMarkerWidget(
+                          spot: spot,
+                          allMushrooms: allMushrooms,
+                          size: 38,
                         ),
                       ),
                     ),
@@ -480,12 +469,12 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                             Text(
                               activeState.isManual
                                   ? s.tr(
-                                      eu: 'Eskuzko modua (GPS gabe) · $totalSpecimens ale (${outingSpots.length} setal)',
+                                      eu: 'Eskuzko modua (GPS gabe) · $totalSpecimens ale (${outingSpots.length} perretxiko-leku)',
                                       es: 'Modo manual (sin GPS) · $totalSpecimens ej. (${outingSpots.length} setales)',
                                       en: 'Manual mode (no GPS) · $totalSpecimens spec. (${outingSpots.length} spots)',
                                     )
                                   : s.tr(
-                                      eu: '$km km ibilbidea · $totalSpecimens ale (${outingSpots.length} setal)',
+                                      eu: '$km km ibilbidea · $totalSpecimens ale (${outingSpots.length} perretxiko-leku)',
                                       es: '$km km de ruta · $totalSpecimens ej. (${outingSpots.length} setales)',
                                       en: '$km km route · $totalSpecimens spec. (${outingSpots.length} spots)',
                                     ),
@@ -622,7 +611,7 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                               size: 19),
                           label: Text(
                             s.tr(
-                              eu: 'Seta hemen',
+                              eu: 'Perretxikoa hemen',
                               es: 'Anotar aquí',
                               en: 'Spot here',
                             ),

@@ -1,7 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:perretxikotan/features/catalog/models/mushroom.dart';
+import 'package:perretxikotan/features/map/data/spots_database.dart';
 import 'package:perretxikotan/features/map/models/foraging_spot.dart';
+import 'package:perretxikotan/features/map/presentation/widgets/foraging_spot_marker.dart';
 import 'package:perretxikotan/features/outings/data/outings_database.dart';
 import 'package:perretxikotan/features/outings/models/foraging_outing.dart';
 
@@ -171,6 +175,119 @@ void main() {
           .toList();
       expect(visibleSelected.length, 1);
       expect(visibleSelected.first.id, 'outing_01');
+    });
+
+    testWidgets('ForagingSpotMarkerWidget renders pure quantity number without x and uses edibility badgeColor', (tester) async {
+      const mushroom = Mushroom(
+        id: 'boletus_edulis',
+        scientificName: 'Boletus edulis',
+        spanishName: 'Boletus',
+        basqueName: 'Onddo zuri',
+        family: 'Boletaceae',
+        edibility: EdibilityLevel.excellent,
+        edibilityLabel: 'Excelente',
+        season: 'Otoño',
+        habitat: 'Bosques',
+        summary: 'Comestible excelente',
+        morphology: MushroomMorphology(cap: '', hymenium: '', stem: '', flesh: ''),
+        confusions: [],
+        images: [],
+      );
+
+      final spot = ForagingSpot(
+        id: 'spot_test',
+        title: 'Boletus spot',
+        latitude: 43.0,
+        longitude: -2.5,
+        mushroomId: 'boletus_edulis',
+        notes: '',
+        foundAt: DateTime.now(),
+        quantityCount: 14,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ForagingSpotMarkerWidget(
+              spot: spot,
+              allMushrooms: const [mushroom],
+              size: 40,
+            ),
+          ),
+        ),
+      );
+
+      // Verify it renders '14' and NOT '14x'
+      expect(find.text('14'), findsOneWidget);
+      expect(find.text('14x'), findsNothing);
+
+      // Verify the container has EdibilityLevel.excellent badgeColor
+      final containerFinder = find.byType(Container).first;
+      final container = tester.widget<Container>(containerFinder);
+      final decoration = container.decoration as BoxDecoration;
+      expect(decoration.color, mushroom.edibility.badgeColor);
+    });
+
+    test('SpotsDatabase purgeOrphanedOutingSpots removes spots of deleted outings and legacy samples', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final spotsDb = SpotsDatabase();
+      final outingsDb = OutingsDatabase();
+
+      // Databases start completely empty without sample data
+      final initialOutings = await outingsDb.getAllOutings();
+      final initialSpots = await spotsDb.getAllSpots();
+      expect(initialOutings, isEmpty);
+      expect(initialSpots, isEmpty);
+
+      // Add an outing and its spot
+      final outing = ForagingOuting(
+        id: 'user_outing_1',
+        title: 'Mi salida en Gorbeia',
+        startedAt: DateTime.now(),
+        endedAt: DateTime.now(),
+        durationSeconds: 3600,
+        distanceMeters: 2000,
+        routePoints: const [],
+        notes: '',
+      );
+      await outingsDb.upsertOuting(outing);
+
+      final spot = ForagingSpot(
+        id: 'user_spot_1',
+        title: 'Níscalos',
+        latitude: 43.0,
+        longitude: -2.6,
+        notes: '',
+        foundAt: DateTime.now(),
+        outingId: 'user_outing_1',
+        quantityCount: 8,
+      );
+      await spotsDb.upsertSpot(spot);
+
+      final standaloneSpot = ForagingSpot(
+        id: 'standalone_spot_1',
+        title: 'Punto libre',
+        latitude: 43.1,
+        longitude: -2.7,
+        notes: '',
+        foundAt: DateTime.now(),
+        outingId: null,
+        quantityCount: 3,
+      );
+      await spotsDb.upsertSpot(standaloneSpot);
+
+      var currentSpots = await spotsDb.getAllSpots();
+      expect(currentSpots.length, 2);
+
+      // Now simulate deleting the outing: valid outings set is now empty
+      await outingsDb.deleteOuting('user_outing_1');
+      final validOutingIds = (await outingsDb.getAllOutings()).map((o) => o.id).toSet();
+      await spotsDb.purgeOrphanedOutingSpots(validOutingIds);
+
+      currentSpots = await spotsDb.getAllSpots();
+      // user_spot_1 was purged because its outing was deleted; standalone_spot_1 remains
+      expect(currentSpots.length, 1);
+      expect(currentSpots.first.id, 'standalone_spot_1');
     });
   });
 }
