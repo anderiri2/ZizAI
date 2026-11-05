@@ -91,9 +91,9 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         ),
                         Text(
                           s.tr(
-                            eu: 'Google Drive pertsonala (WhatsApp erara) • %100 pribatua',
-                            es: 'Google Drive personal (estilo WhatsApp) • 100% sin servidor propio',
-                            en: 'Personal Google Drive (WhatsApp style) • 100% private',
+                            eu: 'Google Drive pertsonala • %100 pribatua eta segurua',
+                            es: 'Google Drive personal • 100% privado y seguro',
+                            en: 'Personal Google Drive • 100% private and secure',
                           ),
                           style: const TextStyle(
                             color: AutumnColors.textSecondary,
