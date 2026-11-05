@@ -325,6 +325,11 @@ class Mushroom {
     }
   }
 
+  String latinWithCommon(AppLanguage lang) {
+    final common = displayNameFor(lang);
+    return common.isNotEmpty ? '$scientificName ($common)' : scientificName;
+  }
+
   String secondaryNamesFor(AppLanguage lang) {
     switch (lang) {
       case AppLanguage.eu:

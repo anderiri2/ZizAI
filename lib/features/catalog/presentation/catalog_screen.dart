@@ -490,13 +490,9 @@ class _MushroomCatalogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTitle = switch (sortMode) {
-      CatalogSortMode.basque => mushroom.basqueName,
-      CatalogSortMode.spanish => mushroom.spanishName,
-      CatalogSortMode.english => mushroom.commonNameEn,
-      CatalogSortMode.scientific => mushroom.scientificName,
-    };
-
+    // El nombre científico en latín es el primer nombre visible
+    final latinTitle = mushroom.scientificName;
+    final commonTitle = mushroom.displayNameFor(lang);
     final secondaryTitle = mushroom.secondaryNamesFor(lang);
 
     return Card(
@@ -595,13 +591,25 @@ class _MushroomCatalogCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      primaryTitle,
+                      latinTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
+                        fontStyle: FontStyle.italic,
                         color: AutumnColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      commonTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12.8,
+                        fontWeight: FontWeight.w700,
+                        color: AutumnColors.mossGreen,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -610,22 +618,11 @@ class _MushroomCatalogCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12.2,
-                        fontWeight: FontWeight.w600,
-                        color: AutumnColors.mossGreen,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: AutumnColors.textMuted,
                       ),
                     ),
-                    if (sortMode != CatalogSortMode.scientific)
-                      Text(
-                        mushroom.scientificName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: AutumnColors.textMuted,
-                        ),
-                      ),
                     const SizedBox(height: 6),
                     Row(
                       children: [

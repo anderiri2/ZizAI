@@ -268,9 +268,9 @@ class AppStrings {
       );
 
   String get searchHint => tr(
-        eu: 'Bilatu euskaraz (Gorringo, Ontto...), gaztelaniaz, ingelesez edo latinez...',
-        es: 'Buscar por euskera (Gorringo, Ontto...), castellano, inglés o latín...',
-        en: 'Search by Basque (Gorringo, Ontto...), Spanish, English, or Latin...',
+        eu: 'Bilatu latinez (Boletus, Amanita...), euskaraz edo gaztelaniaz...',
+        es: 'Buscar por nombre científico (Boletus, Amanita...), castellano o euskera...',
+        en: 'Search by scientific name (Boletus, Amanita...), Basque or Spanish...',
       );
 
   String get filterAll => tr(eu: 'Guztiak', es: 'Todas', en: 'All');

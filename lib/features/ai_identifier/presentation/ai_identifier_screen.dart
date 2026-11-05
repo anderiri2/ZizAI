@@ -925,15 +925,16 @@ class _ChatBubbleItem extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    m.displayNameFor(currentLang),
+                                    m.scientificName,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w800,
+                                      fontStyle: FontStyle.italic,
                                       fontSize: 13,
                                       color: AutumnColors.boletusBrown,
                                     ),
                                   ),
                                   Text(
-                                    '${m.scientificName} • ${m.edibility.labelFor(currentLang)}',
+                                    '${m.displayNameFor(currentLang)} • ${m.edibility.labelFor(currentLang)}',
                                     style: TextStyle(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w600,

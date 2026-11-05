@@ -244,14 +244,25 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    m.displayNameFor(lang),
+                    m.scientificName,
                     style:
                         Theme.of(context).textTheme.headlineMedium?.copyWith(
                               color: AutumnColors.boletusBrown,
+                              fontWeight: FontWeight.w800,
+                              fontStyle: FontStyle.italic,
                               height: 1.15,
                             ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
+                  Text(
+                    m.displayNameFor(lang),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AutumnColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -313,25 +324,6 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AutumnColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AutumnColors.creamCard,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          m.scientificName,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w600,
                             color: AutumnColors.textSecondary,
                           ),
                         ),
@@ -595,19 +587,20 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                                       ),
                                       const SizedBox(height: 5),
                                       Text(
-                                        conf.commonName,
+                                        conf.scientificName,
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: FontWeight.w800,
+                                          fontStyle: FontStyle.italic,
                                           fontSize: 15.5,
                                           color: AutumnColors.textPrimary,
                                         ),
                                       ),
                                       Text(
-                                        conf.scientificName,
+                                        conf.commonName,
                                         style: const TextStyle(
-                                          fontStyle: FontStyle.italic,
+                                          fontWeight: FontWeight.w600,
                                           fontSize: 13,
-                                          color: AutumnColors.textSecondary,
+                                          color: AutumnColors.mossGreen,
                                         ),
                                       ),
                                     ],

@@ -1474,11 +1474,7 @@ class _OutingSummaryCard extends StatelessWidget {
                         .where((m) => m.id == item.mushroomId)
                         .firstOrNull;
                     final itemMushroomName = matchedMushroom != null
-                        ? (lang == AppLanguage.eu
-                            ? matchedMushroom.basqueName
-                            : (lang == AppLanguage.en
-                                ? matchedMushroom.englishName
-                                : matchedMushroom.spanishName))
+                        ? matchedMushroom.scientificName
                         : item.mushroomName;
                     final weightPart = item.totalWeightGrams > 0
                         ? ' (${item.totalWeightGrams}g)'
@@ -2069,11 +2065,7 @@ class OutingDetailScreen extends ConsumerWidget {
                 .where((m) => m.id == item.mushroomId)
                 .firstOrNull;
             final mName = mushroom != null
-                ? (lang == AppLanguage.eu
-                    ? mushroom.basqueName
-                    : (lang == AppLanguage.en
-                        ? mushroom.englishName
-                        : mushroom.spanishName))
+                ? '${mushroom.scientificName} (${mushroom.displayNameFor(lang)})'
                 : item.mushroomName;
 
             return Card(
@@ -2191,11 +2183,7 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
           .where((m) => m.id == 'boletus_edulis')
           .firstOrNull ??
           widget.catalogMushrooms.first;
-      final mName = lang == AppLanguage.eu
-          ? _selectedMushroom!.basqueName.split('/').first.trim()
-          : (lang == AppLanguage.en
-              ? _selectedMushroom!.englishName
-              : _selectedMushroom!.spanishName);
+      final mName = _selectedMushroom!.latinWithCommon(lang);
       _titleCtrl.text =
           '${s.tr(eu: "Aurkikuntza", es: "Hallazgo de", en: "Find of")}: $mName';
     }
@@ -2245,17 +2233,16 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
                 ),
                 prefixIcon: const Icon(Icons.eco_rounded),
               ),
-              items: widget.catalogMushrooms.map((m) {
-                final mTitle = lang == AppLanguage.eu
-                    ? m.basqueName
-                    : (lang == AppLanguage.en ? m.englishName : m.spanishName);
-                final mSubtitle = lang == AppLanguage.eu
-                    ? m.spanishName
-                    : m.scientificName;
+              items: (List<Mushroom>.from(widget.catalogMushrooms)
+                    ..sort((a, b) => a.scientificName
+                        .toLowerCase()
+                        .compareTo(b.scientificName.toLowerCase())))
+                  .map((m) {
+                final commonName = m.displayNameFor(lang);
                 return DropdownMenuItem(
                   value: m,
                   child: Text(
-                    '$mTitle · $mSubtitle',
+                    '${m.scientificName} · $commonName',
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
@@ -2264,9 +2251,7 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
                 setState(() {
                   _selectedMushroom = m;
                   if (m != null) {
-                    final mName = lang == AppLanguage.eu
-                        ? m.basqueName.split('/').first.trim()
-                        : (lang == AppLanguage.en ? m.englishName : m.spanishName);
+                    final mName = m.latinWithCommon(lang);
                     _titleCtrl.text =
                         '${s.tr(eu: "Aurkikuntza", es: "Hallazgo de", en: "Find of")}: $mName';
                   }

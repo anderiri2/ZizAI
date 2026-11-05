@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:perretxikotan/core/localization/app_localizations.dart';
+import 'package:perretxikotan/features/catalog/data/catalog_repository.dart';
 import 'package:perretxikotan/features/catalog/models/mushroom.dart';
 import 'package:perretxikotan/features/map/data/spots_database.dart';
 import 'package:perretxikotan/features/map/models/foraging_spot.dart';
@@ -288,6 +291,47 @@ void main() {
       // user_spot_1 was purged because its outing was deleted; standalone_spot_1 remains
       expect(currentSpots.length, 1);
       expect(currentSpots.first.id, 'standalone_spot_1');
+    });
+
+    test('Mushroom latinWithCommon formats scientific name in front of localized name', () {
+      const mushroom = Mushroom(
+        id: 'boletus_edulis',
+        scientificName: 'Boletus edulis',
+        spanishName: 'Boleto comestible',
+        basqueName: 'Ontto zuri',
+        englishName: 'Penny bun',
+        family: 'Boletaceae',
+        edibility: EdibilityLevel.excellent,
+        edibilityLabel: 'Excelente comestible',
+        season: 'Otoño',
+        habitat: 'Bosques',
+        summary: 'Seta muy apreciada',
+        morphology: MushroomMorphology(cap: '', hymenium: '', stem: '', flesh: ''),
+        confusions: [],
+        images: ['assets/images/logo_perretxikotan.png'],
+      );
+
+      expect(mushroom.latinWithCommon(AppLanguage.eu), 'Boletus edulis (Ontto zuri)');
+      expect(mushroom.latinWithCommon(AppLanguage.es), 'Boletus edulis (Boleto comestible)');
+      expect(mushroom.latinWithCommon(AppLanguage.en), 'Boletus edulis (Penny bun)');
+    });
+
+    test('catalogSortModeProvider defaults to scientific (Latin A-Z)', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final defaultSort = container.read(catalogSortModeProvider);
+      expect(defaultSort, CatalogSortMode.scientific);
+    });
+
+    test('Manual coordinate string parser splits comma and whitespace correctly', () {
+      const input = '43.12345, -2.56789';
+      final parts = input.split(RegExp(r'[,;\s]+'));
+      expect(parts.length, 2);
+      final lat = double.tryParse(parts[0].replaceAll(',', '.'));
+      final lng = double.tryParse(parts[1].replaceAll(',', '.'));
+      expect(lat, closeTo(43.12345, 0.00001));
+      expect(lng, closeTo(-2.56789, 0.00001));
     });
   });
 }

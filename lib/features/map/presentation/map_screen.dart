@@ -750,11 +750,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                                 _selectedMushroomSpeciesFilter)
                                             .firstOrNull;
                                         final label = m != null
-                                            ? (lang == AppLanguage.eu
-                                                ? m.basqueName.split('/').first.trim()
-                                                : (lang == AppLanguage.es
-                                                    ? m.spanishName
-                                                    : m.commonNameEn))
+                                            ? m.scientificName
                                             : s.tr(eu: 'Perretxikoa', es: 'Seta', en: 'Mushroom');
                                         return _ActiveFilterTag(
                                           icon: Icons.eco_rounded,
@@ -947,7 +943,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                 ),
                               ),
                               Text(
-                                '${_pendingMushroomToPlace!.displayNameFor(s.lang)} (${_pendingMushroomToPlace!.scientificName})',
+                                '${_pendingMushroomToPlace!.scientificName} (${_pendingMushroomToPlace!.displayNameFor(s.lang)})',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -1423,6 +1419,7 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
   String? _selectedMushroomId;
   String? _selectedMushroomName;
   String? _photoPath;
+  bool _isLoadingGps = false;
 
   @override
   void initState() {
@@ -1431,10 +1428,10 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     final pre = widget.preselectedMushroom;
     final defaultTitle = pre != null
         ? (widget.lang == AppLanguage.eu
-            ? '${pre.basqueName.split('/').first.trim()} lekua'
+            ? '${pre.scientificName} lekua'
             : (widget.lang == AppLanguage.es
-                ? 'Setal de ${pre.spanishName.split('/').first.trim()}'
-                : 'Spot of ${pre.commonNameEn}'))
+                ? 'Setal de ${pre.scientificName}'
+                : 'Spot of ${pre.scientificName}'))
         : '';
 
     _titleController = TextEditingController(
@@ -1458,14 +1455,77 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     _selectedDate = existing?.foundAt ?? DateTime.now();
     _selectedMushroomId = existing?.mushroomId ?? pre?.id;
     _selectedMushroomName = existing?.mushroomName ??
-        (pre != null
-            ? (widget.lang == AppLanguage.eu
-                ? pre.basqueName
-                : (widget.lang == AppLanguage.es
-                    ? pre.spanishName
-                    : pre.commonNameEn))
-            : null);
+        pre?.latinWithCommon(widget.lang);
     _photoPath = existing?.photoPath ?? widget.preselectedPhotoPath;
+  }
+
+  void _onCoordinateChanged(String val, bool isLatitude) {
+    final trimmed = val.trim();
+    if (trimmed.contains(',') ||
+        trimmed.contains(';') ||
+        (trimmed.contains(' ') &&
+            trimmed.split(RegExp(r'\s+')).length >= 2)) {
+      final parts = trimmed.split(RegExp(r'[,;\s]+'));
+      if (parts.length >= 2) {
+        final parsedLat = double.tryParse(parts[0].replaceAll(',', '.'));
+        final parsedLng = double.tryParse(parts[1].replaceAll(',', '.'));
+        if (parsedLat != null && parsedLng != null) {
+          setState(() {
+            _latController.text = parsedLat.toStringAsFixed(5);
+            _lngController.text = parsedLng.toStringAsFixed(5);
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _fillCurrentGpsLocation() async {
+    setState(() => _isLoadingGps = true);
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppStrings(widget.lang).tr(
+                  eu: 'Kokapen-zerbitzua desgaituta dago',
+                  es: 'El servicio de ubicación está desactivado',
+                  en: 'Location service is disabled',
+                ),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 8),
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          _latController.text = pos.latitude.toStringAsFixed(5);
+          _lngController.text = pos.longitude.toStringAsFixed(5);
+        });
+      }
+    } catch (_) {
+      // Ignorar excepción o timeout
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingGps = false);
+      }
+    }
   }
 
   @override
@@ -1533,11 +1593,14 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             final q = filterQuery.trim().toLowerCase();
             final list = widget.catalogMushrooms.where((m) {
               if (q.isEmpty) return true;
-              return m.spanishName.toLowerCase().contains(q) ||
+              return m.scientificName.toLowerCase().contains(q) ||
+                  m.spanishName.toLowerCase().contains(q) ||
                   m.basqueName.toLowerCase().contains(q) ||
-                  m.scientificName.toLowerCase().contains(q) ||
                   m.commonNameEn.toLowerCase().contains(q);
-            }).toList();
+            }).toList()
+              ..sort((a, b) => a.scientificName
+                  .toLowerCase()
+                  .compareTo(b.scientificName.toLowerCase()));
 
             return DraggableScrollableSheet(
               expand: false,
@@ -1567,9 +1630,9 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                         onChanged: (v) => setModalState(() => filterQuery = v),
                         decoration: InputDecoration(
                           hintText: s.tr(
-                            eu: 'Bilatu euskaraz, gaztelaniaz edo zientifikoki...',
-                            es: 'Buscar por castellano, euskera o científico...',
-                            en: 'Search by common or scientific name...',
+                            eu: 'Bilatu izen zientifikoz, euskaraz edo gaztelaniaz...',
+                            es: 'Buscar por nombre científico, euskera o castellano...',
+                            en: 'Search by scientific, Basque or Spanish name...',
                           ),
                           prefixIcon: const Icon(Icons.search_rounded),
                         ),
@@ -1581,14 +1644,12 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                           itemCount: list.length,
                           itemBuilder: (context, idx) {
                             final m = list[idx];
-                            final primaryTitle = widget.lang == AppLanguage.eu
-                                ? m.basqueName
-                                : (widget.lang == AppLanguage.es
-                                    ? m.spanishName
-                                    : m.commonNameEn);
-                            final secondaryTitle = widget.lang == AppLanguage.eu
-                                ? '${m.spanishName} · ${m.scientificName}'
-                                : '${m.basqueName} · ${m.scientificName}';
+                            final primaryTitle = m.scientificName;
+                            final commonName = m.displayNameFor(widget.lang);
+                            final otherName = widget.lang == AppLanguage.eu
+                                ? m.spanishName
+                                : m.basqueName;
+                            final secondaryTitle = '$commonName ($otherName)';
                             return ListTile(
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
@@ -1602,13 +1663,18 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                               title: Text(
                                 primaryTitle,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
+                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
                               subtitle: Text(
                                 secondaryTitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AutumnColors.mossGreen,
+                                ),
                               ),
                               onTap: () => Navigator.of(ctx).pop(m),
                             );
@@ -1628,17 +1694,13 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     if (chosen != null) {
       setState(() {
         _selectedMushroomId = chosen.id;
-        _selectedMushroomName = widget.lang == AppLanguage.eu
-            ? chosen.basqueName
-            : (widget.lang == AppLanguage.es
-                ? chosen.spanishName
-                : chosen.commonNameEn);
+        _selectedMushroomName = chosen.latinWithCommon(widget.lang);
         if (_titleController.text.trim().isEmpty) {
           _titleController.text = widget.lang == AppLanguage.eu
-              ? '${chosen.basqueName.split('/').first.trim()} lekua'
+              ? '${chosen.scientificName} lekua'
               : (widget.lang == AppLanguage.es
-                  ? 'Setal de ${chosen.spanishName.split('/').first.trim()}'
-                  : 'Spot of ${chosen.commonNameEn}');
+                  ? 'Setal de ${chosen.scientificName}'
+                  : 'Spot of ${chosen.scientificName}');
         }
       });
     }
@@ -1894,99 +1956,203 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             ),
             const SizedBox(height: 12),
 
+            // SECCIÓN: COORDENADAS GEOESPACIALES (MANUAL / GPS / MAPA)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AutumnColors.ochreGold.withValues(alpha: 0.12),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AutumnColors.ochreGold.withValues(alpha: 0.5),
+                  color: AutumnColors.warmSand,
                   width: 1.2,
                 ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.pin_drop_rounded,
-                    color: AutumnColors.terracotta,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.pin_drop_rounded,
+                        color: AutumnColors.terracotta,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
                           s.tr(
-                            eu: 'Kokapen Geografikoa (GPS)',
-                            es: 'Coordenadas Geográficas GPS',
-                            en: 'Geographical Coordinates (GPS)',
+                            eu: 'Koordenatu Geoespazialak (GPS / Eskuz)',
+                            es: 'Coordenadas Geoespaciales (GPS / Manual)',
+                            en: 'Geospatial Coordinates (GPS / Manual)',
                           ),
                           style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AutumnColors.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          '${double.tryParse(_latController.text)?.toStringAsFixed(5) ?? _latController.text}, ${double.tryParse(_lngController.text)?.toStringAsFixed(5) ?? _lngController.text}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
                             color: AutumnColors.boletusBrown,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AutumnColors.terracotta,
-                      side: const BorderSide(
-                          color: AutumnColors.terracotta, width: 1.2),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
                       ),
-                    ),
-                    onPressed: () async {
-                      final currentLat = double.tryParse(_latController.text) ??
-                          widget.initialLatLng.latitude;
-                      final currentLng = double.tryParse(_lngController.text) ??
-                          widget.initialLatLng.longitude;
-                      final picked =
-                          await Navigator.of(context).push<LatLng>(
-                        MaterialPageRoute(
-                          builder: (_) => MapSpotPickerScreen(
-                            outingId: widget.activeOutingId ?? '',
-                            outingTitle: widget.activeOutingTitle ??
-                                s.tr(
-                                  eu: 'Perretxiko-lekua',
-                                  es: 'Setal',
-                                  en: 'Spot',
-                                ),
-                            initialCenter: LatLng(currentLat, currentLng),
-                            pickCoordinatesOnly: true,
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _latController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            signed: true,
+                            decimal: true,
+                          ),
+                          onChanged: (v) => _onCoordinateChanged(v, true),
+                          decoration: InputDecoration(
+                            labelText: s.tr(
+                              eu: 'Latitudea',
+                              es: 'Latitud',
+                              en: 'Latitude',
+                            ),
+                            prefixIcon: const Icon(Icons.north_rounded, size: 16),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
                           ),
                         ),
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          _latController.text =
-                              picked.latitude.toStringAsFixed(5);
-                          _lngController.text =
-                              picked.longitude.toStringAsFixed(5);
-                        });
-                      }
-                    },
-                    icon:
-                        const Icon(Icons.edit_location_alt_rounded, size: 16),
-                    label: Text(
-                      s.tr(eu: 'Ajustatu', es: 'Ajustar', en: 'Adjust'),
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w700),
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _lngController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            signed: true,
+                            decimal: true,
+                          ),
+                          onChanged: (v) => _onCoordinateChanged(v, false),
+                          decoration: InputDecoration(
+                            labelText: s.tr(
+                              eu: 'Longitudea',
+                              es: 'Longitud',
+                              en: 'Longitude',
+                            ),
+                            prefixIcon: const Icon(Icons.east_rounded, size: 16),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AutumnColors.terracotta,
+                            side: const BorderSide(
+                              color: AutumnColors.terracotta,
+                              width: 1.1,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 7,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final currentLat = double.tryParse(
+                                    _latController.text.replaceAll(',', '.')) ??
+                                widget.initialLatLng.latitude;
+                            final currentLng = double.tryParse(
+                                    _lngController.text.replaceAll(',', '.')) ??
+                                widget.initialLatLng.longitude;
+                            final picked =
+                                await Navigator.of(context).push<LatLng>(
+                              MaterialPageRoute(
+                                builder: (_) => MapSpotPickerScreen(
+                                  outingId: widget.activeOutingId ?? '',
+                                  outingTitle: widget.activeOutingTitle ??
+                                      s.tr(
+                                        eu: 'Perretxiko-lekua',
+                                        es: 'Setal',
+                                        en: 'Spot',
+                                      ),
+                                  initialCenter: LatLng(currentLat, currentLng),
+                                  pickCoordinatesOnly: true,
+                                ),
+                              ),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _latController.text =
+                                    picked.latitude.toStringAsFixed(5);
+                                _lngController.text =
+                                    picked.longitude.toStringAsFixed(5);
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.edit_location_alt_rounded,
+                              size: 15),
+                          label: Text(
+                            s.tr(
+                              eu: 'Mapan Kokatu',
+                              es: 'Ajustar en Mapa',
+                              en: 'Adjust on Map',
+                            ),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AutumnColors.mossGreen,
+                            side: const BorderSide(
+                              color: AutumnColors.mossGreen,
+                              width: 1.1,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 7,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed:
+                              _isLoadingGps ? null : _fillCurrentGpsLocation,
+                          icon: _isLoadingGps
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.my_location_rounded, size: 15),
+                          label: Text(
+                            s.tr(
+                              eu: 'Uneko GPSa',
+                              es: 'GPS Actual',
+                              en: 'Current GPS',
+                            ),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -2182,11 +2348,14 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
             final q = searchQuery.trim().toLowerCase();
             final list = widget.allMushrooms.where((m) {
               if (q.isEmpty) return true;
-              return m.spanishName.toLowerCase().contains(q) ||
+              return m.scientificName.toLowerCase().contains(q) ||
+                  m.spanishName.toLowerCase().contains(q) ||
                   m.basqueName.toLowerCase().contains(q) ||
-                  m.scientificName.toLowerCase().contains(q) ||
                   m.commonNameEn.toLowerCase().contains(q);
-            }).toList();
+            }).toList()
+              ..sort((a, b) => a.scientificName
+                  .toLowerCase()
+                  .compareTo(b.scientificName.toLowerCase()));
 
             return DraggableScrollableSheet(
               expand: false,
@@ -2225,9 +2394,9 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                         autofocus: true,
                         decoration: InputDecoration(
                           hintText: s.tr(
-                            eu: 'Bilatu euskaraz, gaztelaniaz edo zientifikoki...',
-                            es: 'Buscar por castellano, euskera o científico...',
-                            en: 'Search by common or scientific name...',
+                            eu: 'Bilatu izen zientifikoz, euskaraz edo gaztelaniaz...',
+                            es: 'Buscar por nombre científico, euskera o castellano...',
+                            en: 'Search by scientific, Basque or Spanish name...',
                           ),
                           prefixIcon: const Icon(Icons.search_rounded),
                           border: OutlineInputBorder(
@@ -2246,14 +2415,12 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                               const Divider(height: 1),
                           itemBuilder: (ctx, i) {
                             final m = list[i];
-                            final primaryTitle = widget.lang == AppLanguage.eu
-                                ? m.basqueName
-                                : (widget.lang == AppLanguage.es
-                                    ? m.spanishName
-                                    : m.commonNameEn);
-                            final secondaryTitle = widget.lang == AppLanguage.eu
-                                ? '${m.spanishName} · ${m.scientificName}'
-                                : '${m.basqueName} · ${m.scientificName}';
+                            final primaryTitle = m.scientificName;
+                            final commonName = m.displayNameFor(widget.lang);
+                            final otherName = widget.lang == AppLanguage.eu
+                                ? m.spanishName
+                                : m.basqueName;
+                            final secondaryTitle = '$commonName ($otherName)';
                             return ListTile(
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
@@ -2267,12 +2434,18 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                               title: Text(
                                 primaryTitle,
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.w700),
+                                  fontWeight: FontWeight.w800,
+                                  fontStyle: FontStyle.italic,
+                                ),
                               ),
                               subtitle: Text(
                                 secondaryTitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AutumnColors.mossGreen,
+                                ),
                               ),
                               onTap: () => Navigator.of(ctx).pop(m),
                             );
@@ -2426,18 +2599,14 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.lang == AppLanguage.eu
-                                ? chosenMushroom.basqueName
-                                : (widget.lang == AppLanguage.es
-                                    ? chosenMushroom.spanishName
-                                    : chosenMushroom.commonNameEn),
+                            chosenMushroom.scientificName,
                             style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13),
+                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.italic,
+                                fontSize: 13),
                           ),
                           Text(
-                            widget.lang == AppLanguage.eu
-                                ? chosenMushroom.spanishName
-                                : chosenMushroom.basqueName,
+                            '${chosenMushroom.displayNameFor(widget.lang)} (${widget.lang == AppLanguage.eu ? chosenMushroom.spanishName : chosenMushroom.basqueName})',
                             style: const TextStyle(
                                 fontSize: 11,
                                 color: AutumnColors.textSecondary),

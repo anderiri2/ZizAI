@@ -149,9 +149,9 @@ final allMushroomsProvider = FutureProvider<List<Mushroom>>((ref) async {
 
 final catalogSearchQueryProvider = StateProvider<String>((ref) => '');
 
-/// Defaults to Basque (`CatalogSortMode.basque`) as primary language of the app.
+/// Defaults to Scientific/Latin (`CatalogSortMode.scientific`) as primary taxonomy of the catalog.
 final catalogSortModeProvider =
-    StateProvider<CatalogSortMode>((ref) => CatalogSortMode.basque);
+    StateProvider<CatalogSortMode>((ref) => CatalogSortMode.scientific);
 
 final catalogCategoryFilterProvider =
     StateProvider<CatalogCategoryFilter>((ref) => CatalogCategoryFilter.all);
