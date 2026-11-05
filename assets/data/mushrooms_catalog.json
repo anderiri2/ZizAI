@@ -2438,7 +2438,7 @@
     "images": [
       "assets/images/mushrooms/craterellus_cinereus_1.jpg"
     ],
-    "englishName": "Craterellus cinereus (Cantharellus cinereus) (Saltsa-perretxiko errauts-kolorea)",
+    "englishName": "Ashen chanterelle",
     "edibilityLabelEu": "Jangarri bikaina",
     "edibilityLabelEn": "Choice edible",
     "seasonEu": "Udazkena",
@@ -2485,7 +2485,7 @@
         "riskLevel": "excellent",
         "difference": "También excelente comestible; presenta pliegues decurrentes bien marcados en la cara exterior.",
         "commonNameEu": "Saltsa-perretxiko errauts-kolorea",
-        "commonNameEn": "Craterellus cinereus (Cantharellus cinereus) (Saltsa-perretxiko errauts-kolorea)",
+        "commonNameEn": "Ashen chanterelle",
         "differenceEu": "Jangarri bikaina hura ere, baina tolestura argiak ditu kanpoaldean.",
         "differenceEn": "Also a choice edible, but has well-formed distinct veins/ridges on the fertile surface."
       }
@@ -2550,7 +2550,7 @@
       "assets/images/mushrooms/craterellus_lutescens_1.jpg",
       "assets/images/mushrooms/craterellus_lutescens_2.jpg"
     ],
-    "englishName": "Craterellus lutescens (Cantharellus lutescens) (Saltsa-perretxiko horiluna)",
+    "englishName": "Yellow foot (Golden chanterelle)",
     "edibilityLabelEu": "Jangarri bikaina",
     "edibilityLabelEn": "Choice edible",
     "seasonEu": "Udazkenetik neguaren bihotzera",
@@ -5327,7 +5327,7 @@
   },
   {
     "id": "neoboletus_erythropus",
-    "scientificName": "Neoboletus luridiformis (Boletus erythropus)",
+    "scientificName": "Boletus erythropus (Neoboletus luridiformis)",
     "spanishName": "Boleto de pie rojo / Mataparientes",
     "basqueName": "Onddo hankagorria",
     "family": "Boletaceae",
@@ -5370,7 +5370,7 @@
       "assets/images/mushrooms/neoboletus_erythropus_1.jpg",
       "assets/images/mushrooms/neoboletus_erythropus_2.jpg"
     ],
-    "englishName": "Neoboletus luridiformis (Boletus erythropus) (Onddo hankagorria)",
+    "englishName": "Scarletina bolete (Red-foot bolete)",
     "edibilityLabelEu": "Jangarria kontuz (ondo prestatuta)",
     "edibilityLabelEn": "Edible with caution",
     "seasonEu": "Udaberritik udazkenera",
@@ -5804,12 +5804,12 @@
     "confusions": [
       {
         "mushroomId": "neoboletus_erythropus",
-        "scientificName": "Neoboletus luridiformis (Boletus erythropus)",
+        "scientificName": "Boletus erythropus (Neoboletus luridiformis)",
         "commonName": "Boleto de pie rojo / Mataparientes",
         "riskLevel": "caution",
-        "difference": "Neoboletus luridiformis tiene el sombrero marrón oscuro aterciopelado (nunca blanco-gris), pie punteado sin red y carne amarillo vivo.",
+        "difference": "Boletus erythropus tiene el sombrero marrón oscuro aterciopelado (nunca blanco-gris), pie punteado sin red y carne amarillo vivo.",
         "commonNameEu": "Onddo hankagorria",
-        "commonNameEn": "Neoboletus luridiformis (Boletus erythropus) (Onddo hankagorria)",
+        "commonNameEn": "Scarletina bolete",
         "differenceEu": "Txapel marroi ilun belusduna du (inoiz ez zuria), oinean ez du sarerik eta bere haragia berehala urdin sakon bihurtzen da.",
         "differenceEn": "Has a dark velvety-brown cap (never chalky white), lacks a stem net, and flesh turns instantly deep indigo-blue."
       }
@@ -5874,7 +5874,7 @@
       "assets/images/mushrooms/russula_aurea_1.jpg",
       "assets/images/mushrooms/russula_aurea_2.jpg"
     ],
-    "englishName": "Russula aurea (Russula aurata) (Urre-gibelurdina)",
+    "englishName": "Gilded brittlegill",
     "edibilityLabelEu": "Jangarri bikaina",
     "edibilityLabelEn": "Choice edible",
     "seasonEu": "Udan eta udazkenean",
@@ -6499,7 +6499,7 @@
     "images": [
       "assets/images/mushrooms/suillus_bovinus_1.jpg"
     ],
-    "englishName": "Suillus bovinus (Behi-onddoa)",
+    "englishName": "Bovine bolete (Jersey cow mushroom)",
     "edibilityLabelEu": "Jangarria kontuz (ondo prestatuta)",
     "edibilityLabelEn": "Edible with caution",
     "seasonEu": "Uda amaiera eta udazkena",
@@ -7054,7 +7054,7 @@
       "assets/images/mushrooms/tylopilus_felleus_1.jpg",
       "assets/images/mushrooms/tylopilus_felleus_2.jpg"
     ],
-    "englishName": "Tylopilus felleus (Behazun-onddoa)",
+    "englishName": "Bitter bolete",
     "edibilityLabelEu": "Balio kulinariorik gabea",
     "edibilityLabelEn": "Inedible",
     "seasonEu": "Uda eta udazkena",
