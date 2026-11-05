@@ -202,7 +202,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         userDisplayName: account.displayName ?? account.email,
         userPhotoUrl: account.photoUrl,
         statusMessage:
-            'Conectado como ${account.email} (Google Drive + IA Gemini activos).',
+            'Conectado como ${account.email} (Google Drive activo).',
       );
       return true;
     } catch (e) {

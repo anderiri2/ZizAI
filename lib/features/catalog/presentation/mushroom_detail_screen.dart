@@ -596,7 +596,9 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                                         ),
                                       ),
                                       Text(
-                                        conf.commonName,
+                                        targetMushroom != null
+                                            ? targetMushroom.displayNameFor(lang)
+                                            : conf.commonNameFor(lang),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
@@ -610,7 +612,7 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              '${s.tr(eu: 'Nola bereizi', es: 'Cómo diferenciarla', en: 'How to distinguish')}: ${conf.difference}',
+                              '${s.tr(eu: 'Nola bereizi', es: 'Cómo diferenciarla', en: 'How to distinguish')}: ${conf.differenceFor(lang)}',
                               style: const TextStyle(
                                 fontSize: 13.8,
                                 height: 1.42,

@@ -39,7 +39,7 @@ enum EdibilityLevel {
           case EdibilityLevel.good:
             return 'Jangarri ona';
           case EdibilityLevel.caution:
-            return 'Jangarria kontuz';
+            return 'Jangarria kontuz (ondo prestatuta)';
           case EdibilityLevel.nonEdible:
             return 'Balio kulinariorik gabea';
           case EdibilityLevel.toxic:
@@ -196,12 +196,24 @@ class MushroomMorphology {
     required this.flesh,
   });
 
+  static String _cleanPrefix(String text) {
+    return text
+        .replaceFirst(
+          RegExp(
+            r'^(Txapela|Himenioa(\s*/\s*Orriak)?|Hanka(\s*/\s*Oina)?|Haragia(\s*/\s*Mamia)?|Sombrero|Himenio|Pie|Carne|Cap|Hymenium(\s*/\s*[A-Za-z\-]+)?|Stem(\s*/\s*[A-Za-z\-]+)?|Flesh(\s*&\s*[A-Za-z\-]+)?)\s*:\s*',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .trim();
+  }
+
   factory MushroomMorphology.fromJson(Map<String, dynamic> json) {
     return MushroomMorphology(
-      cap: json['cap'] as String? ?? '',
-      hymenium: json['hymenium'] as String? ?? '',
-      stem: json['stem'] as String? ?? '',
-      flesh: json['flesh'] as String? ?? '',
+      cap: _cleanPrefix(json['cap'] as String? ?? ''),
+      hymenium: _cleanPrefix(json['hymenium'] as String? ?? ''),
+      stem: _cleanPrefix(json['stem'] as String? ?? ''),
+      flesh: _cleanPrefix(json['flesh'] as String? ?? ''),
     );
   }
 }
@@ -210,15 +222,23 @@ class MushroomConfusion {
   final String mushroomId;
   final String scientificName;
   final String commonName;
+  final String commonNameEu;
+  final String commonNameEn;
   final EdibilityLevel riskLevel;
   final String difference;
+  final String differenceEu;
+  final String differenceEn;
 
   const MushroomConfusion({
     required this.mushroomId,
     required this.scientificName,
     required this.commonName,
+    this.commonNameEu = '',
+    this.commonNameEn = '',
     required this.riskLevel,
     required this.difference,
+    this.differenceEu = '',
+    this.differenceEn = '',
   });
 
   factory MushroomConfusion.fromJson(Map<String, dynamic> json) {
@@ -228,11 +248,15 @@ class MushroomConfusion {
       scientificName: json['scientificName'] as String? ?? '',
       commonName:
           json['commonName'] as String? ?? json['speciesName'] as String? ?? '',
+      commonNameEu: json['commonNameEu'] as String? ?? '',
+      commonNameEn: json['commonNameEn'] as String? ?? '',
       riskLevel: EdibilityLevel.fromString(
         json['riskLevel'] as String? ?? json['edibilityWarning'] as String? ?? '',
       ),
       difference:
           json['difference'] as String? ?? json['differences'] as String? ?? '',
+      differenceEu: json['differenceEu'] as String? ?? '',
+      differenceEn: json['differenceEn'] as String? ?? '',
     );
   }
 
@@ -241,6 +265,28 @@ class MushroomConfusion {
       scientificName.isNotEmpty ? '$commonName ($scientificName)' : commonName;
   String get edibilityWarning => riskLevel.displayLabel;
   String edibilityWarningFor(AppLanguage lang) => riskLevel.labelFor(lang);
+
+  String differenceFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return differenceEu.isNotEmpty ? differenceEu : difference;
+      case AppLanguage.es:
+        return difference;
+      case AppLanguage.en:
+        return differenceEn.isNotEmpty ? differenceEn : difference;
+    }
+  }
+
+  String commonNameFor(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return commonNameEu.isNotEmpty ? commonNameEu : commonName;
+      case AppLanguage.es:
+        return commonName;
+      case AppLanguage.en:
+        return commonNameEn.isNotEmpty ? commonNameEn : commonName;
+    }
+  }
 }
 
 class Mushroom {

@@ -130,15 +130,15 @@ class AppStrings {
       );
 
   String get loginFeatureDriveTitle => tr(
-        eu: 'Google Drive Babeskopia eta Gemini IA',
-        es: 'Backup en Google Drive e IA Gemini',
-        en: 'Google Drive Backup & Gemini AI',
+        eu: 'Google Drive Babeskopia',
+        es: 'Backup en Google Drive',
+        en: 'Google Drive Backup',
       );
 
   String get loginFeatureDriveSub => tr(
-        eu: 'Jarduera osoaren ZIP babeskopia pribatua eta argazki bidezko identifikazioa.',
-        es: 'Copia ZIP privada de toda tu actividad e identificación por foto.',
-        en: 'Private full-activity ZIP backup and photo mushroom identification.',
+        eu: 'Jarduera osoaren ZIP babeskopia pribatua eta hodeiko sinkronizazioa.',
+        es: 'Copia ZIP privada de toda tu actividad y sincronización en la nube.',
+        en: 'Private full-activity ZIP backup and cloud synchronization.',
       );
 
   String get signInWithGoogle => tr(
@@ -253,9 +253,9 @@ class AppStrings {
       );
 
   String get safetyDialogBody => tr(
-        eu: 'Perretxikotan informazio-aplikazio bat da. Argazki bidezko IA identifikazioak eta katalogoak ez dute inoiz aditu mikologiko baten azterketa fisikoa ordezkatzen. Zalantzarik izanez gero, ez bildu eta ez jan alea.',
-        es: 'Perretxikotan es una herramienta de apoyo divulgativo. La identificación por IA o catálogo nunca sustituye la revisión presencial de un micólogo experto o sociedad micológica. Ante la menor duda, descarta el ejemplar.',
-        en: 'Perretxikotan is an informational field tool. AI photo analysis and catalog entries never replace physical inspection by a certified mycologist. When in doubt, never consume any specimen.',
+        eu: 'Perretxikotan informazio-aplikazio bat da. Aplikazioko informazioak eta katalogoak ez dute inoiz aditu mikologiko baten azterketa fisikoa ordezkatzen. Zalantzarik izanez gero, ez bildu eta ez jan alea.',
+        es: 'Perretxikotan es una herramienta de apoyo divulgativo. La información de la aplicación y su catálogo nunca sustituyen la revisión presencial de un micólogo experto o sociedad micológica. Ante la menor duda, descarta el ejemplar.',
+        en: 'Perretxikotan is an informational field tool. App information and catalog entries never replace physical inspection by a certified mycologist. When in doubt, never consume any specimen.',
       );
 
   String get understood => tr(eu: 'Ulertuta', es: 'Entendido', en: 'Understood');

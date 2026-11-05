@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:perretxikotan/core/localization/app_localizations.dart';
 import 'package:perretxikotan/features/catalog/models/mushroom.dart';
 
 void main() {
@@ -62,6 +63,38 @@ void main() {
                 'La especie ${m.id} referencia una confusión inexistente: ${conf.mushroomId}',
           );
           expect(conf.difference, isNotEmpty);
+        }
+      }
+    });
+
+    test('Todas las especies cuentan con traducciones morfológicas y de confusiones en Euskara e Inglés', () {
+      for (final m in catalog) {
+        // Morfología EU
+        final morphEu = m.morphologyFor(AppLanguage.eu);
+        expect(morphEu.cap, isNotEmpty, reason: '${m.id} morphologyEu.cap vacía');
+        expect(morphEu.cap.toLowerCase().startsWith('txapela:'), isFalse, reason: '${m.id} tiene prefijo redundante Txapela:');
+        expect(morphEu.hymenium, isNotEmpty);
+        expect(morphEu.stem, isNotEmpty);
+        expect(morphEu.flesh, isNotEmpty);
+
+        // Morfología EN
+        final morphEn = m.morphologyFor(AppLanguage.en);
+        expect(morphEn.cap, isNotEmpty, reason: '${m.id} morphologyEn.cap vacía');
+        expect(morphEn.cap.toLowerCase().startsWith('cap:'), isFalse, reason: '${m.id} tiene prefijo redundante Cap:');
+        expect(morphEn.hymenium, isNotEmpty);
+        expect(morphEn.stem, isNotEmpty);
+        expect(morphEn.flesh, isNotEmpty);
+
+        // Calidades y etiquetas en los 3 idiomas
+        expect(m.edibilityLabelFor(AppLanguage.es), isNotEmpty);
+        expect(m.edibilityLabelFor(AppLanguage.eu), isNotEmpty);
+        expect(m.edibilityLabelFor(AppLanguage.en), isNotEmpty);
+
+        // Confusiones traducidas
+        for (final conf in m.confusions) {
+          expect(conf.differenceFor(AppLanguage.es), isNotEmpty);
+          expect(conf.differenceFor(AppLanguage.eu), isNotEmpty);
+          expect(conf.differenceFor(AppLanguage.en), isNotEmpty);
         }
       }
     });

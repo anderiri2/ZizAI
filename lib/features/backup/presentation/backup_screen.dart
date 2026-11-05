@@ -36,11 +36,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     final offlineRegions = ref.watch(offlineMapServiceProvider).regions;
 
     final photosCount = spots
-            .where((sp) => sp.photoPath != null && sp.photoPath!.isNotEmpty)
-            .length +
-        aiMessages
-            .where((m) => m.imagePath != null && m.imagePath!.isNotEmpty)
-            .length;
+        .where((sp) => sp.photoPath != null && sp.photoPath!.isNotEmpty)
+        .length;
 
     final totalKm = outings.fold<double>(0.0, (acc, o) => acc + o.distanceKm);
 
@@ -394,19 +391,6 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               en: 'Favorites',
                             ),
                             color: AutumnColors.dangerRed,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _MetricTile(
-                            icon: Icons.auto_awesome_rounded,
-                            value: '${aiMessages.length}',
-                            label: s.tr(
-                              eu: 'AI Mezuak',
-                              es: 'Mensajes IA',
-                              en: 'AI Messages',
-                            ),
-                            color: AutumnColors.boletusBrown,
                           ),
                         ),
                         const SizedBox(width: 8),
