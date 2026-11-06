@@ -2,34 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:perretxikotan/core/localization/app_localizations.dart';
-import 'package:perretxikotan/core/widgets/settings_drawer.dart';
-import 'package:perretxikotan/core/widgets/translucent_bottom_nav.dart';
-import 'package:perretxikotan/features/map/data/spots_database.dart';
-import 'package:perretxikotan/features/map/models/foraging_spot.dart';
-import 'package:perretxikotan/features/map/presentation/map_screen.dart';
-import 'package:perretxikotan/features/outings/data/outings_database.dart';
-import 'package:perretxikotan/features/outings/models/foraging_outing.dart';
-import 'package:perretxikotan/features/outings/presentation/live_outing_map_screen.dart';
-import 'package:perretxikotan/features/outings/presentation/outings_screen.dart';
-import 'package:perretxikotan/main.dart';
+import 'package:zizai/core/localization/app_localizations.dart';
+import 'package:zizai/core/widgets/settings_drawer.dart';
+import 'package:zizai/core/widgets/translucent_bottom_nav.dart';
+import 'package:zizai/features/map/data/spots_database.dart';
+import 'package:zizai/features/map/models/foraging_spot.dart';
+import 'package:zizai/features/map/presentation/map_screen.dart';
+import 'package:zizai/features/outings/data/outings_database.dart';
+import 'package:zizai/features/outings/models/foraging_outing.dart';
+import 'package:zizai/features/outings/presentation/live_outing_map_screen.dart';
+import 'package:zizai/features/outings/presentation/outings_screen.dart';
+import 'package:zizai/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets(
-      'PerretxikotanApp renders Amanita caesarea SplashScreen and transitions to LoginScreen in Basque (EU) by default, and switches to ES and EN',
+      'ZizAiApp renders Amanita caesarea SplashScreen and transitions to LoginScreen in Basque (EU) by default, and switches to ES and EN',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
-      'perretxikotan_safety_accepted': true,
+      'zizai_safety_accepted': true,
     });
 
     await tester.pumpWidget(
       const ProviderScope(
-        child: PerretxikotanApp(),
+        child: ZizAiApp(),
       ),
     );
 
-    expect(find.text('Perretxikotan'), findsOneWidget);
+    expect(find.text('ZizAI'), findsOneWidget);
 
     // Advance past the 2.0-second (2000ms) Amanita caesarea splash animation
     await tester.pump(const Duration(milliseconds: 2100));

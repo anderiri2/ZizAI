@@ -77,14 +77,22 @@ class LoginScreen extends ConsumerWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(30),
                               child: Image.asset(
-                                'assets/images/logo_perretxikotan.png',
+                                'assets/images/logo_zizai.png',
                                 fit: BoxFit.cover,
                               ),
                             ),
                           ),
                           const SizedBox(height: 18),
-                          Text(
-                            'Perretxikotan',
+                          Text.rich(
+                            const TextSpan(
+                              text: 'Ziz',
+                              children: [
+                                TextSpan(
+                                  text: 'AI',
+                                  style: TextStyle(color: AutumnColors.amberLeaf),
+                                ),
+                              ],
+                            ),
                             style: Theme.of(context)
                                 .textTheme
                                 .headlineLarge

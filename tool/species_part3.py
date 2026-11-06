@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Parte 3 del catálogo micológico de Perretxikotan (Especies H - Z)."""
+"""Parte 3 del catálogo micológico de ZizAI (Especies H - Z)."""
 
 SPECIES_PART_3 = [
     {

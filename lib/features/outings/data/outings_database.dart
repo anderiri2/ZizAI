@@ -11,8 +11,8 @@ import '../models/foraging_outing.dart';
 
 class OutingsDatabase {
   static const String _tableName = 'foraging_outings';
-  static const String _prefsFallbackKey = 'perretxikotan_outings_json_v1';
-  static const String _seededKey = 'perretxikotan_outings_seeded_v1';
+  static const String _prefsFallbackKey = 'zizai_outings_json_v1';
+  static const String _seededKey = 'zizai_outings_seeded_v1';
 
   Database? _db;
 
@@ -21,7 +21,7 @@ class OutingsDatabase {
     if (_db != null) return _db;
     try {
       final dbDir = await getDatabasesPath();
-      final fullPath = p.join(dbDir, 'perretxikotan_outings_v1.db');
+      final fullPath = p.join(dbDir, 'zizai_outings_v1.db');
       _db = await openDatabase(
         fullPath,
         version: 2,

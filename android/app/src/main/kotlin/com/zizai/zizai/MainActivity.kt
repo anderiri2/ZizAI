@@ -1,4 +1,4 @@
-package com.perretxikotan.perretxikotan
+package com.zizai.zizai
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -12,14 +12,14 @@ class SafetyDisclaimerBanner extends ConsumerWidget {
     this.compact = false,
   });
 
-  static const String _prefKeyAccepted = 'perretxikotan_safety_accepted';
+  static const String _prefKeyAccepted = 'zizai_safety_accepted';
 
   static Future<void> showFirstLaunchDialogIfNeeded(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     final accepted = prefs.getBool(_prefKeyAccepted) ?? false;
     if (accepted || !context.mounted) return;
     final lang = AppLanguage.fromCode(
-      prefs.getString('perretxikotan_app_language'),
+      prefs.getString('zizai_app_language'),
     );
     final s = AppStrings(lang);
     if (!context.mounted) return;
@@ -32,7 +32,7 @@ class SafetyDisclaimerBanner extends ConsumerWidget {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final lang = AppLanguage.fromCode(
-      prefs.getString('perretxikotan_app_language'),
+      prefs.getString('zizai_app_language'),
     );
     final s = customStrings ?? AppStrings(lang);
     if (!context.mounted) return;

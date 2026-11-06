@@ -8,8 +8,8 @@ import '../models/foraging_spot.dart';
 
 class SpotsDatabase {
   static const String _tableName = 'foraging_spots';
-  static const String _prefsFallbackKey = 'perretxikotan_spots_json_v2';
-  static const String _seededKey = 'perretxikotan_spots_seeded_v2';
+  static const String _prefsFallbackKey = 'zizai_spots_json_v2';
+  static const String _seededKey = 'zizai_spots_seeded_v2';
 
   Database? _db;
 
@@ -18,7 +18,7 @@ class SpotsDatabase {
     if (_db != null) return _db;
     try {
       final dbDir = await getDatabasesPath();
-      final fullPath = p.join(dbDir, 'perretxikotan_spots_v2.db');
+      final fullPath = p.join(dbDir, 'zizai_spots_v2.db');
       _db = await openDatabase(
         fullPath,
         version: 2,

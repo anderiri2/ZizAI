@@ -39,7 +39,7 @@ class AiIdentifierState {
 }
 
 class GeminiMushroomNotifier extends StateNotifier<AiIdentifierState> {
-  static const String _storageKey = 'perretxikotan_ai_chats_v1';
+  static const String _storageKey = 'zizai_ai_chats_v1';
   final Ref _ref;
 
   GeminiMushroomNotifier(this._ref) : super(const AiIdentifierState()) {
@@ -57,7 +57,7 @@ class GeminiMushroomNotifier extends StateNotifier<AiIdentifierState> {
             isUser: false,
             createdAt: DateTime.now(),
             text:
-                'Kaixo! Soy el asistente micológico de **Perretxikotan** conectado con **Gemini** mediante tu cuenta de Google.\n\n'
+                'Kaixo! Soy el asistente micológico de **ZizAI** conectado con **Gemini** mediante tu cuenta de Google.\n\n'
                 '• Puedes **sacar una foto** del ejemplar (sombrero, láminas/poros y base del pie) o describir su hábitat y olor.\n'
                 '• Si estás en el monte **sin cobertura**, guardaré tu foto como *Pendiente de conexión* para analizarla con Gemini al regresar y te daré al instante una orientación morfológica con las 126 especies del catálogo local.\n'
                 '• Recuerda: ninguna identificación por foto sustituye la revisión presencial de una sociedad micológica.',
@@ -271,7 +271,7 @@ class GeminiMushroomNotifier extends StateNotifier<AiIdentifierState> {
           .join('; ');
 
       final systemInstruction =
-          'Eres un experto micólogo integrado en la app Perretxikotan. '
+          'Eres un experto micólogo integrado en la app ZizAI. '
           'Responde en español claro, estructurado y riguroso. '
           '1) Propón las especies candidatas indicando nombre común en castellano, nombre en euskera y nombre científico. '
           '2) Detalla rasgos clave de sombrero (txapela), himenio (láminas/poros/pliegues), pie (hanka) y hábitat. '
@@ -369,7 +369,7 @@ class GeminiMushroomNotifier extends StateNotifier<AiIdentifierState> {
     }
 
     buffer.writeln(
-      'Mientras tanto, según el análisis local sobre las **${catalog.length} especies** del catálogo de **Perretxikotan**, revisa estas especies y sus posibles confusiones:',
+      'Mientras tanto, según el análisis local sobre las **${catalog.length} especies** del catálogo de **ZizAI**, revisa estas especies y sus posibles confusiones:',
     );
 
     for (final m in candidates) {

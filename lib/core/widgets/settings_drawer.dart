@@ -71,7 +71,7 @@ class SettingsDrawer extends ConsumerWidget {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(15),
                           child: Image.asset(
-                            'assets/images/logo_perretxikotan.png',
+                            'assets/images/logo_zizai.png',
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -82,8 +82,18 @@ class SettingsDrawer extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              'Perretxikotan',
+                            Text.rich(
+                              TextSpan(
+                                text: 'Ziz',
+                                children: [
+                                  TextSpan(
+                                    text: 'AI',
+                                    style: TextStyle(
+                                      color: AutumnColors.amberLeaf,
+                                    ),
+                                  ),
+                                ],
+                              ),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,

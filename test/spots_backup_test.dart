@@ -1,15 +1,15 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:perretxikotan/features/ai_identifier/models/chat_message.dart';
-import 'package:perretxikotan/features/backup/services/google_drive_backup_service.dart';
-import 'package:perretxikotan/features/catalog/models/mushroom.dart';
-import 'package:perretxikotan/features/map/models/foraging_spot.dart';
-import 'package:perretxikotan/features/map/services/offline_map_service.dart';
-import 'package:perretxikotan/features/outings/models/foraging_outing.dart';
+import 'package:zizai/features/ai_identifier/models/chat_message.dart';
+import 'package:zizai/features/backup/services/google_drive_backup_service.dart';
+import 'package:zizai/features/catalog/models/mushroom.dart';
+import 'package:zizai/features/map/models/foraging_spot.dart';
+import 'package:zizai/features/map/services/offline_map_service.dart';
+import 'package:zizai/features/outings/models/foraging_outing.dart';
 
 void main() {
-  group('Perretxikotan Models & Full Activity ZIP Backup Tests', () {
+  group('ZizAI Models & Full Activity ZIP Backup Tests', () {
     test('ForagingSpot serializes outing linkage, quantity and weight', () {
       final original = ForagingSpot(
         id: 'spot_gorbeia_01',

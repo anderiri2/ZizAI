@@ -33,7 +33,7 @@ final appLanguageProvider =
 });
 
 class AppLanguageNotifier extends StateNotifier<AppLanguage> {
-  static const _prefsKey = 'perretxikotan_app_language';
+  static const _prefsKey = 'zizai_app_language';
 
   /// Defaults to Basque (`AppLanguage.eu`) as the primary language of the app.
   AppLanguageNotifier() : super(AppLanguage.eu) {
@@ -185,9 +185,9 @@ class AppStrings {
       );
 
   String get privacyGuaranteeDescription => tr(
-        eu: 'Perretxikotan-ek ez du zure kokapenik, ibilbiderik edo argazkirik inorekin partekatzen. Zure telefonoan edo zure Google Drive pribatuan bakarrik gordetzen dira, zuk nahi duzun bezala.',
-        es: 'Perretxikotan no comparte tus ubicaciones, rutas o fotos con nadie. Se guardan únicamente en tu móvil o en tu propio Google Drive, como tú elijas.',
-        en: 'Perretxikotan never shares your spots, routes, or photos with anyone. Stored solely on your device or in your personal Google Drive, as you choose.',
+        eu: 'ZizAI-k ez du zure kokapenik, ibilbiderik edo argazkirik inorekin partekatzen. Zure telefonoan edo zure Google Drive pribatuan bakarrik gordetzen dira, zuk nahi duzun bezala.',
+        es: 'ZizAI no comparte tus ubicaciones, rutas o fotos con nadie. Se guardan únicamente en tu móvil o en tu propio Google Drive, como tú elijas.',
+        en: 'ZizAI never shares your spots, routes, or photos with anyone. Stored solely on your device or in your personal Google Drive, as you choose.',
       );
 
   String get privacyBadgeLocal => tr(
@@ -221,9 +221,9 @@ class AppStrings {
       );
 
   String get privacyDialogBody => tr(
-        eu: '• Zerbitzari propiorik ez: Perretxikotan-ek ez du datu-base zentralik ezta kanpoko zerbitzaririk. Inork ez du zure lekuen berririk.\n\n• Tokiko biltegiratzea: Zure aurkikuntza, ohar, ibilbide eta argazkiak telefonoaren barne memorian gordetzen dira segurtasun osoz.\n\n• Google Drive pertsonala (hautazkoa): Hodeiko kopia aktibatzen baduzu, zure Google kontuko eremu pribatu eta ezkutuan (appDataFolder) bakarrik gordetzen da. Zuk bakarrik duzu sarbidea.',
-        es: '• Sin servidores centrales: Perretxikotan no dispone de bases de datos externas ni servidores donde recopilar tus ubicaciones. Nadie más tiene acceso a tus sitios secretos.\n\n• Almacenamiento local: Todos tus puntos, notas, rutas y fotos se guardan de forma segura en la memoria interna de tu móvil.\n\n• Google Drive personal (opcional): Si activas el respaldo en la nube, se almacena únicamente en la carpeta privada y oculta de tu propia cuenta de Google (appDataFolder). Es 100% tuyo y privado.',
-        en: '• No central servers: Perretxikotan has no external database or server to collect your spots. Nobody else can ever see your secret locations.\n\n• Local storage: All your spots, notes, routes, and photos are securely stored in your phone\'s internal memory.\n\n• Personal Google Drive (optional): If you enable cloud backup, it is saved solely in the private hidden folder of your own Google account (appDataFolder). It remains 100% yours and private.',
+        eu: '• Zerbitzari propiorik ez: ZizAI-k ez du datu-base zentralik ezta kanpoko zerbitzaririk. Inork ez du zure lekuen berririk.\n\n• Tokiko biltegiratzea: Zure aurkikuntza, ohar, ibilbide eta argazkiak telefonoaren barne memorian gordetzen dira segurtasun osoz.\n\n• Google Drive pertsonala (hautazkoa): Hodeiko kopia aktibatzen baduzu, zure Google kontuko eremu pribatu eta ezkutuan (appDataFolder) bakarrik gordetzen da. Zuk bakarrik duzu sarbidea.',
+        es: '• Sin servidores centrales: ZizAI no dispone de bases de datos externas ni servidores donde recopilar tus ubicaciones. Nadie más tiene acceso a tus sitios secretos.\n\n• Almacenamiento local: Todos tus puntos, notas, rutas y fotos se guardan de forma segura en la memoria interna de tu móvil.\n\n• Google Drive personal (opcional): Si activas el respaldo en la nube, se almacena únicamente en la carpeta privada y oculta de tu propia cuenta de Google (appDataFolder). Es 100% tuyo y privado.',
+        en: '• No central servers: ZizAI has no external database or server to collect your spots. Nobody else can ever see your secret locations.\n\n• Local storage: All your spots, notes, routes, and photos are securely stored in your phone\'s internal memory.\n\n• Personal Google Drive (optional): If you enable cloud backup, it is saved solely in the private hidden folder of your own Google account (appDataFolder). It remains 100% yours and private.',
       );
 
   String get spotFormPrivacyNotice => tr(
@@ -253,9 +253,9 @@ class AppStrings {
       );
 
   String get safetyDialogBody => tr(
-        eu: 'Perretxikotan informazio-aplikazio bat da. Aplikazioko informazioak eta katalogoak ez dute inoiz aditu mikologiko baten azterketa fisikoa ordezkatzen. Zalantzarik izanez gero, ez bildu eta ez jan alea.',
-        es: 'Perretxikotan es una herramienta de apoyo divulgativo. La información de la aplicación y su catálogo nunca sustituyen la revisión presencial de un micólogo experto o sociedad micológica. Ante la menor duda, descarta el ejemplar.',
-        en: 'Perretxikotan is an informational field tool. App information and catalog entries never replace physical inspection by a certified mycologist. When in doubt, never consume any specimen.',
+        eu: 'ZizAI informazio-aplikazio bat da. Aplikazioko informazioak eta katalogoak ez dute inoiz aditu mikologiko baten azterketa fisikoa ordezkatzen. Zalantzarik izanez gero, ez bildu eta ez jan alea.',
+        es: 'ZizAI es una herramienta de apoyo divulgativo. La información de la aplicación y su catálogo nunca sustituyen la revisión presencial de un micólogo experto o sociedad micológica. Ante la menor duda, descarta el ejemplar.',
+        en: 'ZizAI is an informational field tool. App information and catalog entries never replace physical inspection by a certified mycologist. When in doubt, never consume any specimen.',
       );
 
   String get understood => tr(eu: 'Ulertuta', es: 'Entendido', en: 'Understood');

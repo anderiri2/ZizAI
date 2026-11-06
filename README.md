@@ -1,6 +1,6 @@
-# 🍄 Perretxikotan — Guía Micológica, Rutas GPS, Mapas Offline e IA para Euskadi y España
+# 🍄 ZizAI — Guía Micológica, Rutas GPS, Mapas Offline e IA
 
-**Perretxikotan** es una aplicación multiplataforma desarrollada en **Flutter** (Android e iOS) para aficionados a la recolección de setas en el País Vasco y España. Funciona con arquitectura **100% standalone (sin servidor propio)**, utilizando la cuenta personal de Google del usuario tanto para las copias de seguridad privadas en **Google Drive (`appDataFolder`)** como para la identificación micológica mediante **IA Gemini**, sin necesidad de configurar Google AI Studio.
+**ZizAI** es una aplicación multiplataforma desarrollada en **Flutter** (Android e iOS) para aficionados a la recolección de setas. Funciona con arquitectura **100% standalone (sin servidor propio)**, utilizando la cuenta personal de Google del usuario tanto para las copias de seguridad privadas en **Google Drive (`appDataFolder`)** como para la identificación micológica mediante **IA Gemini**, sin necesidad de configurar Google AI Studio.
 
 ---
 
@@ -27,7 +27,7 @@
    - Botón directo en las tarjetas de especies sugeridas: **"Guardar este hallazgo en Mapa / Salida activa"** reutilizando la foto recién tomada.
 
 5. **☁️ Backup Integral en Google Drive (`appDataFolder`) con Fusión Inteligente**
-   - Empaqueta toda la actividad del usuario (`spots.json`, `outings.json`, `favorites.json`, `ai_chats.json`, `offline_regions.json` y carpeta `photos/`) dentro de `perretxikotan_backup.zip`.
+   - Empaqueta toda la actividad del usuario (`spots.json`, `outings.json`, `favorites.json`, `ai_chats.json`, `offline_regions.json` y carpeta `photos/`) dentro de `zizai_backup.zip`.
    - **Fusión Inteligente (Smart Merge por ID)** activada por defecto al restaurar: combina los datos de la nube con los locales sin perder nada (con opción de *Reemplazar todo*).
 
 ---

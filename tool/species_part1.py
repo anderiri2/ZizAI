@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Parte 1 del catálogo micológico de Perretxikotan (Especies A - C)."""
+"""Parte 1 del catálogo micológico de ZizAI (Especies A - C)."""
 
 SPECIES_PART_1 = [
     {
@@ -743,7 +743,7 @@ SPECIES_PART_1 = [
         "edibilityLabel": "Excelente comestible",
         "season": "Primavera (Marzo - Junio)",
         "habitat": "Praderas de montaña, pastizales junto a espinos albares (elorri zuri), endrinos y claros herbosos calizos formando corros de brujas.",
-        "summary": "La seta más emblemática de la primavera vasca (da nombre a 'Perretxikotan'), de carne compacta blanca y penetrante olor a harina fresca.",
+        "summary": "La seta más emblemática de la primavera vasca (da nombre a 'ZizAI' por su nombre 'Udaberriko ziza'), de carne compacta blanca y penetrante olor a harina fresca.",
         "morphology": {
             "cap": "De 4 a 12 cm, carnoso, hemisférico a convexo con el margen muy enrollado e irregular, color blanco marfil a crema gamuza.",
             "hymenium": "Láminas muy apretadas, estrechas y escotadas, de color blanco a crema pálido.",

@@ -97,7 +97,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: Image.asset(
-                            'assets/images/logo_perretxikotan.png',
+                            'assets/images/logo_zizai.png',
                             width: 44,
                             height: 44,
                             fit: BoxFit.cover,
@@ -118,8 +118,16 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Perretxikotan',
+                            child: Text.rich(
+                              const TextSpan(
+                                text: 'Ziz',
+                                children: [
+                                  TextSpan(
+                                    text: 'AI',
+                                    style: TextStyle(color: AutumnColors.amberLeaf),
+                                  ),
+                                ],
+                              ),
                               maxLines: 1,
                               style: Theme.of(context)
                                   .textTheme
@@ -517,7 +525,7 @@ class _MushroomCatalogCard extends StatelessWidget {
                         height: 108,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Image.asset(
-                          'assets/images/logo_perretxikotan.png',
+                          'assets/images/logo_zizai.png',
                           width: 100,
                           height: 108,
                           fit: BoxFit.cover,

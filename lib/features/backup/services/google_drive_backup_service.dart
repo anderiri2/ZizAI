@@ -99,13 +99,13 @@ class AuthBackupState {
 }
 
 class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
-  static const String _backupFileName = 'perretxikotan_backup.zip';
-  static const String _prefLocalModeKey = 'perretxikotan_local_mode';
-  static const String _prefAutoBackupKey = 'perretxikotan_auto_backup';
+  static const String _backupFileName = 'zizai_backup.zip';
+  static const String _prefLocalModeKey = 'zizai_local_mode';
+  static const String _prefAutoBackupKey = 'zizai_auto_backup';
   static const String _prefLastDriveBackupKey =
-      'perretxikotan_last_drive_backup';
+      'zizai_last_drive_backup';
   static const String _prefLastLocalBackupKey =
-      'perretxikotan_last_local_backup';
+      'zizai_last_local_backup';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[

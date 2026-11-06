@@ -1,6 +1,13 @@
-# Changelog — Perretxikotan
+# Changelog — ZizAI
 
-Todos los cambios relevantes de **Perretxikotan** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
+Todos los cambios relevantes de **ZizAI** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
+
+## [1.6.0] - 2026-11-06 (`v1.6.0`)
+### Cambiado
+- **Renombrado Integral de Marca a ZizAI**:
+  - Nueva identidad visual **ZizAI** con tipografía bicolor (`Ziz` + `AI` en ámbar) en `SplashScreen`, `LoginScreen`, `CatalogScreen` y `SettingsDrawer`.
+  - Nuevo icono principal (`assets/images/logo_zizai.png`) e iconos nativos de Android (`mipmap-*`) e iOS (`AppIcon.appiconset`) combinando *Amanita caesarea* sobre fondo verde bosque (`#192718`) con destellos dorados de IA.
+  - Renombrado del paquete Dart a `zizai`, identificadores nativos Android/iOS a `com.zizai.zizai`, bases de datos locales y paquete de copia de seguridad a `zizai_backup.zip`.
 
 ## [1.5.1] - 2026-11-03 (`v1.5.1`)
 ### Cambiado

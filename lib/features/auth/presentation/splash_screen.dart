@@ -126,8 +126,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      'Perretxikotan',
+                    Text.rich(
+                      const TextSpan(
+                        text: 'Ziz',
+                        children: [
+                          TextSpan(
+                            text: 'AI',
+                            style: TextStyle(color: AutumnColors.amberLeaf),
+                          ),
+                        ],
+                      ),
                       style:
                           Theme.of(context).textTheme.displaySmall?.copyWith(
                                 color: AutumnColors.parchmentBg,

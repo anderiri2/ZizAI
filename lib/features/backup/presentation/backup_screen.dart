@@ -324,9 +324,9 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   children: [
                     Text(
                       s.tr(
-                        eu: 'perretxikotan_backup.zip paketean sartutako jarduera',
-                        es: 'Actividad Incluida en el Paquete perretxikotan_backup.zip',
-                        en: 'Activity Included in perretxikotan_backup.zip',
+                        eu: 'zizai_backup.zip paketean sartutako jarduera',
+                        es: 'Actividad Incluida en el Paquete zizai_backup.zip',
+                        en: 'Activity Included in zizai_backup.zip',
                       ),
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,

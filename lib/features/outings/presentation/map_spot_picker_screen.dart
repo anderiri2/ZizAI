@@ -190,7 +190,7 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                 urlTemplate: _useTopoLayer
                     ? 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
                     : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.perretxikotan.perretxikotan',
+                userAgentPackageName: 'com.zizai.zizai',
                 tileProvider: _offlineTileProvider,
               ),
               if (routePoints.length >= 2)

@@ -157,7 +157,7 @@ final catalogCategoryFilterProvider =
     StateProvider<CatalogCategoryFilter>((ref) => CatalogCategoryFilter.all);
 
 class FavoriteMushroomsNotifier extends StateNotifier<Set<String>> {
-  static const _prefsKey = 'perretxikotan_favorite_mushrooms';
+  static const _prefsKey = 'zizai_favorite_mushrooms';
 
   FavoriteMushroomsNotifier() : super(const {}) {
     _load();

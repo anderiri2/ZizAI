@@ -1,5 +1,5 @@
-name: perretxikotan
-description: "Perretxikotan - Guía micológica de campo y mapa privado de setales con backup en Google Drive."
+name: zizai
+description: "ZizAI - Guía micológica de campo, rutas GPS, mapas offline e IA con backup en Google Drive."
 publish_to: 'none'
 version: 1.5.1+11
 
@@ -35,7 +35,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/data/mushrooms_catalog.json
-    - assets/images/logo_perretxikotan.png
+    - assets/images/logo_zizai.png
     - assets/images/autumn_forest_bg.png
     - assets/images/splash_frames/
     - assets/images/mushrooms/

@@ -10,7 +10,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
     const ProviderScope(
-      child: PerretxikotanApp(),
+      child: ZizAiApp(),
     ),
   );
 }
@@ -21,14 +21,14 @@ enum _AppStage {
   home,
 }
 
-class PerretxikotanApp extends ConsumerStatefulWidget {
-  const PerretxikotanApp({super.key});
+class ZizAiApp extends ConsumerStatefulWidget {
+  const ZizAiApp({super.key});
 
   @override
-  ConsumerState<PerretxikotanApp> createState() => _PerretxikotanAppState();
+  ConsumerState<ZizAiApp> createState() => _ZizAiAppState();
 }
 
-class _PerretxikotanAppState extends ConsumerState<PerretxikotanApp> {
+class _ZizAiAppState extends ConsumerState<ZizAiApp> {
   _AppStage _stage = _AppStage.splash;
 
   @override
@@ -47,7 +47,7 @@ class _PerretxikotanAppState extends ConsumerState<PerretxikotanApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Perretxikotan',
+      title: 'ZizAI',
       debugShowCheckedModeBanner: false,
       theme: AutumnTheme.lightTheme,
       home: AnimatedSwitcher(

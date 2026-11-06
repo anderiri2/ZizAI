@@ -3,17 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:perretxikotan/core/localization/app_localizations.dart';
-import 'package:perretxikotan/features/catalog/data/catalog_repository.dart';
-import 'package:perretxikotan/features/catalog/models/mushroom.dart';
-import 'package:perretxikotan/features/map/data/spots_database.dart';
-import 'package:perretxikotan/features/map/models/foraging_spot.dart';
-import 'package:perretxikotan/features/map/presentation/widgets/foraging_spot_marker.dart';
-import 'package:perretxikotan/features/outings/data/outings_database.dart';
-import 'package:perretxikotan/features/outings/models/foraging_outing.dart';
+import 'package:zizai/core/localization/app_localizations.dart';
+import 'package:zizai/features/catalog/data/catalog_repository.dart';
+import 'package:zizai/features/catalog/models/mushroom.dart';
+import 'package:zizai/features/map/data/spots_database.dart';
+import 'package:zizai/features/map/models/foraging_spot.dart';
+import 'package:zizai/features/map/presentation/widgets/foraging_spot_marker.dart';
+import 'package:zizai/features/outings/data/outings_database.dart';
+import 'package:zizai/features/outings/models/foraging_outing.dart';
 
 void main() {
-  group('Perretxikotan v1.5.0: Outing Recorder Clean GPS & Map Filters Tests', () {
+  group('ZizAI v1.5.0: Outing Recorder Clean GPS & Map Filters Tests', () {
     test('ActiveOutingRecorder starts without hardcoded Gorbeia point when initialPoint is null', () async {
       final recorder = ActiveOutingRecorder();
       await recorder.startOuting('Salida limpia en Urbasa', initialPoint: null);
@@ -56,7 +56,7 @@ void main() {
         summary: 'Seta muy apreciada',
         morphology: MushroomMorphology(cap: '', hymenium: '', stem: '', flesh: ''),
         confusions: [],
-        images: ['assets/images/logo_perretxikotan.png'],
+        images: ['assets/images/logo_zizai.png'],
       );
 
       const toxicMushroom = Mushroom(
@@ -72,7 +72,7 @@ void main() {
         summary: 'Tóxica alucinógena',
         morphology: MushroomMorphology(cap: '', hymenium: '', stem: '', flesh: ''),
         confusions: [],
-        images: ['assets/images/logo_perretxikotan.png'],
+        images: ['assets/images/logo_zizai.png'],
       );
 
       expect(edibleMushroom.isEdible, isTrue);
@@ -308,7 +308,7 @@ void main() {
         summary: 'Seta muy apreciada',
         morphology: MushroomMorphology(cap: '', hymenium: '', stem: '', flesh: ''),
         confusions: [],
-        images: ['assets/images/logo_perretxikotan.png'],
+        images: ['assets/images/logo_zizai.png'],
       );
 
       expect(mushroom.latinWithCommon(AppLanguage.eu), 'Boletus edulis (Ontto zuri)');

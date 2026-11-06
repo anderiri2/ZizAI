@@ -43,7 +43,7 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                   assetPath,
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/images/logo_perretxikotan.png',
+                    'assets/images/logo_zizai.png',
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -132,7 +132,7 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                             imgPath,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Image.asset(
-                              'assets/images/logo_perretxikotan.png',
+                              'assets/images/logo_zizai.png',
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -550,7 +550,7 @@ class _MushroomDetailScreenState extends ConsumerState<MushroomDetailScreen> {
                                       height: 58,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) => Image.asset(
-                                        'assets/images/logo_perretxikotan.png',
+                                        'assets/images/logo_zizai.png',
                                         width: 58,
                                         height: 58,
                                         fit: BoxFit.cover,

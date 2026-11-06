@@ -206,7 +206,7 @@ class OfflineMapsState {
 }
 
 class OfflineMapService extends StateNotifier<OfflineMapsState> {
-  static const String _prefsKey = 'perretxikotan_offline_regions_v1';
+  static const String _prefsKey = 'zizai_offline_regions_v1';
 
   OfflineMapService() : super(const OfflineMapsState()) {
     loadRegions();
@@ -371,7 +371,7 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
             try {
               final resp = await client.get(
                 Uri.parse(url),
-                headers: const {'User-Agent': 'com.perretxikotan.app/1.0'},
+                headers: const {'User-Agent': 'com.zizai.app/1.0'},
               ).timeout(const Duration(seconds: 6));
 
               if (resp.statusCode == 200 && resp.bodyBytes.length > 256) {
@@ -556,7 +556,7 @@ class _OfflineCachingImageProvider
       Uri.parse(key.url),
       headers: {
         ...key.headers,
-        'User-Agent': 'com.perretxikotan.app/1.0',
+        'User-Agent': 'com.zizai.app/1.0',
       },
     );
 

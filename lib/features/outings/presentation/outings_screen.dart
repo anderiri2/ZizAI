@@ -1014,7 +1014,7 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                       children: [
                         TileLayer(
                           urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.perretxikotan.perretxikotan',
+                          userAgentPackageName: 'com.zizai.zizai',
                         ),
                         if (activeState.routePoints.length >= 2)
                           PolylineLayer(
@@ -1764,7 +1764,7 @@ class _OutingRouteMiniMap extends ConsumerWidget {
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.perretxikotan.perretxikotan',
+                userAgentPackageName: 'com.zizai.zizai',
               ),
               if (hasRoute)
                 PolylineLayer(
@@ -1934,7 +1934,7 @@ class OutingDetailScreen extends ConsumerWidget {
                 children: [
                   TileLayer(
                     urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.perretxikotan.perretxikotan',
+                    userAgentPackageName: 'com.zizai.zizai',
                   ),
                   if (currentOuting.routePoints.length >= 2)
                     PolylineLayer(

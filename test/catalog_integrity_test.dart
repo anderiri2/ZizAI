@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:perretxikotan/core/localization/app_localizations.dart';
-import 'package:perretxikotan/features/catalog/models/mushroom.dart';
+import 'package:zizai/core/localization/app_localizations.dart';
+import 'package:zizai/features/catalog/models/mushroom.dart';
 
 void main() {
-  group('Integridad del Catálogo Micológico de Perretxikotan', () {
+  group('Integridad del Catálogo Micológico de ZizAI', () {
     late List<Mushroom> catalog;
 
     setUpAll(() {

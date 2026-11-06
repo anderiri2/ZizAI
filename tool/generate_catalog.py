@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script generador del catálogo micológico de Perretxikotan (+125 especies de Euskadi y España).
+Script generador del catálogo micológico de ZizAI (+125 especies de Euskadi y España).
 - Combina y ordena alfabéticamente todas las especies.
 - Verifica la integridad de todas las referencias cruzadas de confusiones.
 - Descarga fotografías reales con licencia abierta desde Wikipedia / Wikimedia Commons / iNaturalist
@@ -31,7 +31,7 @@ SSL_CTX.check_hostname = False
 SSL_CTX.verify_mode = ssl.CERT_NONE
 
 HEADERS = {
-    "User-Agent": "PerretxikotanAppCatalogBuilder/1.0 (https://perretxikotan.app; contact@perretxikotan.app)"
+    "User-Agent": "ZizAIAppCatalogBuilder/1.0 (https://zizai.app; contact@zizai.app)"
 }
 
 
@@ -168,7 +168,7 @@ def ensure_species_images(species: dict) -> list[str]:
             rel_paths.append(f"assets/images/mushrooms/{sp_id}_{idx}.jpg")
 
     if not rel_paths:
-        rel_paths.append("assets/images/logo_perretxikotan.png")
+        rel_paths.append("assets/images/logo_zizai.png")
     return rel_paths
 
 
@@ -207,7 +207,7 @@ def main():
                 sp["images"] = future.result()
             except Exception as e:
                 print(f"Error en {sp['id']}: {e}")
-                sp["images"] = ["assets/images/logo_perretxikotan.png"]
+                sp["images"] = ["assets/images/logo_zizai.png"]
             completed += 1
             if completed % 15 == 0 or completed == len(species_list):
                 print(f"  Progreso imágenes: {completed}/{len(species_list)}")
@@ -215,7 +215,7 @@ def main():
     with open(CATALOG_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(species_list, f, ensure_ascii=False, indent=2)
 
-    still_fallback = [sp["id"] for sp in species_list if "logo_perretxikotan" in sp["images"][0]]
+    still_fallback = [sp["id"] for sp in species_list if "logo_zizai" in sp["images"][0]]
     print(f"Catálogo generado exitosamente ({len(species_list)} especies). Sin foto específica: {len(still_fallback)}")
 
 

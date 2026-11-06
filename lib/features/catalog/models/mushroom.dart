@@ -344,7 +344,7 @@ class Mushroom {
         morphologyEn = morphologyEn ?? morphology;
 
   String get primaryImage =>
-      images.isNotEmpty ? images.first : 'assets/images/logo_perretxikotan.png';
+      images.isNotEmpty ? images.first : 'assets/images/logo_zizai.png';
 
   String get primaryImageAsset => primaryImage;
   bool get isEdible =>
