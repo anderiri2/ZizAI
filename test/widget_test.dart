@@ -330,10 +330,10 @@ void main() {
       expect(AppLanguage.fromCode(null), AppLanguage.en);
     });
 
-    testWidgets('respects saved user choice in SharedPreferences over system locale', (tester) async {
+    test('respects saved user choice in SharedPreferences over system locale', () async {
       // System is French, but user previously selected Spanish in app settings
-      tester.platformDispatcher.localeTestValue = const Locale('fr', 'FR');
-      tester.platformDispatcher.localesTestValue = const [Locale('fr', 'FR')];
+      TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.localeTestValue = const Locale('fr', 'FR');
+      TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.localesTestValue = const [Locale('fr', 'FR')];
 
       SharedPreferences.setMockInitialValues(<String, Object>{
         'zizai_app_language': 'es',
