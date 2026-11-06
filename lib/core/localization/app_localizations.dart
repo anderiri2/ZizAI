@@ -1,9 +1,11 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/autumn_theme.dart';
 
-/// Primary language is Basque (Euskera - `eu`), followed by Spanish (`es`) and English (`en`).
+/// Supported languages: Basque (`eu`), Spanish (`es`), and English (`en`).
+/// Defaults to the system locale if supported; otherwise falls back to English (`en`).
 enum AppLanguage {
   eu('eu', 'EU', 'Euskara'),
   es('es', 'ES', 'Castellano'),
@@ -14,6 +16,40 @@ enum AppLanguage {
   final String nativeName;
   const AppLanguage(this.code, this.shortLabel, this.nativeName);
 
+  /// Resolves an [AppLanguage] from a given [Locale].
+  /// If the language is Basque (`eu`), Spanish (`es`), or English (`en`),
+  /// it is returned. Otherwise defaults to English (`en`).
+  static AppLanguage fromLocale(Locale? locale) {
+    if (locale == null) return AppLanguage.en;
+    final code = locale.languageCode.toLowerCase().split(RegExp(r'[-_]')).first;
+    if (code == 'eu') return AppLanguage.eu;
+    if (code == 'es') return AppLanguage.es;
+    if (code == 'en') return AppLanguage.en;
+    return AppLanguage.en;
+  }
+
+  /// Resolves the default language based on the device system locale.
+  /// If the system language is Basque (`eu`), Spanish (`es`), or English (`en`),
+  /// it is used. Otherwise defaults to English (`en`).
+  static AppLanguage get systemDefault {
+    try {
+      final dispatcher = WidgetsBinding.instance.platformDispatcher;
+      final locale = dispatcher.locales.isNotEmpty
+          ? dispatcher.locales.first
+          : dispatcher.locale;
+      return fromLocale(locale);
+    } catch (_) {
+      try {
+        final dispatcher = ui.PlatformDispatcher.instance;
+        final locale = dispatcher.locales.isNotEmpty
+            ? dispatcher.locales.first
+            : dispatcher.locale;
+        return fromLocale(locale);
+      } catch (_) {}
+    }
+    return AppLanguage.en;
+  }
+
   static AppLanguage fromCode(String? code) {
     switch (code) {
       case 'es':
@@ -21,8 +57,9 @@ enum AppLanguage {
       case 'en':
         return AppLanguage.en;
       case 'eu':
-      default:
         return AppLanguage.eu;
+      default:
+        return systemDefault;
     }
   }
 }
@@ -35,8 +72,9 @@ final appLanguageProvider =
 class AppLanguageNotifier extends StateNotifier<AppLanguage> {
   static const _prefsKey = 'zizai_app_language';
 
-  /// Defaults to Basque (`AppLanguage.eu`) as the primary language of the app.
-  AppLanguageNotifier() : super(AppLanguage.eu) {
+  /// Initializes with the system locale (or English if unsupported),
+  /// then loads any user-selected preference from storage.
+  AppLanguageNotifier() : super(AppLanguage.systemDefault) {
     _loadSavedLanguage();
   }
 

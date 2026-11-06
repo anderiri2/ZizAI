@@ -16,8 +16,18 @@ import 'package:zizai/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.localeTestValue = const Locale('eu');
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.localesTestValue = const [Locale('eu')];
+  });
+
+  tearDown(() {
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.clearLocaleTestValue();
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.clearLocalesTestValue();
+  });
+
   testWidgets(
-      'ZizAiApp renders Amanita caesarea SplashScreen and transitions to LoginScreen in Basque (EU) by default, and switches to ES and EN',
+      'ZizAiApp renders Amanita caesarea SplashScreen and transitions to LoginScreen in Basque (EU) when system is EU, and switches to ES and EN',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'zizai_safety_accepted': true,
@@ -275,5 +285,68 @@ void main() {
 
     // Verify the largest collection badge '12' is rendered inside the no-route thumbnail
     expect(find.text('12'), findsOneWidget);
+  });
+
+  group('AppLanguage System Locale & Fallback Tests', () {
+    test('fromLocale correctly maps locales and falls back to en for unsupported languages', () {
+      expect(AppLanguage.fromLocale(const Locale('eu')), AppLanguage.eu);
+      expect(AppLanguage.fromLocale(const Locale('eu', 'ES')), AppLanguage.eu);
+      expect(AppLanguage.fromLocale(const Locale('es')), AppLanguage.es);
+      expect(AppLanguage.fromLocale(const Locale('es', 'ES')), AppLanguage.es);
+      expect(AppLanguage.fromLocale(const Locale('en')), AppLanguage.en);
+      expect(AppLanguage.fromLocale(const Locale('en', 'US')), AppLanguage.en);
+
+      // Unsupported languages must fallback to English
+      expect(AppLanguage.fromLocale(const Locale('fr', 'FR')), AppLanguage.en);
+      expect(AppLanguage.fromLocale(const Locale('de', 'DE')), AppLanguage.en);
+      expect(AppLanguage.fromLocale(const Locale('ja', 'JP')), AppLanguage.en);
+      expect(AppLanguage.fromLocale(null), AppLanguage.en);
+    });
+
+    testWidgets('systemDefault detects system locale and falls back to en when unsupported', (tester) async {
+      // 1. French -> English fallback
+      tester.platformDispatcher.localeTestValue = const Locale('fr', 'FR');
+      tester.platformDispatcher.localesTestValue = const [Locale('fr', 'FR')];
+      expect(AppLanguage.systemDefault, AppLanguage.en);
+      expect(AppLanguage.fromCode(null), AppLanguage.en);
+      expect(AppLanguage.fromCode('fr'), AppLanguage.en);
+
+      // 2. Spanish
+      tester.platformDispatcher.localeTestValue = const Locale('es', 'ES');
+      tester.platformDispatcher.localesTestValue = const [Locale('es', 'ES')];
+      expect(AppLanguage.systemDefault, AppLanguage.es);
+      expect(AppLanguage.fromCode(null), AppLanguage.es);
+
+      // 3. Basque
+      tester.platformDispatcher.localeTestValue = const Locale('eu', 'ES');
+      tester.platformDispatcher.localesTestValue = const [Locale('eu', 'ES')];
+      expect(AppLanguage.systemDefault, AppLanguage.eu);
+      expect(AppLanguage.fromCode(null), AppLanguage.eu);
+
+      // 4. English
+      tester.platformDispatcher.localeTestValue = const Locale('en', 'US');
+      tester.platformDispatcher.localesTestValue = const [Locale('en', 'US')];
+      expect(AppLanguage.systemDefault, AppLanguage.en);
+      expect(AppLanguage.fromCode(null), AppLanguage.en);
+    });
+
+    testWidgets('respects saved user choice in SharedPreferences over system locale', (tester) async {
+      // System is French, but user previously selected Spanish in app settings
+      tester.platformDispatcher.localeTestValue = const Locale('fr', 'FR');
+      tester.platformDispatcher.localesTestValue = const [Locale('fr', 'FR')];
+
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'zizai_app_language': 'es',
+      });
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // Trigger provider initialization
+      container.read(appLanguageProvider);
+      // Wait for async _loadSavedLanguage
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(container.read(appLanguageProvider), AppLanguage.es);
+    });
   });
 }
