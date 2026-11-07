@@ -10,12 +10,14 @@ import '../services/offline_map_service.dart';
 class OfflineMapsSheet extends ConsumerStatefulWidget {
   final LatLngBounds currentBounds;
   final bool isTopoLayer;
+  final MapLayerType? activeLayer;
   final void Function(LatLng center, double zoom) onSelectRegionOnMap;
 
   const OfflineMapsSheet({
     super.key,
     required this.currentBounds,
     required this.isTopoLayer,
+    this.activeLayer,
     required this.onSelectRegionOnMap,
   });
 
@@ -24,6 +26,15 @@ class OfflineMapsSheet extends ConsumerStatefulWidget {
 }
 
 class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
+  late MapLayerType _selectedDownloadLayer;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDownloadLayer = widget.activeLayer ??
+        (widget.isTopoLayer ? MapLayerType.topo : MapLayerType.streets);
+  }
+
   Future<void> _promptDownloadCurrentView() async {
     final lang = ref.read(appLanguageProvider);
     final s = AppStrings(lang);
@@ -31,62 +42,108 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
     final defaultName =
         '${s.tr(eu: "Nire eremua", es: "Mi zona", en: "My area")} (${DateFormat('dd/MM').format(DateTime.now())})';
     final nameCtrl = TextEditingController(text: defaultName);
+    var chosenLayer = _selectedDownloadLayer;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AutumnColors.parchmentBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          s.tr(
-            eu: 'Deskargatu Uneko Ikuspegia Offline',
-            es: 'Descargar Vista Actual Offline',
-            en: 'Download Current View Offline',
-          ),
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            color: AutumnColors.boletusBrown,
-          ),
-        ),
-        content: TextField(
-          controller: nameCtrl,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: s.tr(
-              eu: 'Eremu hau identifikatzeko izena',
-              es: 'Nombre para identificar esta zona',
-              en: 'Region name to identify',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AutumnColors.parchmentBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            s.tr(
+              eu: 'Deskargatu Uneko Ikuspegia Offline',
+              es: 'Descargar Vista Actual Offline',
+              en: 'Download Current View Offline',
             ),
-            hintText: s.tr(
-              eu: 'Adib. Ultzamako pagadia',
-              es: 'Ej. Hayedo de Ultzama',
-              en: 'E.g. Ultzama beech forest',
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AutumnColors.boletusBrown,
             ),
-            prefixIcon: const Icon(Icons.download_for_offline_rounded),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: s.tr(
+                    eu: 'Eremu hau identifikatzeko izena',
+                    es: 'Nombre para identificar esta zona',
+                    en: 'Region name to identify',
+                  ),
+                  hintText: s.tr(
+                    eu: 'Adib. Ultzamako pagadia',
+                    es: 'Ej. Hayedo de Ultzama',
+                    en: 'E.g. Ultzama beech forest',
+                  ),
+                  prefixIcon: const Icon(Icons.download_for_offline_rounded),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                s.tr(
+                  eu: 'Deskargatu beharreko mapa mota:',
+                  es: 'Capa cartográfica a descargar:',
+                  en: 'Map layer to download:',
+                ),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
+                  color: AutumnColors.boletusBrown,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: MapLayerType.values.map((layer) {
+                  final isSelected = chosenLayer == layer;
+                  final icon = switch (layer) {
+                    MapLayerType.topo => Icons.terrain_rounded,
+                    MapLayerType.satellite => Icons.satellite_alt_rounded,
+                    MapLayerType.streets => Icons.map_rounded,
+                  };
+                  return ChoiceChip(
+                    selected: isSelected,
+                    avatar: Icon(icon, size: 16),
+                    label: Text(layer.localized(lang)),
+                    selectedColor: AutumnColors.ochreGold.withValues(alpha: 0.28),
+                    onSelected: (val) {
+                      if (val) {
+                        setDialogState(() => chosenLayer = layer);
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
           ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            icon: const Icon(Icons.download_rounded),
-            label: Text(
-              s.tr(
-                eu: 'Deskargatu Orain',
-                es: 'Descargar Ahora',
-                en: 'Download Now',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              icon: const Icon(Icons.download_rounded),
+              label: Text(
+                s.tr(
+                  eu: 'Deskargatu Orain',
+                  es: 'Descargar Ahora',
+                  en: 'Download Now',
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 
     if (confirmed == true) {
       final b = widget.currentBounds;
+      setState(() => _selectedDownloadLayer = chosenLayer);
       await ref.read(offlineMapServiceProvider.notifier).downloadRegion(
             id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
             name: nameCtrl.text.trim().isEmpty
@@ -97,15 +154,16 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                   )
                 : nameCtrl.text.trim(),
             description: s.tr(
-              eu: 'Deskargatutako ikuspegia (${widget.isTopoLayer ? "Mapa Topografikoa" : "Mapa Estandarra"})',
-              es: 'Encuadre descargado (${widget.isTopoLayer ? "Mapa Topográfico" : "Mapa Estándar"})',
-              en: 'Downloaded view (${widget.isTopoLayer ? "Topographic Map" : "Standard Map"})',
+              eu: 'Deskargatutako ikuspegia (${chosenLayer.localized(lang)})',
+              es: 'Encuadre descargado (${chosenLayer.localized(lang)})',
+              en: 'Downloaded view (${chosenLayer.localized(lang)})',
             ),
             north: b.north,
             south: b.south,
             east: b.east,
             west: b.west,
-            isTopoLayer: widget.isTopoLayer,
+            layerType: chosenLayer,
+            isTopoLayer: chosenLayer == MapLayerType.topo,
             lang: lang,
           );
     }
@@ -289,11 +347,7 @@ class _OfflineMapsSheetState extends ConsumerState<OfflineMapsSheet> {
                         ),
                       ),
                       subtitle: Text(
-                        s.tr(
-                          eu: '${region.tilesCount} lauza · ${region.formattedSizeMb} · ${DateFormat('dd/MM/yy').format(region.downloadedAt)}',
-                          es: '${region.tilesCount} teselas · ${region.formattedSizeMb} · ${DateFormat('dd/MM/yy').format(region.downloadedAt)}',
-                          en: '${region.tilesCount} tiles · ${region.formattedSizeMb} · ${DateFormat('dd/MM/yy').format(region.downloadedAt)}',
-                        ),
+                        '${region.layerType.localized(lang)} · ${region.tilesCount} teselas · ${region.formattedSizeMb} · ${DateFormat('dd/MM/yy').format(region.downloadedAt)}',
                         style: const TextStyle(fontSize: 12),
                       ),
                       trailing: Row(

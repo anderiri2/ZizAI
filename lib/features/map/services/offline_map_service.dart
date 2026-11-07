@@ -21,6 +21,70 @@ class TileCoord {
   const TileCoord(this.z, this.x, this.y);
 }
 
+/// Modos de capa cartográfica disponibles en ZizAI.
+enum MapLayerType {
+  topo('topo', 'Mapa Topográfico', 'Mapa Topografikoa', 'Topographic Map'),
+  satellite('satellite', 'Satélite (Bosques)', 'Satelitea (Basoak)', 'Satellite (Forests)'),
+  streets('streets', 'Callejero', 'Kalea', 'Streets');
+
+  final String id;
+  final String labelEs;
+  final String labelEu;
+  final String labelEn;
+
+  const MapLayerType(this.id, this.labelEs, this.labelEu, this.labelEn);
+
+  String localized(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.eu:
+        return labelEu;
+      case AppLanguage.en:
+        return labelEn;
+      case AppLanguage.es:
+        return labelEs;
+    }
+  }
+
+  String get urlTemplate {
+    switch (this) {
+      case MapLayerType.topo:
+        return 'https://tile.opentopomap.org/{z}/{x}/{y}.png';
+      case MapLayerType.satellite:
+        // ArcGIS Esri World Imagery (alta resolución para ver masas de bosque, calveros y senderos)
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case MapLayerType.streets:
+        return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
+  }
+
+  int get maxZoom {
+    switch (this) {
+      case MapLayerType.topo:
+        return 17;
+      case MapLayerType.satellite:
+      case MapLayerType.streets:
+        return 19;
+    }
+  }
+
+  String tileUrlFor(int z, int x, int y) {
+    switch (this) {
+      case MapLayerType.topo:
+        return 'https://tile.opentopomap.org/$z/$x/$y.png';
+      case MapLayerType.satellite:
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$z/$y/$x';
+      case MapLayerType.streets:
+        return 'https://tile.openstreetmap.org/$z/$x/$y.png';
+    }
+  }
+
+  static MapLayerType fromString(String? val) {
+    if (val == 'satellite') return MapLayerType.satellite;
+    if (val == 'streets' || val == 'osm') return MapLayerType.streets;
+    return MapLayerType.topo;
+  }
+}
+
 class OfflineMapRegion {
   final String id;
   final String name;
@@ -34,7 +98,9 @@ class OfflineMapRegion {
   final int tilesCount;
   final int sizeBytes;
   final DateTime downloadedAt;
-  final bool isTopoLayer;
+  final MapLayerType layerType;
+
+  bool get isTopoLayer => layerType == MapLayerType.topo;
 
   const OfflineMapRegion({
     required this.id,
@@ -49,7 +115,8 @@ class OfflineMapRegion {
     required this.tilesCount,
     required this.sizeBytes,
     required this.downloadedAt,
-    this.isTopoLayer = true,
+    this.layerType = MapLayerType.topo,
+    bool? isTopoLayer,
   });
 
   LatLng get center => LatLng((north + south) / 2.0, (east + west) / 2.0);
@@ -74,10 +141,17 @@ class OfflineMapRegion {
       'sizeBytes': sizeBytes,
       'downloadedAt': downloadedAt.toIso8601String(),
       'isTopoLayer': isTopoLayer,
+      'layerType': layerType.id,
     };
   }
 
   factory OfflineMapRegion.fromMap(Map<String, dynamic> map) {
+    final layerType = map['layerType'] != null
+        ? MapLayerType.fromString(map['layerType'] as String?)
+        : ((map['isTopoLayer'] as bool? ?? true)
+            ? MapLayerType.topo
+            : MapLayerType.streets);
+
     return OfflineMapRegion(
       id: map['id'] as String,
       name: map['name'] as String? ?? 'Zona Offline',
@@ -93,7 +167,7 @@ class OfflineMapRegion {
       downloadedAt:
           DateTime.tryParse(map['downloadedAt'] as String? ?? '') ??
               DateTime.now(),
-      isTopoLayer: map['isTopoLayer'] as bool? ?? true,
+      layerType: layerType,
     );
   }
 
@@ -295,7 +369,8 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
   }
 
   static Future<String?> getTileFilePath({
-    required bool isTopo,
+    bool? isTopo,
+    MapLayerType? layerType,
     required int z,
     required int x,
     required int y,
@@ -303,7 +378,7 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
     if (kIsWeb) return null;
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      final layerFolder = isTopo ? 'topo' : 'osm';
+      final layerFolder = layerType?.id ?? ((isTopo ?? true) ? 'topo' : 'osm');
       return p.join(
           appDir.path, 'offline_tiles', layerFolder, '$z', '$x', '$y.png');
     } catch (_) {
@@ -320,10 +395,14 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
     required double south,
     required double east,
     required double west,
+    MapLayerType? layerType,
     bool isTopoLayer = true,
     AppLanguage lang = AppLanguage.es,
   }) async {
     if (state.isDownloading) return;
+
+    final effectiveLayer = layerType ??
+        (isTopoLayer ? MapLayerType.topo : MapLayerType.streets);
 
     final s = AppStrings(lang);
 
@@ -354,7 +433,7 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
     try {
       for (final coord in tiles) {
         final filePath = await getTileFilePath(
-          isTopo: isTopoLayer,
+          layerType: effectiveLayer,
           z: coord.z,
           x: coord.x,
           y: coord.y,
@@ -365,9 +444,7 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
           if (file.existsSync() && file.lengthSync() > 256) {
             totalBytes += file.lengthSync();
           } else {
-            final url = isTopoLayer
-                ? 'https://tile.opentopomap.org/${coord.z}/${coord.x}/${coord.y}.png'
-                : 'https://tile.openstreetmap.org/${coord.z}/${coord.x}/${coord.y}.png';
+            final url = effectiveLayer.tileUrlFor(coord.z, coord.x, coord.y);
             try {
               final resp = await client.get(
                 Uri.parse(url),
@@ -413,7 +490,7 @@ class OfflineMapService extends StateNotifier<OfflineMapsState> {
       tilesCount: tiles.length,
       sizeBytes: totalBytes,
       downloadedAt: DateTime.now(),
-      isTopoLayer: isTopoLayer,
+      layerType: effectiveLayer,
     );
 
     final updated = List<OfflineMapRegion>.from(state.downloadedRegions)
@@ -484,10 +561,18 @@ class OfflineCachingTileProvider extends TileProvider {
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
     final url = getTileUrl(coordinates, options);
-    final isTopo = url.contains('opentopomap');
+    final MapLayerType layerType;
+    if (url.contains('opentopomap')) {
+      layerType = MapLayerType.topo;
+    } else if (url.contains('arcgisonline')) {
+      layerType = MapLayerType.satellite;
+    } else {
+      layerType = MapLayerType.streets;
+    }
     return _OfflineCachingImageProvider(
       url: url,
-      isTopo: isTopo,
+      isTopo: layerType == MapLayerType.topo,
+      layerType: layerType,
       z: coordinates.z,
       x: coordinates.x,
       y: coordinates.y,
@@ -500,6 +585,7 @@ class _OfflineCachingImageProvider
     extends ImageProvider<_OfflineCachingImageProvider> {
   final String url;
   final bool isTopo;
+  final MapLayerType layerType;
   final int z;
   final int x;
   final int y;
@@ -508,6 +594,7 @@ class _OfflineCachingImageProvider
   const _OfflineCachingImageProvider({
     required this.url,
     required this.isTopo,
+    required this.layerType,
     required this.z,
     required this.x,
     required this.y,
@@ -537,7 +624,7 @@ class _OfflineCachingImageProvider
     ImageDecoderCallback decode,
   ) async {
     final filePath = await OfflineMapService.getTileFilePath(
-      isTopo: key.isTopo,
+      layerType: key.layerType,
       z: key.z,
       x: key.x,
       y: key.y,

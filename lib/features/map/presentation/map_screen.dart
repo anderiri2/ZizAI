@@ -11,7 +11,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/services/gps_accuracy_service.dart';
 import '../../../core/theme/autumn_theme.dart';
+import '../../../core/widgets/gps_status_pill.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
 import '../../catalog/presentation/mushroom_detail_screen.dart';
@@ -50,13 +52,14 @@ class MapScreenState extends ConsumerState<MapScreen> {
   final MapController _mapController = MapController();
   final OfflineCachingTileProvider _defaultOfflineTileProvider =
       OfflineCachingTileProvider();
-  bool _useTopoLayer = true;
+  MapLayerType _activeLayer = MapLayerType.topo;
   bool _showAllOutings = true;
   bool _showStandaloneSpots = true;
   final Set<String> _selectedOutingIds = <String>{};
   String? _selectedMushroomSpeciesFilter;
   String _edibilityFilter = 'all'; // 'all', 'edible', 'toxic'
   bool _isLocatingGps = false;
+  double? _lastGpsAccuracy;
   ForagingSpot? _selectedSpot;
   LatLng? _currentUserLocation;
 
@@ -82,7 +85,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
   static const LatLng _defaultBasqueCenter = LatLng(43.0150, -2.5200);
 
   LatLngBounds get currentViewportBounds => _mapController.camera.visibleBounds;
-  bool get isUsingTopoLayer => _useTopoLayer;
+  bool get isUsingTopoLayer => _activeLayer == MapLayerType.topo;
+  MapLayerType get activeLayer => _activeLayer;
 
   void moveToRegion(LatLng center, double zoom) {
     _mapController.move(center, zoom);
@@ -99,7 +103,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => OfflineMapsSheet(
         currentBounds: _mapController.camera.visibleBounds,
-        isTopoLayer: _useTopoLayer,
+        isTopoLayer: isUsingTopoLayer,
+        activeLayer: _activeLayer,
         onSelectRegionOnMap: (center, zoom) {
           _mapController.move(center, zoom);
         },
@@ -169,62 +174,45 @@ class MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Future<void> _centerOnUserGps({bool openFormAfter = false}) async {
-    setState(() => _isLocatingGps = true);
+    final lang = ref.read(appLanguageProvider);
+    final hasPerm = await GpsAccuracyService.ensureLocationPermission(context, lang: lang);
+    if (!hasPerm) return;
+
+    setState(() {
+      _isLocatingGps = true;
+      _lastGpsAccuracy = null;
+    });
+
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (mounted) {
-          final s = AppStrings(ref.read(appLanguageProvider));
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                s.tr(
-                  eu: 'GPSa desgaituta dago. Eutsi sakatuta mapako edozein puntu perretxiko-lekua gordetzeko.',
-                  es: 'El GPS está desactivado. Mantén pulsado cualquier punto del mapa para guardar un setal.',
-                  en: 'GPS is disabled. Long-press any point on the map to save a spot.',
-                ),
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          final s = AppStrings(ref.read(appLanguageProvider));
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                s.tr(
-                  eu: 'Kokapen baimena ukatuta. Eutsi sakatuta mapan markatzailea eskuz jartzeko.',
-                  es: 'Permiso de ubicación denegado. Mantén pulsado sobre el mapa para colocar un marcador manualmente.',
-                  en: 'Location permission denied. Long-press the map to place a marker manually.',
-                ),
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 8),
-        ),
+      final pos = await GpsAccuracyService.acquireAccurateFix(
+        maxAcceptableMeters: 25.0,
+        timeout: const Duration(seconds: 10),
       );
-      final target = LatLng(pos.latitude, pos.longitude);
-      setState(() => _currentUserLocation = target);
-      _mapController.move(target, 15.0);
 
-      if (openFormAfter && mounted) {
-        await _openAddOrEditSpotSheet(context, initialLatLng: target);
+      if (pos != null) {
+        final target = LatLng(pos.latitude, pos.longitude);
+        setState(() {
+          _currentUserLocation = target;
+          _lastGpsAccuracy = pos.accuracy;
+        });
+        _mapController.move(target, 15.5);
+
+        if (openFormAfter && mounted) {
+          await _openAddOrEditSpotSheet(context, initialLatLng: target);
+        }
+      } else {
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown != null) {
+          final target = LatLng(lastKnown.latitude, lastKnown.longitude);
+          setState(() {
+            _currentUserLocation = target;
+            _lastGpsAccuracy = lastKnown.accuracy;
+          });
+          _mapController.move(target, 15.0);
+          if (openFormAfter && mounted) {
+            await _openAddOrEditSpotSheet(context, initialLatLng: target);
+          }
+        }
       }
     } catch (_) {
       if (mounted) {
@@ -234,7 +222,9 @@ class MapScreenState extends ConsumerState<MapScreen> {
         }
       }
     } finally {
-      if (mounted) setState(() => _isLocatingGps = false);
+      if (mounted) {
+        setState(() => _isLocatingGps = false);
+      }
     }
   }
 
@@ -557,11 +547,9 @@ class MapScreenState extends ConsumerState<MapScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: _useTopoLayer
-                    ? 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
-                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: _activeLayer.urlTemplate,
                 userAgentPackageName: 'com.zizai.zizai',
-                maxNativeZoom: _useTopoLayer ? 17 : 19,
+                maxNativeZoom: _activeLayer.maxZoom,
                 tileProvider:
                     widget.customTileProvider ?? _defaultOfflineTileProvider,
               ),
@@ -585,11 +573,13 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 ),
               if (_currentUserLocation != null)
                 MarkerLayer(
+                  rotate: true,
                   markers: [
                     Marker(
                       point: _currentUserLocation!,
                       width: 28,
                       height: 28,
+                      rotate: true,
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.blueAccent,
@@ -602,6 +592,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 ),
               // Marcadores con color según calidad/comestibilidad y cantidad recolectada
               MarkerLayer(
+                rotate: true,
                 markers: visibleSpots.map((spot) {
                   final isSelected = _selectedSpot?.id == spot.id;
 
@@ -609,6 +600,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     point: LatLng(spot.latitude, spot.longitude),
                     width: isSelected ? 50 : 40,
                     height: isSelected ? 50 : 40,
+                    rotate: true,
                     child: GestureDetector(
                       onTap: () {
                         setState(() => _selectedSpot = spot);
@@ -721,16 +713,37 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   _HeaderPillButton(
-                                    icon: _useTopoLayer
-                                        ? Icons.terrain_rounded
-                                        : Icons.map_outlined,
-                                    label: _useTopoLayer
-                                        ? 'Topo'
-                                        : s.tr(eu: 'Kalea', es: 'Calle', en: 'Street'),
-                                    active: _useTopoLayer,
+                                    icon: switch (_activeLayer) {
+                                      MapLayerType.topo =>
+                                        Icons.terrain_rounded,
+                                      MapLayerType.satellite =>
+                                        Icons.satellite_alt_rounded,
+                                      MapLayerType.streets =>
+                                        Icons.map_outlined,
+                                    },
+                                    label: switch (_activeLayer) {
+                                      MapLayerType.topo => 'Topo',
+                                      MapLayerType.satellite => s.tr(
+                                          eu: 'Satelitea',
+                                          es: 'Satélite',
+                                          en: 'Satellite'),
+                                      MapLayerType.streets => s.tr(
+                                          eu: 'Kalea',
+                                          es: 'Calle',
+                                          en: 'Street'),
+                                    },
+                                    active: _activeLayer != MapLayerType.streets,
                                     onTap: () {
-                                      setState(
-                                          () => _useTopoLayer = !_useTopoLayer);
+                                      setState(() {
+                                        _activeLayer = switch (_activeLayer) {
+                                          MapLayerType.topo =>
+                                            MapLayerType.satellite,
+                                          MapLayerType.satellite =>
+                                            MapLayerType.streets,
+                                          MapLayerType.streets =>
+                                            MapLayerType.topo,
+                                        };
+                                      });
                                     },
                                   ),
                                   const SizedBox(width: 6),
@@ -892,6 +905,21 @@ class MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
+
+          // Píldora no invasiva de precisión GPS al centrar o fijar ubicación
+          if (_isLocatingGps)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 80,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GpsStatusPill(
+                  accuracyMeters: _lastGpsAccuracy,
+                  isLoading: true,
+                  onCancel: () => setState(() => _isLocatingGps = false),
+                ),
+              ),
+            ),
 
           // Banner interactivo si se viene del catálogo a ubicar una seta
           if (_isPickingLocationForMushroom && _pendingMushroomToPlace != null)
@@ -1480,47 +1508,40 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
   }
 
   Future<void> _fillCurrentGpsLocation() async {
+    final lang = widget.lang;
+    final hasPerm = await GpsAccuracyService.ensureLocationPermission(
+      context,
+      lang: lang,
+    );
+    if (!hasPerm) return;
+
     setState(() => _isLoadingGps = true);
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppStrings(widget.lang).tr(
-                  eu: 'Kokapen-zerbitzua desgaituta dago',
-                  es: 'El servicio de ubicación está desactivado',
-                  en: 'Location service is disabled',
-                ),
-              ),
-            ),
-          );
-        }
-        return;
-      }
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 8),
-        ),
+      final pos = await GpsAccuracyService.acquireAccurateFix(
+        maxAcceptableMeters: 25.0,
+        timeout: const Duration(seconds: 9),
       );
-      if (mounted) {
+      if (pos != null && mounted) {
         setState(() {
           _latController.text = pos.latitude.toStringAsFixed(5);
           _lngController.text = pos.longitude.toStringAsFixed(5);
         });
+        final s = AppStrings(lang);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AutumnColors.mossGreen,
+            duration: const Duration(seconds: 2),
+            content: Text(
+              s.tr(
+                eu: 'GPS koordenatuak hartuta (±${pos.accuracy.toInt()}m)',
+                es: 'Coordenadas GPS fijadas con precisión (±${pos.accuracy.toInt()}m)',
+                en: 'GPS coordinates locked with accuracy (±${pos.accuracy.toInt()}m)',
+              ),
+            ),
+          ),
+        );
       }
     } catch (_) {
-      // Ignorar excepción o timeout
     } finally {
       if (mounted) {
         setState(() => _isLoadingGps = false);

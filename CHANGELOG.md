@@ -2,7 +2,21 @@
 
 Todos los cambios relevantes de **ZizAI** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
 
-## [1.6.0] - 2026-11-06 (`v1.6.0`)
+## [1.6.0] - 2026-11-07 (`v1.6.0`)
+### Añadido
+- **Capa de Mapa Satelital Pura (Esri World Imagery)**:
+  - Nueva capa ortofotográfica de alta resolución limpia de marcas para identificar con nitidez masas boscosas (pinares, hayedos, robledales, calveros y pistas forestales).
+  - Disponible en el Mapa Global, en el seguimiento inmersivo de Salidas en Vivo (`LiveOutingMapScreen`) y en el selector de setales en el mapa (`MapSpotPickerScreen`).
+  - Soporte para descargar áreas en modo satélite para uso sin conexión en `OfflineMapsSheet` y `OfflineCachingTileProvider`.
+- **Mecanismo de Fijación y Precisión GPS (`GPS Fix Acquisition`)**:
+  - Modal interactivo (`GpsAcquisitionSheet`) con animación de radar y medidor de precisión en tiempo real al iniciar salidas GPS.
+  - Arranque automático al alcanzar precisión óptima ($< 15\text{ m}$) tras 2 segundos de cuenta atrás con vibración háptica, botón para forzar inicio inmediato y cancelación limpia.
+  - Píldora de estado flotante no intrusiva (`GpsStatusPill`) para centrado en mapa ("Mi ubicación") y asignación de coordenadas a setales.
+  - Filtro activo de ruido en `ActiveOutingRecorder`: descarte de posiciones con error $> 35\text{ m}$ y bloqueo de saltos de teletransporte ($> 400\text{ m}$).
+- **Buscador Reactivo de Setas en Salidas GPS**:
+  - Selector táctil (`MushroomSearchPicker`) con tarjeta visual (miniatura, nombre científico en cursiva, nombres locales y badge de comestibilidad).
+  - Fila de chips de acceso rápido para especies habituales de otoño (*Boletus*, *Cantharellus*, *Lactarius*, *Amanita caesarea*, etc.).
+  - Modal de búsqueda a pantalla completa con teclado enfocado y filtrado instantáneo insensible a tildes (científico, euskera, castellano, inglés).
 ### Cambiado
 - **Renombrado Integral de Marca a ZizAI**:
   - Nueva identidad visual **ZizAI** con tipografía bicolor (`Ziz` + `AI` en ámbar) en `SplashScreen`, `LoginScreen`, `CatalogScreen` y `SettingsDrawer`.

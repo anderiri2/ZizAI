@@ -39,7 +39,7 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
   final OfflineCachingTileProvider _offlineTileProvider =
       OfflineCachingTileProvider();
   static const Distance _distanceCalc = Distance();
-  bool _useTopoLayer = true;
+  MapLayerType _activeLayer = MapLayerType.topo;
   bool _isDrawingRoute = false;
   LatLng? _pickedPoint;
 
@@ -187,10 +187,9 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: _useTopoLayer
-                    ? 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
-                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: _activeLayer.urlTemplate,
                 userAgentPackageName: 'com.zizai.zizai',
+                maxNativeZoom: _activeLayer.maxZoom,
                 tileProvider: _offlineTileProvider,
               ),
               if (routePoints.length >= 2)
@@ -209,12 +208,14 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                   ],
                 ),
               MarkerLayer(
+                rotate: true,
                 markers: [
                   ...routePoints.map(
                     (pt) => Marker(
                       point: pt,
                       width: 14,
                       height: 14,
+                      rotate: true,
                       child: Container(
                         decoration: BoxDecoration(
                           color: AutumnColors.terracotta,
@@ -230,6 +231,7 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                       point: LatLng(spot.latitude, spot.longitude),
                       width: 36,
                       height: 36,
+                      rotate: true,
                       child: ForagingSpotMarkerWidget(
                         spot: spot,
                         allMushrooms: allMushrooms,
@@ -243,6 +245,7 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                       point: _pickedPoint!,
                       width: 44,
                       height: 44,
+                      rotate: true,
                       child: Container(
                         decoration: BoxDecoration(
                           color: AutumnColors.terracotta,
@@ -499,10 +502,21 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
               backgroundColor: AutumnColors.parchmentBg,
               foregroundColor: AutumnColors.boletusBrown,
               onPressed: () {
-                setState(() => _useTopoLayer = !_useTopoLayer);
+                setState(() {
+                  _activeLayer = switch (_activeLayer) {
+                    MapLayerType.topo => MapLayerType.satellite,
+                    MapLayerType.satellite => MapLayerType.streets,
+                    MapLayerType.streets => MapLayerType.topo,
+                  };
+                });
               },
+              tooltip: _activeLayer.localized(lang),
               child: Icon(
-                _useTopoLayer ? Icons.terrain_rounded : Icons.map_rounded,
+                switch (_activeLayer) {
+                  MapLayerType.topo => Icons.terrain_rounded,
+                  MapLayerType.satellite => Icons.satellite_alt_rounded,
+                  MapLayerType.streets => Icons.map_rounded,
+                },
               ),
             ),
           ),

@@ -11,6 +11,7 @@ import '../../catalog/models/mushroom.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
 import '../../map/presentation/widgets/foraging_spot_marker.dart';
+import '../../map/services/offline_map_service.dart';
 import '../data/outings_database.dart';
 import 'outings_screen.dart';
 
@@ -26,7 +27,7 @@ class LiveOutingMapScreen extends ConsumerStatefulWidget {
 
 class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
   final MapController _mapController = MapController();
-  bool _useTopoLayer = true;
+  MapLayerType _activeLayer = MapLayerType.topo;
   bool _isPickingSpotOnMap = false;
 
   @override
@@ -250,11 +251,9 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: _useTopoLayer
-                    ? 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
-                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: _activeLayer.urlTemplate,
                 userAgentPackageName: 'com.zizai.zizai',
-                maxNativeZoom: _useTopoLayer ? 17 : 19,
+                maxNativeZoom: _activeLayer.maxZoom,
               ),
               if (activeState.routePoints.length >= 2)
                 PolylineLayer(
@@ -267,12 +266,14 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                   ],
                 ),
               MarkerLayer(
+                rotate: true,
                 markers: [
                   ...outingSpots.map(
                     (spot) => Marker(
                       point: LatLng(spot.latitude, spot.longitude),
                       width: 40,
                       height: 40,
+                      rotate: true,
                       child: GestureDetector(
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -298,6 +299,7 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                       point: activeState.routePoints.last,
                       width: 26,
                       height: 26,
+                      rotate: true,
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.blueAccent,
@@ -518,13 +520,20 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                   heroTag: 'live_outing_topo_switch',
                   backgroundColor: AutumnColors.parchmentBg,
                   foregroundColor: AutumnColors.boletusBrown,
-                  onPressed: () =>
-                      setState(() => _useTopoLayer = !_useTopoLayer),
-                  tooltip: _useTopoLayer
-                      ? s.tr(eu: 'Kalea', es: 'Calle', en: 'Street')
-                      : 'Topo',
+                  onPressed: () => setState(() {
+                    _activeLayer = switch (_activeLayer) {
+                      MapLayerType.topo => MapLayerType.satellite,
+                      MapLayerType.satellite => MapLayerType.streets,
+                      MapLayerType.streets => MapLayerType.topo,
+                    };
+                  }),
+                  tooltip: _activeLayer.localized(lang),
                   child: Icon(
-                    _useTopoLayer ? Icons.terrain_rounded : Icons.map_rounded,
+                    switch (_activeLayer) {
+                      MapLayerType.topo => Icons.terrain_rounded,
+                      MapLayerType.satellite => Icons.satellite_alt_rounded,
+                      MapLayerType.streets => Icons.map_rounded,
+                    },
                     size: 20,
                   ),
                 ),

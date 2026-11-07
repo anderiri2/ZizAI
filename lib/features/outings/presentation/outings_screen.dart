@@ -6,10 +6,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/services/gps_accuracy_service.dart';
 import '../../../core/theme/autumn_theme.dart';
+import '../../../core/widgets/gps_acquisition_sheet.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
 import '../../catalog/presentation/mushroom_detail_screen.dart';
+import '../../catalog/presentation/widgets/mushroom_search_picker.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
 import '../../map/presentation/widgets/foraging_spot_marker.dart';
@@ -443,13 +446,30 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
         final isManual = selectedMode == 1;
         LatLng? initialPoint;
         if (!isManual) {
-          try {
-            final pos = await Geolocator.getLastKnownPosition() ??
-                await Geolocator.getCurrentPosition().timeout(
-                  const Duration(seconds: 2),
-                );
-            initialPoint = LatLng(pos.latitude, pos.longitude);
-          } catch (_) {}
+          final hasPerm = await GpsAccuracyService.ensureLocationPermission(
+            context,
+            lang: lang,
+          );
+          if (!hasPerm) return;
+
+          if (mounted) {
+            final defaultTitle = titleCtrl.text.trim().isEmpty
+                ? s.tr(
+                    eu: "Udazkeneko irteera",
+                    es: "Salida de otoño",
+                    en: "Autumn outing",
+                  )
+                : titleCtrl.text.trim();
+
+            initialPoint = await GpsAcquisitionSheet.show(
+              context,
+              outingTitle: defaultTitle,
+              lang: lang,
+            );
+
+            // Si el usuario canceló la fijación GPS, no se inicia la salida
+            if (initialPoint == null) return;
+          }
         }
         await ref.read(activeOutingRecorderProvider.notifier).startOuting(
               titleCtrl.text,
@@ -1027,12 +1047,14 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                             ],
                           ),
                         MarkerLayer(
+                          rotate: true,
                           markers: [
                             ...outingSpots.map(
                               (sp) => Marker(
                                 point: LatLng(sp.latitude, sp.longitude),
                                 width: 28,
                                 height: 28,
+                                rotate: true,
                                 child: ForagingSpotMarkerWidget(
                                   spot: sp,
                                   allMushrooms: allMushrooms,
@@ -1045,6 +1067,7 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                                 point: activeState.routePoints.last,
                                 width: 22,
                                 height: 22,
+                                rotate: true,
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: Colors.blueAccent,
@@ -1787,6 +1810,7 @@ class _OutingRouteMiniMap extends ConsumerWidget {
                   ],
                 ),
               MarkerLayer(
+                rotate: true,
                 markers: [
                   if (hasRoute) ...[
                     // Inicio de ruta
@@ -1794,6 +1818,7 @@ class _OutingRouteMiniMap extends ConsumerWidget {
                       point: routePoints.first,
                       width: 10,
                       height: 10,
+                      rotate: true,
                       child: Container(
                         decoration: BoxDecoration(
                           color: AutumnColors.mossGreen,
@@ -1807,6 +1832,7 @@ class _OutingRouteMiniMap extends ConsumerWidget {
                       point: routePoints.last,
                       width: 10,
                       height: 10,
+                      rotate: true,
                       child: Container(
                         decoration: BoxDecoration(
                           color: AutumnColors.terracotta,
@@ -1824,6 +1850,7 @@ class _OutingRouteMiniMap extends ConsumerWidget {
                       point: LatLng(sp.latitude, sp.longitude),
                       width: isLargest ? 26 : 14,
                       height: isLargest ? 26 : 14,
+                      rotate: true,
                       child: ForagingSpotMarkerWidget(
                         spot: sp,
                         allMushrooms: allMushrooms,
@@ -1952,11 +1979,13 @@ class OutingDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   MarkerLayer(
+                    rotate: true,
                     markers: currentSpots.map((spot) {
                       return Marker(
                         point: LatLng(spot.latitude, spot.longitude),
                         width: 40,
                         height: 40,
+                        rotate: true,
                         child: ForagingSpotMarkerWidget(
                           spot: spot,
                           allMushrooms: allMushrooms,
@@ -2222,32 +2251,11 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
                   ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<Mushroom>(
-              initialValue: _selectedMushroom,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: s.tr(
-                  eu: 'Katalogoko espeziea',
-                  es: 'Especie del catálogo',
-                  en: 'Catalog species',
-                ),
-                prefixIcon: const Icon(Icons.eco_rounded),
-              ),
-              items: (List<Mushroom>.from(widget.catalogMushrooms)
-                    ..sort((a, b) => a.scientificName
-                        .toLowerCase()
-                        .compareTo(b.scientificName.toLowerCase())))
-                  .map((m) {
-                final commonName = m.displayNameFor(lang);
-                return DropdownMenuItem(
-                  value: m,
-                  child: Text(
-                    '${m.scientificName} · $commonName',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (m) {
+            MushroomSearchPicker(
+              selectedMushroom: _selectedMushroom,
+              catalogMushrooms: widget.catalogMushrooms,
+              lang: lang,
+              onMushroomChanged: (m) {
                 setState(() {
                   _selectedMushroom = m;
                   if (m != null) {

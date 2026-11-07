@@ -355,11 +355,13 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
       _positionSub?.cancel();
       _positionSub = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 8,
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 6,
         ),
       ).listen((pos) {
         if (state.isRecording && !state.isPaused) {
+          // Descartar lecturas ruidosas con margen de error excesivo (> 35 m en monte)
+          if (pos.accuracy > 35.0) return;
           addRoutePoint(LatLng(pos.latitude, pos.longitude));
         }
       });
@@ -372,6 +374,8 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
     double addedMeters = 0.0;
     if (pts.isNotEmpty) {
       addedMeters = _distanceCalc.as(LengthUnit.Meter, pts.last, newPoint);
+      // Evitar registrar teletransportes o saltos GPS anómalos (> 400 m de golpe en senderismo)
+      if (addedMeters > 400.0) return;
     }
     pts.add(newPoint);
     state = state.copyWith(
