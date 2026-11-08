@@ -120,7 +120,7 @@ const I18N = {
     safetyDisclaimerTitle: "Segurtasun Mikologikoko Oharra",
     safetyDisclaimerText: "ZizAI informazio eta laguntza tresna bat da. Aplikazioko datuek ez dute inoiz aditu mikologiko baten azterketa fisikoa ordezkatzen. Zalantzarik izanez gero, ez bildu eta ez kontsumitu inoiz perretxikorik.",
 
-    footerLicense: "Kode Irekia MIT Lizentziapean · Garatzailea: Ander Iriondo",
+    footerLicense: "Kode Irekia GPLv3 Lizentziapean · Garatzailea: Ander Iriondo",
     footerSource: "GitHub Repositorioa",
     footerReleases: "Bertsio Oharrak (Releases)",
     footerSafety: "Segurtasuna"
@@ -242,7 +242,7 @@ const I18N = {
     safetyDisclaimerTitle: "Aviso de Responsabilidad Micológica",
     safetyDisclaimerText: "ZizAI es una herramienta de apoyo y divulgación micológica. La información de la aplicación jamás sustituye la revisión presencial de un micólogo experto o asociación micológica. Ante la menor duda sobre un ejemplar, descártalo y nunca lo consumas.",
 
-    footerLicense: "Proyecto Open Source bajo licencia MIT · Autor: Ander Iriondo",
+    footerLicense: "Proyecto Open Source bajo licencia GNU GPLv3 · Autor: Ander Iriondo",
     footerSource: "Repositorio GitHub",
     footerReleases: "Notas de la Versión",
     footerSafety: "Seguridad"
@@ -364,7 +364,7 @@ const I18N = {
     safetyDisclaimerTitle: "Mycological Safety Disclaimer",
     safetyDisclaimerText: "ZizAI is an informational field guide. App information never replaces physical inspection by an experienced mycologist or society. When in doubt, never consume any wild mushroom.",
 
-    footerLicense: "Open Source Project under MIT License · Author: Ander Iriondo",
+    footerLicense: "Open Source Project under GNU GPLv3 License · Author: Ander Iriondo",
     footerSource: "GitHub Repository",
     footerReleases: "Release Notes",
     footerSafety: "Safety"

@@ -101,3 +101,13 @@ flutter build apk --release
 ```
 
 Para configurar el OAuth de tu proyecto de Google Cloud (Android SHA-1 / iOS `REVERSED_CLIENT_ID`), consulta [`GOOGLE_SETUP.md`](GOOGLE_SETUP.md).
+
+---
+
+## 📄 Licencia
+
+Este proyecto está licenciado bajo la **GNU General Public License v3.0 (GPLv3)** con permisos adicionales según la Sección 7 para distribución en tiendas móviles (Google Play / App Store).
+
+- **Código Fuente**: Licencia libre [GNU GPLv3](LICENSE).
+- **Marca y Logotipos**: El nombre **ZizAI**, la tipografía de marca y el logotipo oficial son propiedad exclusiva de Ander Iriondo y están reservados (cualquier fork debe utilizar un nombre y marca distintos).
+- **Contenido Fotográfico y Catálogo**: Las fotografías originales en `assets/images/mushrooms/` y fichas descriptivas están protegidas por derechos de autor (C) 2026 Ander Iriondo para uso exclusivo en la aplicación.
