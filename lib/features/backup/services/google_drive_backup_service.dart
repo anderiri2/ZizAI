@@ -110,6 +110,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[
       'email',
+      drive.DriveApi.driveAppdataScope,
     ],
   );
 
@@ -496,9 +497,30 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         return false;
       }
 
-      await _googleSignIn.requestScopes(<String>[
-        drive.DriveApi.driveAppdataScope,
-      ]);
+      try {
+        final canAccess = await _googleSignIn.canAccessScopes(<String>[
+          drive.DriveApi.driveAppdataScope,
+        ]);
+        if (!canAccess) {
+          final granted = await _googleSignIn.requestScopes(<String>[
+            drive.DriveApi.driveAppdataScope,
+          ]);
+          if (!granted) {
+            state = state.copyWith(
+              isBusy: false,
+              errorMessage: s.tr(
+                eu: 'Google Drive baimena beharrezkoa da kopia igotzeko.',
+                es: 'Se requiere conceder el permiso de Google Drive para subir el backup.',
+                en: 'Google Drive permission is required to upload the backup.',
+              ),
+            );
+            return false;
+          }
+        }
+      } catch (scopeError) {
+        debugPrint('GoogleSignIn scope error: $scopeError');
+      }
+
       final httpClient = await _googleSignIn.authenticatedClient();
       if (httpClient == null) {
         state = state.copyWith(
@@ -570,14 +592,33 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         ),
       );
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Google Drive backup error: $e\n$stack');
+      String errorDetail = e.toString();
+      if (errorDetail.contains('403') ||
+          errorDetail.toLowerCase().contains('access not configured') ||
+          errorDetail.toLowerCase().contains('disabled')) {
+        errorDetail = s.tr(
+          eu: 'Errorea 403: Google Drive API ez dago gaituta Google Cloud Console-n. Gaitu APIs y Servicios > Biblioteca > Google Drive API atalean.',
+          es: 'Error 403: La "Google Drive API" no está habilitada en tu Google Cloud Console. Ve a APIs y Servicios > Biblioteca > Google Drive API y pulsa "Habilitar".',
+          en: 'Error 403: Google Drive API is not enabled in your Google Cloud Console. Enable it in APIs & Services > Library > Google Drive API.',
+        );
+      } else if (errorDetail.contains('401') ||
+          errorDetail.toLowerCase().contains('unauthenticated') ||
+          errorDetail.toLowerCase().contains('invalid_token')) {
+        errorDetail = s.tr(
+          eu: 'Autentifikazio errorea: Saioa amaitu da. Itxi saioa eta hasi berriro Google-rekin.',
+          es: 'Error de autenticación: Sesión caducada. Cierra sesión y vuelve a iniciar sesión con Google.',
+          en: 'Authentication error: Session expired. Sign out and sign in again with Google.',
+        );
+      }
       state = state.copyWith(
         isBusy: false,
-        errorMessage: s.tr(
-          eu: 'Ezin izan da une honetan Google Drive-rekin sinkronizatu. Gailuko tokiko kopia ere erabilgarri duzu.',
-          es: 'No se pudo sincronizar con Google Drive en este momento. También tienes disponible la copia local en tu dispositivo.',
-          en: 'Could not sync with Google Drive right now. Local backup on your device is also available.',
-        ),
+        errorMessage: '${s.tr(
+          eu: 'Ezin izan da une honetan Google Drive-rekin sinkronizatu.',
+          es: 'No se pudo sincronizar con Google Drive en este momento.',
+          en: 'Could not sync with Google Drive right now.',
+        )}\n$errorDetail',
       );
       return false;
     }
@@ -606,9 +647,30 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         return null;
       }
 
-      await _googleSignIn.requestScopes(<String>[
-        drive.DriveApi.driveAppdataScope,
-      ]);
+      try {
+        final canAccess = await _googleSignIn.canAccessScopes(<String>[
+          drive.DriveApi.driveAppdataScope,
+        ]);
+        if (!canAccess) {
+          final granted = await _googleSignIn.requestScopes(<String>[
+            drive.DriveApi.driveAppdataScope,
+          ]);
+          if (!granted) {
+            state = state.copyWith(
+              isBusy: false,
+              errorMessage: s.tr(
+                eu: 'Google Drive baimena beharrezkoa da kopia leheneratzeko.',
+                es: 'Se requiere conceder el permiso de Google Drive para restaurar el backup.',
+                en: 'Google Drive permission is required to restore the backup.',
+              ),
+            );
+            return null;
+          }
+        }
+      } catch (scopeError) {
+        debugPrint('GoogleSignIn scope error: $scopeError');
+      }
+
       final httpClient = await _googleSignIn.authenticatedClient();
       if (httpClient == null) {
         state = state.copyWith(
@@ -665,14 +727,33 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         ),
       );
       return payload;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Google Drive restore error: $e\n$stack');
+      String errorDetail = e.toString();
+      if (errorDetail.contains('403') ||
+          errorDetail.toLowerCase().contains('access not configured') ||
+          errorDetail.toLowerCase().contains('disabled')) {
+        errorDetail = s.tr(
+          eu: 'Errorea 403: Google Drive API ez dago gaituta Google Cloud Console-n. Gaitu APIs y Servicios > Biblioteca > Google Drive API atalean.',
+          es: 'Error 403: La "Google Drive API" no está habilitada en tu Google Cloud Console. Ve a APIs y Servicios > Biblioteca > Google Drive API y pulsa "Habilitar".',
+          en: 'Error 403: Google Drive API is not enabled in your Google Cloud Console. Enable it in APIs & Services > Library > Google Drive API.',
+        );
+      } else if (errorDetail.contains('401') ||
+          errorDetail.toLowerCase().contains('unauthenticated') ||
+          errorDetail.toLowerCase().contains('invalid_token')) {
+        errorDetail = s.tr(
+          eu: 'Autentifikazio errorea: Saioa amaitu da. Itxi saioa eta hasi berriro Google-rekin.',
+          es: 'Error de autenticación: Sesión caducada. Cierra sesión y vuelve a iniciar sesión con Google.',
+          en: 'Authentication error: Session expired. Sign out and sign in again with Google.',
+        );
+      }
       state = state.copyWith(
         isBusy: false,
-        errorMessage: s.tr(
-          eu: 'Ezin izan da backup-a Google Drive-tik deskargatu. Tokiko Snapshot-etik lehenera dezakezu.',
-          es: 'No se pudo descargar el backup desde Google Drive. Puedes restaurar desde tu Snapshot Local.',
-          en: 'Could not download backup from Google Drive. You can restore from your Local Snapshot.',
-        ),
+        errorMessage: '${s.tr(
+          eu: 'Ezin izan da backup-a Google Drive-tik deskargatu.',
+          es: 'No se pudo descargar el backup desde Google Drive.',
+          en: 'Could not download backup from Google Drive.',
+        )}\n$errorDetail',
       );
       return null;
     }
