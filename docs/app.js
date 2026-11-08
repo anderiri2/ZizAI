@@ -375,8 +375,8 @@ class ZizAIApp {
   constructor() {
     this.currentLang = this.detectLanguage();
     this.currentScreenTab = 'catalog';
-    this.latestReleaseTag = 'v1.6.0';
-    this.latestApkUrl = 'https://github.com/anderiri2/perretxikotan/releases/latest';
+    this.latestReleaseTag = 'v1.7.0';
+    this.latestApkUrl = 'https://github.com/anderiri2/ZizAI/releases/latest';
 
     this.initElements();
     this.bindEvents();
@@ -533,7 +533,7 @@ class ZizAIApp {
 
   async fetchLatestRelease() {
     try {
-      const res = await fetch('https://api.github.com/repos/anderiri2/perretxikotan/releases/latest');
+      const res = await fetch('https://api.github.com/repos/anderiri2/ZizAI/releases/latest');
       if (!res.ok) return;
       const data = await res.json();
       if (data.tag_name) {

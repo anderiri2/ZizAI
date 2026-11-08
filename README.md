@@ -2,7 +2,7 @@
 
 **ZizAI** es una aplicación multiplataforma desarrollada en **Flutter** (Android e iOS) para aficionados a la recolección de setas. Funciona con arquitectura **100% standalone (sin servidor propio)**, utilizando la cuenta personal de Google del usuario tanto para las copias de seguridad privadas en **Google Drive (`appDataFolder`)** como para la identificación micológica mediante **IA Gemini**, sin necesidad de configurar Google AI Studio.
 
-🌐 **Web Oficial (GitHub Pages)**: [https://anderiri2.github.io/perretxikotan/](https://anderiri2.github.io/perretxikotan/)
+🌐 **Web Oficial (GitHub Pages)**: [https://anderiri2.github.io/ZizAI/](https://anderiri2.github.io/ZizAI/)
 
 ---
 
