@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/services/gps_accuracy_service.dart';
 import '../../../core/theme/autumn_theme.dart';
+import '../../../core/widgets/gps_acquisition_sheet.dart';
 import '../../../core/widgets/gps_status_pill.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
@@ -225,6 +226,201 @@ class MapScreenState extends ConsumerState<MapScreen> {
       if (mounted) {
         setState(() => _isLocatingGps = false);
       }
+    }
+  }
+
+  Future<void> _showSaveSpotLocationChoiceSheet(BuildContext context) async {
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
+
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        decoration: const BoxDecoration(
+          color: AutumnColors.parchmentBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 16,
+              offset: Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AutumnColors.warmSand,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            Text(
+              s.tr(
+                eu: 'Nola kokatu nahi duzu setala?',
+                es: '¿Cómo deseas ubicar el setal?',
+                en: 'How do you want to place the spot?',
+              ),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AutumnColors.boletusBrown,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Material(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AutumnColors.warmSand),
+              ),
+              child: ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AutumnColors.mossGreen.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.my_location_rounded,
+                    color: AutumnColors.mossGreen,
+                    size: 24,
+                  ),
+                ),
+                title: Text(
+                  s.tr(
+                    eu: 'Nire uneko GPS kokapenean',
+                    es: 'En mi ubicación GPS actual',
+                    en: 'At my current GPS location',
+                  ),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: AutumnColors.boletusBrown,
+                  ),
+                ),
+                subtitle: Text(
+                  s.tr(
+                    eu: 'Satelite bidezko doitasun zehatza egiaztatzen du',
+                    es: 'Garantiza precisión satelital antes de guardar',
+                    en: 'Locks precise satellite accuracy before saving',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AutumnColors.textSecondary,
+                  ),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AutumnColors.textSecondary),
+                onTap: () => Navigator.of(ctx).pop('gps'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Material(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AutumnColors.warmSand),
+              ),
+              child: ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AutumnColors.terracotta.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.map_rounded,
+                    color: AutumnColors.terracotta,
+                    size: 24,
+                  ),
+                ),
+                title: Text(
+                  s.tr(
+                    eu: 'Maparen erdiko puntuan',
+                    es: 'En el centro del mapa',
+                    en: 'At map center',
+                  ),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: AutumnColors.boletusBrown,
+                  ),
+                ),
+                subtitle: Text(
+                  s.tr(
+                    eu: 'Unean bistaratzen ari zaren posizioa erabiltzen du',
+                    es: 'Usa las coordenadas que tienes ahora en pantalla',
+                    en: 'Uses the coordinates currently on screen',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AutumnColors.textSecondary,
+                  ),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AutumnColors.textSecondary),
+                onTap: () => Navigator.of(ctx).pop('map'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (choice == 'gps') {
+      if (!context.mounted) return;
+      final hasPerm = await GpsAccuracyService.ensureLocationPermission(
+        context,
+        lang: lang,
+      );
+      if (!hasPerm) return;
+
+      if (!context.mounted) return;
+      final accuratePoint = await GpsAcquisitionSheet.show(
+        context,
+        title: s.tr(
+          eu: 'Setal Berria Gorde',
+          es: 'Guardar Nuevo Setal',
+          en: 'Save New Mushroom Spot',
+        ),
+        subtitle: s.tr(
+          eu: 'Doitasun handiko GPS seinalea bilatzen',
+          es: 'Buscando señal GPS de alta precisión',
+          en: 'Locking high-accuracy GPS fix',
+        ),
+        confirmButtonLabel: s.tr(
+          eu: 'Finkatu koordenatuak',
+          es: 'Fijar coordenadas',
+          en: 'Lock coordinates',
+        ),
+        lang: lang,
+      );
+
+      if (accuratePoint != null && context.mounted) {
+        _mapController.move(
+          accuratePoint,
+          _mapController.camera.zoom < 14 ? 14.5 : _mapController.camera.zoom,
+        );
+        _openAddOrEditSpotSheet(context, initialLatLng: accuratePoint);
+      }
+    } else if (choice == 'map') {
+      final center = _mapController.camera.center;
+      _openAddOrEditSpotSheet(context, initialLatLng: center);
     }
   }
 
@@ -1035,13 +1231,11 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 ),
                 const SizedBox(height: 10),
                 FloatingActionButton.extended(
+                  key: const ValueKey('btn_add_spot'),
                   heroTag: 'btn_add_spot',
                   backgroundColor: AutumnColors.boletusBrown,
                   foregroundColor: Colors.white,
-                  onPressed: () {
-                    final center = _mapController.camera.center;
-                    _openAddOrEditSpotSheet(context, initialLatLng: center);
-                  },
+                  onPressed: () => _showSaveSpotLocationChoiceSheet(context),
                   icon: const Icon(Icons.add_location_alt_rounded),
                   label: Text(
                     s.tr(
@@ -1515,37 +1709,46 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     );
     if (!hasPerm) return;
 
-    setState(() => _isLoadingGps = true);
-    try {
-      final pos = await GpsAccuracyService.acquireAccurateFix(
-        maxAcceptableMeters: 25.0,
-        timeout: const Duration(seconds: 9),
-      );
-      if (pos != null && mounted) {
-        setState(() {
-          _latController.text = pos.latitude.toStringAsFixed(5);
-          _lngController.text = pos.longitude.toStringAsFixed(5);
-        });
-        final s = AppStrings(lang);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AutumnColors.mossGreen,
-            duration: const Duration(seconds: 2),
-            content: Text(
-              s.tr(
-                eu: 'GPS koordenatuak hartuta (±${pos.accuracy.toInt()}m)',
-                es: 'Coordenadas GPS fijadas con precisión (±${pos.accuracy.toInt()}m)',
-                en: 'GPS coordinates locked with accuracy (±${pos.accuracy.toInt()}m)',
-              ),
+    if (!mounted) return;
+    final s = AppStrings(lang);
+    final pos = await GpsAcquisitionSheet.show(
+      context,
+      title: s.tr(
+        eu: 'Setalaren koordenatuak zehaztu',
+        es: 'Fijar coordenadas del setal',
+        en: 'Lock mushroom spot coordinates',
+      ),
+      subtitle: s.tr(
+        eu: 'Doitasun handiko GPS seinalea bilatzen',
+        es: 'Buscando señal GPS de alta precisión',
+        en: 'Locking high-accuracy GPS fix',
+      ),
+      confirmButtonLabel: s.tr(
+        eu: 'Finkatu koordenatuak',
+        es: 'Fijar coordenadas',
+        en: 'Lock coordinates',
+      ),
+      lang: lang,
+    );
+
+    if (pos != null && mounted) {
+      setState(() {
+        _latController.text = pos.latitude.toStringAsFixed(5);
+        _lngController.text = pos.longitude.toStringAsFixed(5);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AutumnColors.mossGreen,
+          duration: const Duration(seconds: 2),
+          content: Text(
+            s.tr(
+              eu: 'GPS koordenatuak zehaztasunez hartuta',
+              es: 'Coordenadas GPS fijadas con precisión',
+              en: 'GPS coordinates locked with accuracy',
             ),
           ),
-        );
-      }
-    } catch (_) {
-    } finally {
-      if (mounted) {
-        setState(() => _isLoadingGps = false);
-      }
+        ),
+      );
     }
   }
 

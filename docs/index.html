@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="eu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZizAI — Mikologia Gida, Setalen Mapa Pribatua eta GPS Ibilbideak</title>
+  <meta name="description" content="ZizAI: Guía micológica de campo 100% offline, mapa privado de setales sin servidores y rutas GPS con copia de seguridad en Google Drive.">
+  <link rel="icon" type="image/png" href="assets/logo_zizai.png">
+
+  <!-- Google Fonts: Fraunces & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600..900;1,9..144,600..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ==========================================================================
+       Cabecera Sticky Translúcida
+       ========================================================================== -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="#" class="brand-link">
+        <img src="assets/logo_zizai.png" alt="ZizAI Logo" class="brand-logo">
+        <span class="brand-name">Ziz<span class="ai-accent">AI</span></span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#objetivo" data-i18n="navWhy">Zergatik ZizAI?</a></li>
+          <li><a href="#ventajas" data-i18n="navAdvantages">Abantailak</a></li>
+          <li><a href="#pantallas" data-i18n="navScreens">Pantailak</a></li>
+          <li><a href="#privacidad" data-i18n="navPrivacy">Pribatutasuna</a></li>
+          <li><a href="#descarga" data-i18n="navDownload">Deskargatu</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <!-- Selector Trilingüe (EU | ES | EN) -->
+        <div class="lang-selector-pill" role="group" aria-label="Language Selector">
+          <button class="lang-btn active" data-lang="eu">EU</button>
+          <button class="lang-btn" data-lang="es">ES</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
+
+        <a href="#descarga" class="header-download-btn">
+          <span>↓</span>
+          <span class="release-tag-text">v1.6.0</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       Hero Section
+       ========================================================================== -->
+  <section class="hero-section">
+    <div class="hero-bg-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-text-col">
+        <div class="hero-badge-pill" data-i18n="heroBadge">
+          100% Standalone & Kode Irekia
+        </div>
+        <h1 class="hero-title" data-i18n="heroTitle">
+          Zure <span class="highlight">perretxiko-leku sekretuen</span> mapa pribatua eta mendiko gida
+        </h1>
+        <p class="hero-subtitle" data-i18n="heroSubtitle">
+          Aplikazio micológico librea, %100 offline funtzionatzen duena basoan estaldurarik gabe. Zure setalak ez dira inoiz inongo zerbitzari zentraletara bidaltzen: zure telefonoan edo zure Google Drive pribatuan bakarrik gordetzen dira.
+        </p>
+
+        <div class="hero-badges-grid">
+          <span class="feature-pill" data-i18n="heroPill1">📖 126 espezie eta 221 argazki erreal</span>
+          <span class="feature-pill" data-i18n="heroPill2">🗺️ Topo, Satelitea eta Offline Mapak</span>
+          <span class="feature-pill" data-i18n="heroPill3">🔒 %100 Pribatua · Zerbitzari gabe</span>
+          <span class="feature-pill" data-i18n="heroPill4">⚡ Salida Arinak (0% bateria xahutzea)</span>
+        </div>
+
+        <div class="hero-cta-group">
+          <a href="https://github.com/anderiri2/perretxikotan/releases/latest" class="btn-primary apk-download-link">
+            <span>📥</span>
+            <span data-i18n="heroCtaDownload">Deskargatu APK (Doan)</span>
+          </a>
+          <a href="https://github.com/anderiri2/perretxikotan" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+            <span>⭐</span>
+            <span data-i18n="heroCtaGithub">GitHub Kode Irekia</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-mockup-col">
+        <div class="hero-phone-mockup">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <img id="heroMockupImg" class="zoomable-screen" src="screenshots/eu/01_catalog.png" alt="ZizAI App Mockup">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Sección 1: Objetivo
+       ========================================================================== -->
+  <section id="objetivo" class="section">
+    <div class="section-header">
+      <span class="section-tag" data-i18n="sectionObjectiveTag">MISIOA ETA FILOSOFIA</span>
+      <h2 class="section-title" data-i18n="sectionObjectiveTitle">Zergatik sortu da ZizAI?</h2>
+      <p class="section-desc" data-i18n="sectionObjectiveDesc">
+        Setazale gehienek arazo berak pairatzen dituzte: baso itxian ez dago estaldurarik, aplikazio arruntek zure datuak hodeira igotzen dituzte, eta GPSak bateria oso azkar agortzen du. ZizAI arazo horiek guztiak konpontzeko jaio da.
+      </p>
+    </div>
+
+    <div class="objective-grid">
+      <div class="objective-card">
+        <div class="card-icon-wrap">🌲</div>
+        <h3 class="card-title" data-i18n="obj1Title">Katalogo Micológico 100% Offline</h3>
+        <p class="card-text" data-i18n="obj1Text">
+          Basoan zaudenean estaldura galtzea ohikoa da. ZizAI-ren 126 espezieak, 221 argazki errealak, morfologia osoa eta nahasmen arriskutsuak zure telefonoan bertan daude, zerbitzarien menpe egon gabe.
+        </p>
+      </div>
+
+      <div class="objective-card">
+        <div class="card-icon-wrap">🔒</div>
+        <h3 class="card-title" data-i18n="obj2Title">Zure Setalak 100% Sekretuak</h3>
+        <p class="card-text" data-i18n="obj2Text">
+          Perretxikozale orok daki lekurik onenak sekretuak direla. ZizAI-k ez du zerbitzari zentralik: zure koordenatuak, ibilbideak eta argazkiak zure telefonoan edo zure Google Drive pribatuan soilik gordetzen dira.
+        </p>
+      </div>
+
+      <div class="objective-card">
+        <div class="card-icon-wrap">✨</div>
+        <h3 class="card-title" data-i18n="obj3Title">Arkitektura Librea eta Segurua</h3>
+        <p class="card-text" data-i18n="obj3Text">
+          Iragarkirik gabe, harpidetza ezkuturik gabe eta jarraipenik gabe. Zuk erabakitzen duzu zure datuekin zer egin, babeskopia ZIP formatuan deskargatuz edo Smart Merge bidez sinkronizatuz.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Sección 2: Ventajas Frente al Resto
+       ========================================================================== -->
+  <section id="ventajas" class="section">
+    <div class="section-header">
+      <span class="section-tag" data-i18n="sectionAdvTag">KONPARAKETA</span>
+      <h2 class="section-title" data-i18n="sectionAdvTitle">Zerk egiten du ZizAI bakarra?</h2>
+      <p class="section-desc" data-i18n="sectionAdvDesc">
+        Merkatuko beste aplikazioekin alderatuta, ZizAI eremu menditsuko errealitaterako eta erabiltzailearen pribatutasun absoluturako diseinatuta dago.
+      </p>
+    </div>
+
+    <div class="advantages-table-wrap">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th data-i18n="thFeature">Ezaugarria</th>
+            <th class="col-zizai" data-i18n="thZizai">ZizAI (Kode Irekia)</th>
+            <th class="col-other" data-i18n="thOthers">Beste Aplikazio Batzuk</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="feature-title-cell" data-i18n="f1Title">Pribatutasun Absolutua (Zero Zerbitzari)</span>
+              <span class="feature-desc-cell" data-i18n="f1Desc">Koordenatu micológiak inorekin ez partekatzea</span>
+            </td>
+            <td class="col-zizai">
+              <span class="icon-check">✓</span> <span data-i18n="f1Zizai">100% Tokikoa / Google Drive pertsonala</span>
+            </td>
+            <td class="col-other">
+              <span class="icon-cross">✕</span> <span data-i18n="f1Others">Zerbitzari komertzialetan gordeta</span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span class="feature-title-cell" data-i18n="f2Title">Konexiorik Gabe (0% Estaldura)</span>
+              <span class="feature-desc-cell" data-i18n="f2Desc">Katalogo osoa, argazkiak eta mapak mendian</span>
+            </td>
+            <td class="col-zizai">
+              <span class="icon-check">✓</span> <span data-i18n="f2Zizai">126 espezie + Offline Topo/Satelitea</span>
+            </td>
+            <td class="col-other">
+              <span class="icon-cross">✕</span> <span data-i18n="f2Others">Konexioa behar dute datuak kargatzeko</span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span class="feature-title-cell" data-i18n="f3Title">Hizkuntza Hirukoitza eta Zientifikoa</span>
+              <span class="feature-desc-cell" data-i18n="f3Desc">Euskara, Gaztelania, Ingelesa eta Latina</span>
+            </td>
+            <td class="col-zizai">
+              <span class="icon-check">✓</span> <span data-i18n="f3Zizai">A-Z ordena hizkuntzaren arabera</span>
+            </td>
+            <td class="col-other">
+              <span class="icon-cross">✕</span> <span data-i18n="f3Others">Itzulpen automatiko mugatuak</span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span class="feature-title-cell" data-i18n="f4Title">Salida Arina Bateria Aurrezteko</span>
+              <span class="feature-desc-cell" data-i18n="f4Desc">Irteera erregistratzea GPS satelitalik gabe</span>
+            </td>
+            <td class="col-zizai">
+              <span class="icon-check">✓</span> <span data-i18n="f4Zizai">Eskuzko Modua (%0 bateria xahutzea)</span>
+            </td>
+            <td class="col-other">
+              <span class="icon-cross">✕</span> <span data-i18n="f4Others">GPS jarraipen derrigortua</span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span class="feature-title-cell" data-i18n="f5Title">Kostua eta Publizitatea</span>
+              <span class="feature-desc-cell" data-i18n="f5Desc">Kode irekia eta gardentasuna</span>
+            </td>
+            <td class="col-zizai">
+              <span class="icon-check">✓</span> <span data-i18n="f5Zizai">Doakoa, iragarkirik eta mugarik gabe</span>
+            </td>
+            <td class="col-other">
+              <span class="icon-cross">✕</span> <span data-i18n="f5Others">Ordainpeko harpidetzak eta iragarkiak</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Sección 3: Misión de Cada Pantalla
+       ========================================================================== -->
+  <section id="pantallas" class="section">
+    <div class="section-header">
+      <span class="section-tag" data-i18n="sectionScreensTag">IBILBIDE BISUALA</span>
+      <h2 class="section-title" data-i18n="sectionScreensTitle">Aplikazioaren 4 Pantaila Nagusiak</h2>
+      <p class="section-desc" data-i18n="sectionScreensDesc">
+        Ezagutu beheko nabigazio-barra zeharrargiaren 4 moduak eta bakoitzak zure mendiko jardueran duen helburua.
+      </p>
+    </div>
+
+    <div class="screens-showcase-wrap">
+      <!-- Selector de Pestañas (Imitando TranslucentBottomNavBar de ZizAI) -->
+      <div class="screens-nav-tabs" role="tablist">
+        <button class="screen-tab-btn active" data-screen="catalog" role="tab">
+          <span class="tab-icon">📖</span>
+          <span data-i18n="tabCatalog">Perretxikoak</span>
+        </button>
+        <button class="screen-tab-btn" data-screen="map" role="tab">
+          <span class="tab-icon">🗺️</span>
+          <span data-i18n="tabMap">Mapa</span>
+        </button>
+        <button class="screen-tab-btn" data-screen="outings" role="tab">
+          <span class="tab-icon">🥾</span>
+          <span data-i18n="tabOutings">Irteerak</span>
+        </button>
+        <button class="screen-tab-btn" data-screen="backup" role="tab">
+          <span class="tab-icon">☁️</span>
+          <span data-i18n="tabBackup">Babeskopia</span>
+        </button>
+      </div>
+
+      <!-- Panel 1: Catálogo -->
+      <div id="screen-catalog" class="screen-panel active" role="tabpanel">
+        <div class="screen-phone-preview">
+          <img id="img-screen-catalog" class="zoomable-screen" src="screenshots/eu/01_catalog.png" alt="Pantalla de Catálogo">
+        </div>
+        <div class="screen-info-content">
+          <span class="screen-badge" data-i18n="screenCatalogBadge">126 ESPEZIE · 221 ARGAZKI ERREAL</span>
+          <h3 data-i18n="screenCatalogTitle">1. Perretxikoak (Katalogo Micológico Offline)</h3>
+          <p class="screen-mission-desc" data-i18n="screenCatalogMission">
+            Mendiko gida osoa, basoan inolako estaldurarik gabe espezieak azkar kontsultatzeko, identifikatzeko eta jangarritasun-maila egiaztatzeko prestatua.
+          </p>
+          <ul class="screen-features-list">
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenCatalogF1">Ordenazio alfabtikoa hautagarria: Euskara (A-Z), Izen Zientifikoa, Gaztelania edo Ingelesa.</span>
+            </li>
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenCatalogF2">Iragazki azkarrak: Bikainak, Jangarriak, Kontuz, Toxikoak eta hilgarriak, Udazkena, Udaberria eta Gogokoak.</span>
+            </li>
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenCatalogF3">Morfologia 4 ataletan (Txapela, Himenioa, Hanka, Haragia) eta espezie antzekoen arteko Nahasmen Arriskutsuen abisuak.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Panel 2: Mapa -->
+      <div id="screen-map" class="screen-panel" role="tabpanel">
+        <div class="screen-phone-preview">
+          <img id="img-screen-map" class="zoomable-screen" src="screenshots/eu/02_map.png" alt="Pantalla de Mapa">
+        </div>
+        <div class="screen-info-content">
+          <span class="screen-badge" data-i18n="screenMapBadge">TOPO · SATELITEA · OFFLINE ESKUALDEAK</span>
+          <h3 data-i18n="screenMapTitle">2. Mapa (Perretxiko-lekuen Mapa Interaktiboa)</h3>
+          <p class="screen-mission-desc" data-i18n="screenMapMission">
+            Zure aurkikuntzak mapan zehaztasun osoz kokatzea eta bistaratzea, basoko orografia eta bidezidorrak ulertuz.
+          </p>
+          <ul class="screen-features-list">
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenMapF1">3 geruza kartografiko: Topografikoa (curvas de nivel), Esri Satelite Ortofotografikoa eta Estándarra.</span>
+            </li>
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenMapF2">Offline Mapen deskargatzailea: gorde zure eskualdea mendira igo aurretik (Gorbeia, Urbasa, Irati, Aralar, Urkiola, Izki).</span>
+            </li>
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenMapF3">Puntuak jangarritasun-kolorez bereizita eta GPS ibilbideak gainjarrita ikusteko aukera.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Panel 3: Salidas -->
+      <div id="screen-outings" class="screen-panel" role="tabpanel">
+        <div class="screen-phone-preview">
+          <img id="img-screen-outings" class="zoomable-screen" src="screenshots/eu/03_outings.png" alt="Pantalla de Salidas">
+        </div>
+        <div class="screen-info-content">
+          <span class="screen-badge" data-i18n="screenOutingsBadge">ZUZENEKO GPSA EDO ESKUZKO MODUA (%0 BATERIA)</span>
+          <h3 data-i18n="screenOutingsTitle">3. Irteerak (GPS Ibilbideak eta Saskiaren Laburpena)</h3>
+          <p class="screen-mission-desc" data-i18n="screenOutingsMission">
+            Mendira egindako irteerak erregistratzea: ibilitako bidea, iraupena, kilometroak eta bildutako perretxikoen kopurua eta pisua (gramotan).
+          </p>
+          <ul class="screen-features-list">
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenOutingsF1">Zuzeneko GPS grabagailua radar-zehaztasun neurgailuarekin (&lt; 15 m) eta teletransportazio-iragazkiarekin.</span>
+            </li>
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenOutingsF2">Eskuzko Modua (%0 bateria): gorde aurkikuntzak GPS sentsorea piztu gabe mugikorraren karga zaintzeko.</span>
+            </li>
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenOutingsF3">Historialaren txartelak: ibilbidearen mini-mapa topografiko errealarekin eta saskiaren banaketa espezieka.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Panel 4: Backup -->
+      <div id="screen-backup" class="screen-panel" role="tabpanel">
+        <div class="screen-phone-preview">
+          <img id="img-screen-backup" class="zoomable-screen" src="screenshots/eu/04_backup.png" alt="Pantalla de Backup">
+        </div>
+        <div class="screen-info-content">
+          <span class="screen-badge" data-i18n="screenBackupBadge">SMART MERGE · %100 PRIBATUA</span>
+          <h3 data-i18n="screenBackupTitle">4. Babeskopia (Google Drive eta ZIP Tokikoa)</h3>
+          <p class="screen-mission-desc" data-i18n="screenBackupMission">
+            Zure datu guztien segurtasuna bermatzea. Aldatu telefonoz edo galdu gailua, zure setalak sekula ez dira galduko.
+          </p>
+          <ul class="screen-features-list">
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenBackupF1">Google Drive pertsonala: kopia enkriptatua zure kontuko carpeta ezkutuan (appDataFolder) gordetzen da.</span>
+            </li>
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenBackupF2">Smart Merge (Fuzio Adimenduna): hodeiko datuak eta gailukoak batzen ditu ID bidez, ezer gainidatzi gabe.</span>
+            </li>
+            <li>
+              <span class="li-bullet">✦</span>
+              <span data-i18n="screenBackupF3">Berehalako Instantánea ZIP: esportatu eta inportatu fitxategi bakar batean argazki eta ibilbide guztiak.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Sección 4: Privacidad y Google Drive
+       ========================================================================== -->
+  <section id="privacidad" class="section">
+    <div class="privacy-banner-card">
+      <div>
+        <h3 class="privacy-title" data-i18n="privacyTitle">Zure datuak zureak dira. %100 Pribatua.</h3>
+        <p class="privacy-desc" data-i18n="privacyDesc">
+          ZizAI ez da enpresa baten zerbitzari batera konektatzen. Zure kokapenak, oharrak eta argazkiak zureak bakarrik dira.
+        </p>
+        <ul class="privacy-bullets">
+          <li data-i18n="privacyB1">🚫 Cero zerbitzari zentral eta zero telemetria.</li>
+          <li data-i18n="privacyB2">📱 Tokiko biltegiratze segurua SQLite bidez.</li>
+          <li data-i18n="privacyB3">☁️ Zure Google Drive pribatuan bakarrik (appDataFolder).</li>
+        </ul>
+      </div>
+
+      <div class="privacy-badges-row">
+        <div class="privacy-pill" data-i18n="privacyPill1">📱 Tokiko Modua</div>
+        <div class="privacy-pill" data-i18n="privacyPill2">☁️ Zure Google Drive</div>
+        <div class="privacy-pill" data-i18n="privacyPill3">🚫 Jarraipenik Gabe</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Sección 5: Descarga y Releases
+       ========================================================================== -->
+  <section id="descarga" class="section">
+    <div class="download-section">
+      <h2 class="download-title" data-i18n="downloadTitle">Deskargatu ZizAI Doan</h2>
+      <p class="download-desc" data-i18n="downloadDesc">
+        Instalatu azken bertsioa zure Android gailuan eta gozatu mendiaz segurtasun eta pribatutasun osoz.
+      </p>
+
+      <div>
+        <span class="download-version-pill">
+          <span data-i18n="downloadVersionLabel">Azken bertsioa:</span> <span class="release-tag-text">v1.6.0</span>
+        </span>
+      </div>
+
+      <div class="download-buttons">
+        <a href="https://github.com/anderiri2/perretxikotan/releases/latest" class="btn-primary apk-download-link">
+          <span>📥</span>
+          <span data-i18n="downloadBtnApk">Deskargatu APK Zuzenean</span>
+        </a>
+        <a href="https://github.com/anderiri2/perretxikotan/releases" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <span>🏷️</span>
+          <span data-i18n="downloadBtnReleases">Releases Ikusi GitHub-en</span>
+        </a>
+      </div>
+
+      <p class="download-reqs" data-i18n="downloadRequirements">
+        Baldintzak: Android 7.0+ (Nougat) edo berriagoa · iOS 14.0+ (iturburu-kodetik eraikitzeko).
+      </p>
+
+      <div class="safety-disclaimer-box">
+        <span class="safety-icon">⚠️</span>
+        <div class="safety-text">
+          <strong data-i18n="safetyDisclaimerTitle">Segurtasun Mikologikoko Oharra</strong><br>
+          <span data-i18n="safetyDisclaimerText">ZizAI informazio eta laguntza tresna bat da. Aplikazioko datuek ez dute inoiz aditu mikologiko baten azterketa fisikoa ordezkatzen. Zalantzarik izanez gero, ez bildu eta ez kontsumitu inoiz perretxikorik.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Footer
+       ========================================================================== -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <p data-i18n="footerLicense">Kode Irekia MIT Lizentziapean · Garatzailea: Ander Iriondo</p>
+      <div class="footer-links">
+        <a href="https://github.com/anderiri2/perretxikotan" target="_blank" rel="noopener noreferrer" data-i18n="footerSource">GitHub Repositorioa</a>
+        <a href="https://github.com/anderiri2/perretxikotan/releases" target="_blank" rel="noopener noreferrer" data-i18n="footerReleases">Bertsio Oharrak</a>
+        <a href="#descarga" data-i18n="footerSafety">Segurtasuna</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Lightbox Modal para Ampliar Capturas -->
+  <dialog id="lightboxModal" class="lightbox-modal">
+    <div class="lightbox-content">
+      <button id="lightboxClose" class="lightbox-close-btn" aria-label="Cerrar">✕</button>
+      <img id="lightboxImg" class="lightbox-img" src="" alt="Captura ampliada">
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

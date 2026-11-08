@@ -7,6 +7,12 @@
     <!-- Permisos de GPS para guardar ubicaciones de setales en el monte -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- Permisos de servicio en primer plano para tracking continuo con app minimizada -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Permiso opcional de cámara para fotografiar hallazgos -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -16,6 +22,10 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">
+        <service
+            android:name="com.baseflow.geolocator.GeolocatorLocationService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

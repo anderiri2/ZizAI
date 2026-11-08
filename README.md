@@ -2,6 +2,8 @@
 
 **ZizAI** es una aplicación multiplataforma desarrollada en **Flutter** (Android e iOS) para aficionados a la recolección de setas. Funciona con arquitectura **100% standalone (sin servidor propio)**, utilizando la cuenta personal de Google del usuario tanto para las copias de seguridad privadas en **Google Drive (`appDataFolder`)** como para la identificación micológica mediante **IA Gemini**, sin necesidad de configurar Google AI Studio.
 
+🌐 **Web Oficial (GitHub Pages)**: [https://anderiri2.github.io/perretxikotan/](https://anderiri2.github.io/perretxikotan/)
+
 ---
 
 ## ✨ Funcionalidades Principales
@@ -81,6 +83,7 @@ El repositorio gestiona el ciclo de vida del código mediante ramas `feature/*`,
 - `v1.5.0` (`feature/catalog-map-picker-filters-redesign`): Ubicación interactiva de setas desde el catálogo, panel modal unificado de filtros y rutas en mapa, pantalla completa de salida (`LiveOutingMapScreen`) y cadenas 100% en el idioma activo.
 - `v1.5.1` (`feature/icon-and-minimap-fixes`): Icono adaptativo nativo a pantalla completa en Android/iOS sin bordes blancos, mini-mapa cartográfico real en tarjetas de salida y limpieza de referencias geográficas en catálogo.
 - `v1.6.0` (`feature/gps-satellite-mushroom-search`): Capa de mapa satelital puro (Esri World Imagery), adquisición de señal y precisión GPS (`GpsAcquisitionSheet`), buscador reactivo de setas (`MushroomSearchPicker`), orientación vertical fija de marcadores (`rotate: true`) y rebranding integral a ZizAI.
+- `v1.7.0` (`feature/map-gps-accuracy-manual-basket-background`): Selector de fijación GPS con radar al guardar setas en mapa, salidas manuales rediseñadas como Cestas micológicas puras (sin trazado manual a mano), Foreground Service en segundo plano con notificación estable y cronómetro sin drift.
 
 ---
 

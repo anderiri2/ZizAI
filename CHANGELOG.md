@@ -2,6 +2,24 @@
 
 Todos los cambios relevantes de **ZizAI** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
 
+## [1.7.0] - 2026-11-08 (`v1.7.0`)
+### Añadido
+- **Precisión GPS Garantizada al Guardar Setas en el Mapa**:
+  - Selector modal de 2 opciones al pulsar *"Guardar Setal"* (`btn_add_spot`): *"🎯 En mi ubicación GPS actual"* (con radar satelital y auto-lock $< 15\text{ m}$) vs *"🗺️ En el centro del mapa"*.
+  - Integración del modal de radar de satélites `GpsAcquisitionSheet` en el botón *"GPS Actual"* del formulario de setales, mostrando el margen de error exacto ($\pm\text{m}$) en vez de una rueda de carga ciega.
+  - Generalización de `GpsAcquisitionSheet` para admitir títulos, subtítulos, etiquetas y umbrales personalizados en cualquier flujo de marcado de puntos.
+- **Grabación GPS Continua en Segundo Plano (App Minimizada)**:
+  - Soporte de **Foreground Service** en Android 14+ (`targetSdk = 35`) con permisos `FOREGROUND_SERVICE_LOCATION` y `WAKE_LOCK`.
+  - Notificación de sistema permanente y estable (`ZizAI • [Título de salida] — Grabando ruta GPS activa`) para garantizar flujo continuo de coordenadas sin microcortes por Doze mode o pantalla apagada.
+  - Configuración de `UIBackgroundModes` `location` y `AppleSettings` para iOS.
+  - Sincronización del cronómetro de salida mediante reloj de pared (`DateTime.now().difference(startedAt)`) descontando pausas, eliminando cualquier desfase temporal al suspender la aplicación.
+### Cambiado
+- **Rediseño de Salidas Sin GPS como Cestas Micológicas Puras**:
+  - Eliminación total de la herramienta *"Trazar ruta a mano"* y de polilíneas artificiales en `MapSpotPickerScreen` y en salidas manuales.
+  - La pantalla de seguimiento inmersivo (`LiveOutingMapScreen`) y el historial muestran la insignia `🧺 Cesta Manual (Sin GPS)` con contador de ejemplares y peso total.
+  - Botón de consulta GPS puntual para ubicar setas en salidas manuales sin activar tracking de fondo.
+  - El mini-mapa vectorial real en tarjetas de salida centra la vista sobre los hallazgos micológicos recolectados sin polilíneas ficticias.
+
 ## [1.6.0] - 2026-11-07 (`v1.6.0`)
 ### Añadido
 - **Capa de Mapa Satelital Pura (Esri World Imagery)**:

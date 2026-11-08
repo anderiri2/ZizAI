@@ -280,6 +280,8 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
   Timer? _timer;
   StreamSubscription<Position>? _positionSub;
   static const Distance _distanceCalc = Distance();
+  DateTime? _lastPauseTime;
+  int _accumulatedPausedSeconds = 0;
 
   ActiveOutingRecorder() : super(const ActiveOutingState());
 
@@ -291,6 +293,8 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
     final now = DateTime.now();
     final id = 'outing_${now.millisecondsSinceEpoch}';
     final startPts = initialPoint != null ? <LatLng>[initialPoint] : <LatLng>[];
+    _lastPauseTime = null;
+    _accumulatedPausedSeconds = 0;
 
     state = ActiveOutingState(
       isRecording: true,
@@ -333,8 +337,13 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (state.isRecording && !state.isPaused) {
-        state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
+      if (state.isRecording && !state.isPaused && state.startedAt != null) {
+        final totalSecs =
+            DateTime.now().difference(state.startedAt!).inSeconds -
+                _accumulatedPausedSeconds;
+        state = state.copyWith(
+          elapsedSeconds: totalSecs > 0 ? totalSecs : 0,
+        );
       }
     });
   }
@@ -352,12 +361,41 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
         return;
       }
 
-      _positionSub?.cancel();
-      _positionSub = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
+      late final LocationSettings locationSettings;
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        locationSettings = AndroidSettings(
           accuracy: LocationAccuracy.best,
           distanceFilter: 6,
-        ),
+          intervalDuration: const Duration(seconds: 4),
+          foregroundNotificationConfig: ForegroundNotificationConfig(
+            notificationTitle: 'ZizAI • ${state.title}',
+            notificationText: 'Grabando ruta GPS activa en el monte...',
+            notificationChannelName: 'ZizAI Salida GPS',
+            notificationIcon:
+                const AndroidResource(name: 'ic_launcher', defType: 'mipmap'),
+            enableWakeLock: true,
+            setOngoing: true,
+          ),
+        );
+      } else if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        locationSettings = AppleSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 6,
+          activityType: ActivityType.fitness,
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
+        );
+      } else {
+        locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 6,
+        );
+      }
+
+      _positionSub?.cancel();
+      _positionSub = Geolocator.getPositionStream(
+        locationSettings: locationSettings,
       ).listen((pos) {
         if (state.isRecording && !state.isPaused) {
           // Descartar lecturas ruidosas con margen de error excesivo (> 35 m en monte)
@@ -386,7 +424,17 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
 
   void togglePause() {
     if (!state.isRecording) return;
-    state = state.copyWith(isPaused: !state.isPaused);
+    final willPause = !state.isPaused;
+    if (willPause) {
+      _lastPauseTime = DateTime.now();
+    } else {
+      if (_lastPauseTime != null) {
+        _accumulatedPausedSeconds +=
+            DateTime.now().difference(_lastPauseTime!).inSeconds;
+        _lastPauseTime = null;
+      }
+    }
+    state = state.copyWith(isPaused: willPause);
   }
 
   void updateNotes(String notes) {
@@ -398,18 +446,26 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
     _timer?.cancel();
     _positionSub?.cancel();
 
+    final totalSecs = state.startedAt != null
+        ? (DateTime.now().difference(state.startedAt!).inSeconds -
+            _accumulatedPausedSeconds)
+        : state.elapsedSeconds;
+    final finalDuration = totalSecs > 0 ? totalSecs : state.elapsedSeconds;
+
     final completed = ForagingOuting(
       id: state.activeOutingId!,
       title: state.title,
       startedAt: state.startedAt ?? DateTime.now(),
       endedAt: DateTime.now(),
-      durationSeconds: state.elapsedSeconds,
+      durationSeconds: finalDuration,
       distanceMeters: state.distanceMeters,
       routePoints: state.routePoints,
       notes: state.notes,
       isManual: state.isManual,
     );
 
+    _lastPauseTime = null;
+    _accumulatedPausedSeconds = 0;
     state = const ActiveOutingState();
     return completed;
   }
@@ -417,6 +473,8 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
   void cancelOuting() {
     _timer?.cancel();
     _positionSub?.cancel();
+    _lastPauseTime = null;
+    _accumulatedPausedSeconds = 0;
     state = const ActiveOutingState();
   }
 

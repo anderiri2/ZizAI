@@ -1,0 +1,970 @@
+/* ==========================================================================
+   ZizAI — Web Oficial de Presentación
+   Estética Otoñal (AutumnTheme) & Glassmorphism
+   ========================================================================== */
+
+:root {
+  /* Fondos cálidos y pergamino */
+  --parchment-bg: #FBF6EE;
+  --cream-card: #F5EBDC;
+  --warm-sand: #EADBC4;
+  --card-border: rgba(234, 219, 196, 0.85);
+
+  /* Tonos corteza y bosque */
+  --bark-dark: #23160F;
+  --boletus-brown: #4A2C1D;
+  --chestnut: #6E3F26;
+  --forest-dark: #192718;
+
+  /* Acentos otoñales */
+  --ochre-gold: #D9822B;
+  --amber-leaf: #E8A331;
+  --terracotta: #B84A27;
+  --rust-red: #9E331E;
+  --moss-green: #3E5C38;
+  --fern-green: #567D46;
+
+  /* Textos */
+  --text-primary: #261810;
+  --text-secondary: #634838;
+  --text-muted: #8C705F;
+  --text-light: #FBF6EE;
+
+  /* Semáforo comestibilidad */
+  --edibility-excellent: #2E6F40;
+  --edibility-caution: #D97706;
+  --edibility-toxic: #DC2626;
+
+  /* Tipografías */
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  /* Sombras */
+  --shadow-sm: 0 4px 12px rgba(35, 22, 15, 0.06);
+  --shadow-md: 0 8px 24px rgba(35, 22, 15, 0.10);
+  --shadow-lg: 0 16px 36px rgba(35, 22, 15, 0.16);
+  --shadow-glow: 0 0 30px rgba(232, 163, 49, 0.35);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--parchment-bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   Cabecera Fija Translúcida
+   ========================================================================== */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(35, 22, 15, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(232, 163, 49, 0.3);
+  transition: all 0.25s ease;
+}
+
+.header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text-light);
+}
+
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  border: 1.5px solid rgba(232, 163, 49, 0.5);
+}
+
+.brand-name {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.brand-name .ai-accent {
+  color: var(--amber-leaf);
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+
+.nav-links a {
+  color: rgba(251, 246, 238, 0.85);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.2s ease;
+}
+
+.nav-links a:hover {
+  color: var(--amber-leaf);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Selector de Idioma (Imitando LanguageSelectorPill de la app) */
+.lang-selector-pill {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(232, 163, 49, 0.55);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.lang-btn {
+  background: transparent;
+  border: none;
+  color: rgba(251, 246, 238, 0.8);
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 4px 9px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lang-btn.active {
+  background: var(--amber-leaf);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.header-download-btn {
+  background: linear-gradient(135deg, var(--ochre-gold), var(--terracotta));
+  color: white;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(184, 74, 39, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.header-download-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(184, 74, 39, 0.5);
+}
+
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
+.hero-section {
+  position: relative;
+  background-color: var(--bark-dark);
+  color: var(--text-light);
+  padding: 80px 24px 100px;
+  overflow: hidden;
+}
+
+.hero-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(35, 22, 15, 0.75) 0%, rgba(35, 22, 15, 0.95) 100%),
+              url('assets/autumn_forest_bg.png') center/cover no-repeat;
+  opacity: 0.55;
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: center;
+  gap: 48px;
+}
+
+.hero-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(232, 163, 49, 0.15);
+  border: 1px solid rgba(232, 163, 49, 0.5);
+  color: var(--amber-leaf);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: 3.2rem;
+  line-height: 1.15;
+  font-weight: 800;
+  margin-bottom: 20px;
+  letter-spacing: -1px;
+}
+
+.hero-title .highlight {
+  color: var(--amber-leaf);
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: rgba(251, 246, 238, 0.9);
+  line-height: 1.55;
+  margin-bottom: 32px;
+  max-width: 580px;
+}
+
+.hero-badges-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.feature-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(234, 219, 196, 0.25);
+  color: var(--parchment-bg);
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--ochre-gold), var(--terracotta));
+  color: white;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 1.05rem;
+  padding: 14px 28px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(184, 74, 39, 0.45);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(184, 74, 39, 0.6);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(234, 219, 196, 0.35);
+  color: var(--text-light);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 14px 24px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(234, 219, 196, 0.6);
+}
+
+/* Teléfono Mockup Hero */
+.hero-phone-mockup {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.phone-frame {
+  width: 290px;
+  height: 590px;
+  background: #15110E;
+  border-radius: 46px;
+  padding: 12px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(232, 163, 49, 0.35);
+  position: relative;
+}
+
+.phone-notch {
+  width: 90px;
+  height: 18px;
+  background: #15110E;
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 12px;
+  z-index: 10;
+}
+
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 36px;
+  overflow: hidden;
+  background: var(--parchment-bg);
+}
+
+.phone-screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+  transition: opacity 0.25s ease;
+}
+
+/* ==========================================================================
+   Secciones Comunes
+   ========================================================================== */
+.section {
+  padding: 90px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-header {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 56px;
+}
+
+.section-tag {
+  color: var(--terracotta);
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  color: var(--boletus-brown);
+  line-height: 1.2;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+
+.section-desc {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Sección 1: El Objetivo (Why ZizAI?)
+   ========================================================================== */
+.objective-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+.objective-card {
+  background: white;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.objective-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--ochre-gold), var(--terracotta));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.objective-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.objective-card:hover::before {
+  opacity: 1;
+}
+
+.card-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--cream-card);
+  color: var(--boletus-brown);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  color: var(--boletus-brown);
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.card-text {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   Sección 2: Ventajas Frente al Resto
+   ========================================================================== */
+.advantages-table-wrap {
+  background: white;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  margin-top: 40px;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(234, 219, 196, 0.6);
+}
+
+.comparison-table th {
+  background: var(--cream-card);
+  font-weight: 800;
+  color: var(--boletus-brown);
+  font-size: 0.95rem;
+}
+
+.comparison-table th.col-zizai {
+  background: var(--bark-dark);
+  color: var(--amber-leaf);
+  text-align: center;
+  font-size: 1.1rem;
+  font-family: var(--font-serif);
+}
+
+.comparison-table td.col-zizai {
+  background: rgba(232, 163, 49, 0.05);
+  font-weight: 700;
+  color: var(--moss-green);
+  text-align: center;
+}
+
+.comparison-table td.col-other {
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.comparison-table tr:last-child td {
+  border-bottom: none;
+}
+
+.feature-title-cell {
+  font-weight: 700;
+  color: var(--boletus-brown);
+}
+
+.feature-desc-cell {
+  display: block;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.icon-check {
+  color: var(--moss-green);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.icon-cross {
+  color: var(--edibility-toxic);
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+/* ==========================================================================
+   Sección 3: Misión de Cada Pantalla (Showcase Interactivo)
+   ========================================================================== */
+.screens-showcase-wrap {
+  margin-top: 40px;
+}
+
+/* Selector de Pestañas tipo Bottom Nav de ZizAI */
+.screens-nav-tabs {
+  max-width: 600px;
+  margin: 0 auto 40px;
+  background: rgba(35, 22, 15, 0.92);
+  border: 1px solid rgba(232, 163, 49, 0.4);
+  backdrop-filter: blur(12px);
+  border-radius: 28px;
+  padding: 6px;
+  display: flex;
+  justify-content: space-around;
+  box-shadow: var(--shadow-lg);
+}
+
+.screen-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(251, 246, 238, 0.75);
+  padding: 10px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: all 0.22s ease;
+}
+
+.screen-tab-btn .tab-icon {
+  font-size: 1.25rem;
+}
+
+.screen-tab-btn.active {
+  background: linear-gradient(135deg, var(--ochre-gold), var(--terracotta));
+  color: #FFFFFF;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(184, 74, 39, 0.45);
+}
+
+/* Detalle de Pantalla */
+.screen-panel {
+  display: none;
+  grid-template-columns: 360px 1fr;
+  gap: 48px;
+  align-items: center;
+  background: white;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  box-shadow: var(--shadow-md);
+  animation: fadeIn 0.3s ease;
+}
+
+.screen-panel.active {
+  display: grid;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.screen-phone-preview {
+  position: relative;
+  width: 320px;
+  height: 640px;
+  background: #181310;
+  border-radius: 44px;
+  padding: 12px;
+  box-shadow: 0 20px 48px rgba(35, 22, 15, 0.35), 0 0 0 1.5px rgba(232, 163, 49, 0.4);
+  margin: 0 auto;
+}
+
+.screen-phone-preview img {
+  width: 100%;
+  height: 100%;
+  border-radius: 34px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+  transition: transform 0.2s ease, opacity 0.25s ease;
+}
+
+.screen-phone-preview img:hover {
+  transform: scale(1.01);
+}
+
+.screen-info-content h3 {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  color: var(--boletus-brown);
+  margin-bottom: 12px;
+}
+
+.screen-badge {
+  display: inline-block;
+  background: var(--cream-card);
+  color: var(--terracotta);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.screen-mission-desc {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.screen-features-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.screen-features-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.screen-features-list li .li-bullet {
+  color: var(--amber-leaf);
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+/* ==========================================================================
+   Sección 4: Privacidad y Google Drive
+   ========================================================================== */
+.privacy-banner-card {
+  background: linear-gradient(135deg, rgba(62, 92, 56, 0.12), rgba(245, 235, 220, 0.8));
+  border: 1.5px solid rgba(62, 92, 56, 0.35);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  align-items: center;
+}
+
+.privacy-title {
+  font-family: var(--font-serif);
+  font-size: 1.85rem;
+  color: var(--moss-green);
+  margin-bottom: 12px;
+}
+
+.privacy-desc {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.privacy-bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.privacy-bullets li {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.privacy-badges-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.privacy-pill {
+  background: white;
+  border: 1px solid rgba(62, 92, 56, 0.3);
+  color: var(--moss-green);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ==========================================================================
+   Sección 5: Descarga y Footer
+   ========================================================================== */
+.download-section {
+  background: var(--bark-dark);
+  color: var(--text-light);
+  border-radius: var(--radius-xl);
+  padding: 60px 40px;
+  text-align: center;
+  margin: 60px auto 40px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(232, 163, 49, 0.3);
+}
+
+.download-section::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(232, 163, 49, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.download-title {
+  font-family: var(--font-serif);
+  font-size: 2.6rem;
+  margin-bottom: 16px;
+}
+
+.download-desc {
+  font-size: 1.15rem;
+  color: rgba(251, 246, 238, 0.85);
+  max-width: 600px;
+  margin: 0 auto 32px;
+}
+
+.download-version-pill {
+  display: inline-block;
+  background: rgba(232, 163, 49, 0.2);
+  color: var(--amber-leaf);
+  font-weight: 800;
+  font-size: 0.9rem;
+  padding: 4px 14px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(232, 163, 49, 0.4);
+}
+
+.download-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+
+.download-reqs {
+  font-size: 0.85rem;
+  color: rgba(251, 246, 238, 0.65);
+}
+
+/* Aviso de Seguridad Micológica */
+.safety-disclaimer-box {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-top: 40px;
+  text-align: left;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.safety-icon {
+  font-size: 1.6rem;
+  color: var(--edibility-toxic);
+}
+
+.safety-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.safety-text strong {
+  color: var(--rust-red);
+}
+
+/* Footer */
+.site-footer {
+  background: var(--bark-dark);
+  color: rgba(251, 246, 238, 0.7);
+  padding: 40px 24px;
+  text-align: center;
+  border-top: 1px solid rgba(234, 219, 196, 0.15);
+  font-size: 0.9rem;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px;
+}
+
+.footer-links a {
+  color: var(--amber-leaf);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+/* Lightbox Modal para Capturas */
+.lightbox-modal {
+  border: none;
+  background: rgba(15, 10, 7, 0.85);
+  backdrop-filter: blur(16px);
+  padding: 24px;
+  max-width: 90vw;
+  max-height: 90vh;
+  margin: auto;
+  border-radius: var(--radius-xl);
+  outline: none;
+}
+
+.lightbox-modal::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.lightbox-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.lightbox-img {
+  max-height: 80vh;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+.lightbox-close-btn {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  background: var(--terracotta);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+  .hero-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .hero-subtitle {
+    margin: 0 auto 32px;
+  }
+  .hero-badges-grid,
+  .hero-cta-group {
+    justify-content: center;
+  }
+  .objective-grid {
+    grid-template-columns: 1fr;
+  }
+  .screen-panel {
+    grid-template-columns: 1fr;
+  }
+  .privacy-banner-card {
+    grid-template-columns: 1fr;
+  }
+  .nav-links {
+    display: none;
+  }
+}

@@ -45,6 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>ZizAI utiliza tu ubicación GPS para guardar tus setales y situarte en el mapa topográfico del monte.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

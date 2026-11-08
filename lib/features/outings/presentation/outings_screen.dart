@@ -1324,6 +1324,7 @@ class _OutingSummaryCard extends StatelessWidget {
                     outingId: outing.id,
                     routePoints: outing.routePoints,
                     outingSpots: outingSpots,
+                    isManual: outing.isManual,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -1409,13 +1410,14 @@ class _OutingSummaryCard extends StatelessWidget {
                           runSpacing: 6,
                           children: [
                             _MetricBadge(
-                              icon: Icons.straighten_rounded,
-                              label: (outing.isManual &&
-                                      outing.routePoints.length < 2)
+                              icon: outing.isManual
+                                  ? Icons.shopping_basket_outlined
+                                  : Icons.straighten_rounded,
+                              label: outing.isManual
                                   ? s.tr(
-                                      eu: 'Eskuzkoa (GPS gabe)',
-                                      es: 'Manual (Sin GPS)',
-                                      en: 'Manual (No GPS)',
+                                      eu: 'Saskia (GPS gabe)',
+                                      es: 'Cesta (Sin GPS)',
+                                      en: 'Basket (No GPS)',
                                     )
                                   : outing.formattedDistanceKm,
                             ),
@@ -1660,11 +1662,13 @@ class _OutingRouteMiniMap extends ConsumerWidget {
   final String outingId;
   final List<LatLng> routePoints;
   final List<ForagingSpot> outingSpots;
+  final bool isManual;
 
   const _OutingRouteMiniMap({
     required this.outingId,
     required this.routePoints,
     required this.outingSpots,
+    this.isManual = false,
   });
 
   static ForagingSpot? findLargestSpot(List<ForagingSpot> spots) {
@@ -1683,8 +1687,8 @@ class _OutingRouteMiniMap extends ConsumerWidget {
   ({LatLng center, double zoom, CameraFit? cameraFit}) _computeCamera(
     ForagingSpot? largestSpot,
   ) {
-    // Caso 1: Salida con ruta realizada (GPS o registrada a mano)
-    if (routePoints.length >= 2) {
+    // Caso 1: Salida GPS con ruta realizada
+    if (!isManual && routePoints.length >= 2) {
       double minLat = routePoints.first.latitude;
       double maxLat = routePoints.first.latitude;
       double minLng = routePoints.first.longitude;
@@ -1724,7 +1728,7 @@ class _OutingRouteMiniMap extends ConsumerWidget {
       return (center: center, zoom: 14.8, cameraFit: null);
     }
 
-    // Caso 2: Salida sin ruta -> centrada en la recolección más grande
+    // Caso 2: Salida sin ruta o manual -> centrada en la recolección más grande
     if (largestSpot != null) {
       return (
         center: LatLng(largestSpot.latitude, largestSpot.longitude),
@@ -1753,7 +1757,7 @@ class _OutingRouteMiniMap extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
-    final hasRoute = routePoints.length >= 2;
+    final hasRoute = !isManual && routePoints.length >= 2;
     final largestSpot = findLargestSpot(outingSpots);
     final cam = _computeCamera(largestSpot);
     final mapKey = ValueKey(

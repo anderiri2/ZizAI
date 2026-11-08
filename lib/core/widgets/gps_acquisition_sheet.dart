@@ -8,29 +8,47 @@ import '../services/gps_accuracy_service.dart';
 import '../theme/autumn_theme.dart';
 
 /// Modal interactivo de fijación previa de señal GPS.
-/// Garantiza que el móvil localice satélites con precisión antes de iniciar el trazado de la salida.
+/// Garantiza que el móvil localice satélites con precisión antes de iniciar una salida o registrar un setal.
 class GpsAcquisitionSheet extends StatefulWidget {
-  final String outingTitle;
+  final String title;
+  final String? subtitle;
+  final String? confirmButtonLabel;
+  final double targetAccuracyMeters;
   final AppLanguage lang;
 
   const GpsAcquisitionSheet({
     super.key,
-    required this.outingTitle,
+    required this.title,
+    this.subtitle,
+    this.confirmButtonLabel,
+    this.targetAccuracyMeters = GpsAccuracyService.targetAccuracyMeters,
     required this.lang,
   });
 
+  /// Alias de compatibilidad para salidas
+  String get outingTitle => subtitle ?? title;
+
   static Future<LatLng?> show(
     BuildContext context, {
-    required String outingTitle,
+    String? title,
+    String? outingTitle,
+    String? subtitle,
+    String? confirmButtonLabel,
+    double targetAccuracyMeters = GpsAccuracyService.targetAccuracyMeters,
     required AppLanguage lang,
   }) {
+    final effectiveTitle = title ?? outingTitle ?? 'ZizAI';
+    final effectiveSubtitle = subtitle ?? (outingTitle != null && title != null ? outingTitle : null);
     return showModalBottomSheet<LatLng>(
       context: context,
       isDismissible: false,
       enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) => GpsAcquisitionSheet(
-        outingTitle: outingTitle,
+        title: effectiveTitle,
+        subtitle: effectiveSubtitle,
+        confirmButtonLabel: confirmButtonLabel,
+        targetAccuracyMeters: targetAccuracyMeters,
         lang: lang,
       ),
     );
@@ -73,8 +91,8 @@ class _GpsAcquisitionSheetState extends State<GpsAcquisitionSheet>
           }
         });
 
-        // Si la precisión alcanza el umbral óptimo (< 15 metros), iniciar cuenta de confirmación
-        if (pos.accuracy <= GpsAccuracyService.targetAccuracyMeters &&
+        // Si la precisión alcanza el umbral objetivo, iniciar cuenta de confirmación
+        if (pos.accuracy <= widget.targetAccuracyMeters &&
             !_isAutoStarting) {
           _triggerAutoStart(pos);
         }
@@ -157,24 +175,27 @@ class _GpsAcquisitionSheetState extends State<GpsAcquisitionSheet>
             ),
           ),
 
-          // Título de la salida
-          Text(
-            widget.outingTitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AutumnColors.textSecondary,
+          // Título o subtítulo superior
+          if (widget.subtitle != null || widget.title.isNotEmpty)
+            Text(
+              widget.subtitle ?? widget.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AutumnColors.textSecondary,
+              ),
             ),
-          ),
           const SizedBox(height: 4),
           Text(
-            s.tr(
-              eu: 'GPS Seinalea Zehazten...',
-              es: 'Fijando Señal GPS...',
-              en: 'Acquiring GPS Fix...',
-            ),
+            widget.subtitle != null
+                ? widget.title
+                : s.tr(
+                    eu: 'GPS Seinalea Zehazten...',
+                    es: 'Fijando Señal GPS...',
+                    en: 'Acquiring GPS Fix...',
+                  ),
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
@@ -312,21 +333,27 @@ class _GpsAcquisitionSheetState extends State<GpsAcquisitionSheet>
                   icon: Icon(
                     _isAutoStarting
                         ? Icons.timer_outlined
-                        : Icons.play_arrow_rounded,
+                        : (widget.confirmButtonLabel != null
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.play_arrow_rounded),
                   ),
                   label: Text(
                     _isAutoStarting
-                        ? s.tr(
-                            eu: 'Hasten ($_countdownSeconds s)...',
-                            es: 'Empezando en $_countdownSeconds s...',
-                            en: 'Starting in ${_countdownSeconds}s...',
-                          )
+                        ? (widget.confirmButtonLabel != null
+                            ? '${widget.confirmButtonLabel} ($_countdownSeconds s)...'
+                            : s.tr(
+                                eu: 'Hasten ($_countdownSeconds s)...',
+                                es: 'Empezando en $_countdownSeconds s...',
+                                en: 'Starting in ${_countdownSeconds}s...',
+                              ))
                         : accuracy != null
-                            ? s.tr(
-                                eu: 'Hasi Orain (±${accuracy.toInt()}m)',
-                                es: 'Empezar ya (±${accuracy.toInt()}m)',
-                                en: 'Start now (±${accuracy.toInt()}m)',
-                              )
+                            ? (widget.confirmButtonLabel != null
+                                ? '${widget.confirmButtonLabel} (±${accuracy.toInt()}m)'
+                                : s.tr(
+                                    eu: 'Hasi Orain (±${accuracy.toInt()}m)',
+                                    es: 'Empezar ya (±${accuracy.toInt()}m)',
+                                    en: 'Start now (±${accuracy.toInt()}m)',
+                                  ))
                             : s.tr(
                                 eu: 'Sateliteak itxaroten...',
                                 es: 'Esperando GPS...',

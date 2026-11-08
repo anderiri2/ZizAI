@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/services/gps_accuracy_service.dart';
 import '../../../core/theme/autumn_theme.dart';
+import '../../../core/widgets/gps_acquisition_sheet.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
 import '../../map/data/spots_database.dart';
@@ -49,10 +51,40 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
     if (activeId == null) return;
 
     LatLng targetLocation;
-    if (activeState.routePoints.isNotEmpty) {
+    if (!activeState.isManual && activeState.routePoints.isNotEmpty) {
       targetLocation = activeState.routePoints.last;
     } else {
-      targetLocation = _mapController.camera.center;
+      final lang = ref.read(appLanguageProvider);
+      final hasPerm = await GpsAccuracyService.ensureLocationPermission(
+        context,
+        lang: lang,
+      );
+      if (!hasPerm) return;
+
+      if (!mounted) return;
+      final s = AppStrings(lang);
+      final locked = await GpsAcquisitionSheet.show(
+        context,
+        title: s.tr(
+          eu: 'Setalaren koordenatuak zehaztu',
+          es: 'Fijar coordenadas del setal',
+          en: 'Lock mushroom spot coordinates',
+        ),
+        subtitle: s.tr(
+          eu: '${activeState.title} • GPS Seinalea',
+          es: '${activeState.title} • Señal GPS',
+          en: '${activeState.title} • GPS Fix',
+        ),
+        confirmButtonLabel: s.tr(
+          eu: 'Finkatu koordenatuak',
+          es: 'Fijar coordenadas',
+          en: 'Lock coordinates',
+        ),
+        lang: lang,
+      );
+      if (locked == null) return;
+      targetLocation = locked;
+      _mapController.move(targetLocation, 16.0);
     }
 
     final catalog =
@@ -141,8 +173,7 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
         }
       }
     } else {
-      // Simular un paso o punto de avance en el mapa
-      ref.read(activeOutingRecorderProvider.notifier).addRoutePoint(latLng);
+      // Si no está en modo de ubicar seta en mapa, ignorar toques sueltos
     }
   }
 
@@ -255,7 +286,7 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                 userAgentPackageName: 'com.zizai.zizai',
                 maxNativeZoom: _activeLayer.maxZoom,
               ),
-              if (activeState.routePoints.length >= 2)
+              if (!activeState.isManual && activeState.routePoints.length >= 2)
                 PolylineLayer(
                   polylines: [
                     Polyline(
@@ -294,7 +325,7 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                       ),
                     ),
                   ),
-                  if (activeState.routePoints.isNotEmpty)
+                  if (!activeState.isManual && activeState.routePoints.isNotEmpty)
                     Marker(
                       point: activeState.routePoints.last,
                       width: 26,
