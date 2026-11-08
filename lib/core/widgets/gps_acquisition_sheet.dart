@@ -111,6 +111,10 @@ class _GpsAcquisitionSheetState extends State<GpsAcquisitionSheet>
       HapticFeedback.mediumImpact();
     } catch (_) {}
 
+    // Cancelar la suscripción de fijación GPS para liberar el canal nativo antes de iniciar la salida
+    _positionSub?.cancel();
+    _positionSub = null;
+
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -127,6 +131,8 @@ class _GpsAcquisitionSheetState extends State<GpsAcquisitionSheet>
 
   void _confirmStart([Position? pos]) {
     final p = pos ?? _latestPosition;
+    _positionSub?.cancel();
+    _positionSub = null;
     if (p != null) {
       Navigator.of(context).pop(LatLng(p.latitude, p.longitude));
     }
@@ -297,7 +303,11 @@ class _GpsAcquisitionSheetState extends State<GpsAcquisitionSheet>
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(null),
+                  onPressed: () {
+                    _positionSub?.cancel();
+                    _positionSub = null;
+                    Navigator.of(context).pop(null);
+                  },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     side: const BorderSide(color: AutumnColors.warmSand),

@@ -383,7 +383,7 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
             notificationText: 'Grabando ruta GPS activa en el monte...',
             notificationChannelName: 'ZizAI Salida GPS',
             notificationIcon:
-                const AndroidResource(name: 'ic_launcher', defType: 'mipmap'),
+                const AndroidResource(name: 'ic_notification', defType: 'drawable'),
             enableWakeLock: true,
             setOngoing: true,
           ),
@@ -404,17 +404,29 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
         );
       }
 
-      _positionSub?.cancel();
+      // Asegurar que cualquier stream GPS previo esté completamente cerrado
+      await _positionSub?.cancel();
+      _positionSub = null;
+      // Breve margen para que el singleton de GeolocatorAndroid en Dart libere el canal nativo
+      await Future.delayed(const Duration(milliseconds: 300));
+
       _positionSub = Geolocator.getPositionStream(
         locationSettings: locationSettings,
-      ).listen((pos) {
-        if (state.isRecording && !state.isPaused) {
-          // Descartar lecturas ruidosas con margen de error excesivo (> 35 m en monte)
-          if (pos.accuracy > 35.0) return;
-          addRoutePoint(LatLng(pos.latitude, pos.longitude));
-        }
-      });
-    } catch (_) {}
+      ).listen(
+        (pos) {
+          if (state.isRecording && !state.isPaused) {
+            // Descartar lecturas ruidosas con margen de error excesivo (> 35 m en monte)
+            if (pos.accuracy > 35.0) return;
+            addRoutePoint(LatLng(pos.latitude, pos.longitude));
+          }
+        },
+        onError: (err) {
+          debugPrint('ZizAI GPS Stream Error: $err');
+        },
+      );
+    } catch (e) {
+      debugPrint('ZizAI _startGpsStream Exception: $e');
+    }
   }
 
   void addRoutePoint(LatLng newPoint) {
