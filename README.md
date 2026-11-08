@@ -21,6 +21,9 @@
   - **Topográfica con curvas de nivel (`OpenTopoMap`)**: relieve e hipsometría para planificar pendientes y desniveles.
   - **Estándar (`OpenStreetMap`)**: red de pistas, caminos y carreteras de acceso.
 - **Marcadores con Orientación Vertical Fija (`rotate: true`)**: el número de ejemplares y el icono de la especie se contra-rotan automáticamente para mantenerse siempre legibles y nunca al revés al girar el mapa.
+- **Guardado de Setales con Precisión Dual**:
+  - **Ubicación GPS Satelital**: radar modal (`GpsAcquisitionSheet`) que asegura fijación satelital precisa (< 15 m) antes de guardar.
+  - **Marcar con el Dedo en el Mapa (con Diana Interactiva)**: retícula central de alta precisión con cruz de mira, halos de contraste y pin flotante; permite tocar con el dedo en cualquier punto del mapa para centrar la diana al instante o desplazar el mapa con el dedo para microajustes milimétricos.
 - **Caché Automática y Descargas Offline (`OfflineCachingTileProvider` & `OfflineMapsSheet`)**: almacena en disco las teselas consultadas y permite descargar regiones personalizadas o 6 parques naturales micológicos (*Gorbeia*, *Urbasa y Andia*, *Irati*, *Aralar*, *Urkiola*, *Izki*) tanto en modo topográfico como satelital para usarse en zonas sin cobertura.
 - **Panel Unificado de Filtros y Rutas (`Filtroak eta Rutak`)**: filtra marcadores por especie concreta (con buscador y fotos), nivel de comestibilidad, puntos sueltos vs salidas, y superposición simultánea de rutas GPS con paleta cromática otoñal.
 

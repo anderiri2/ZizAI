@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -26,6 +27,7 @@ import '../models/foraging_spot.dart';
 import '../services/offline_map_service.dart';
 import 'offline_maps_sheet.dart';
 import 'widgets/foraging_spot_marker.dart';
+import 'widgets/map_crosshair_target.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   final Mushroom? initialMushroomToRegister;
@@ -67,6 +69,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
   bool _isPickingLocationForMushroom = false;
   Mushroom? _pendingMushroomToPlace;
   String? _pendingPhotoToPlace;
+  bool _isPlacingSpotWithDiana = false;
 
   static const List<Color> _routePalette = [
     AutumnColors.terracotta,
@@ -345,16 +348,16 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.map_rounded,
+                    Icons.touch_app_rounded,
                     color: AutumnColors.terracotta,
                     size: 24,
                   ),
                 ),
                 title: Text(
                   s.tr(
-                    eu: 'Maparen erdiko puntuan',
-                    es: 'En el centro del mapa',
-                    en: 'At map center',
+                    eu: 'Mapan hatzarekin seinalatu (diana)',
+                    es: 'Marcar con el dedo en el mapa (con diana)',
+                    en: 'Mark on map with finger (crosshair)',
                   ),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
@@ -364,9 +367,9 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 ),
                 subtitle: Text(
                   s.tr(
-                    eu: 'Unean bistaratzen ari zaren posizioa erabiltzen du',
-                    es: 'Usa las coordenadas que tienes ahora en pantalla',
-                    en: 'Uses the coordinates currently on screen',
+                    eu: 'Ukitu pantailan hatzarekin edo doitu diana interaktiboarekin',
+                    es: 'Toca con el dedo en el mapa o ajusta la posición con la diana',
+                    en: 'Tap on the map with finger or adjust with crosshair',
                   ),
                   style: const TextStyle(
                     fontSize: 12,
@@ -374,7 +377,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
                   ),
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AutumnColors.textSecondary),
-                onTap: () => Navigator.of(ctx).pop('map'),
+                onTap: () => Navigator.of(ctx).pop('finger_diana'),
               ),
             ),
           ],
@@ -418,9 +421,11 @@ class MapScreenState extends ConsumerState<MapScreen> {
         );
         _openAddOrEditSpotSheet(context, initialLatLng: accuratePoint);
       }
-    } else if (choice == 'map') {
-      final center = _mapController.camera.center;
-      _openAddOrEditSpotSheet(context, initialLatLng: center);
+    } else if (choice == 'map' || choice == 'finger_diana') {
+      setState(() {
+        _isPlacingSpotWithDiana = true;
+        _selectedSpot = null;
+      });
     }
   }
 
@@ -706,41 +711,65 @@ class MapScreenState extends ConsumerState<MapScreen> {
     if (_edibilityFilter != 'all') activeFilterCount++;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _defaultBasqueCenter,
-              initialZoom: 9.8,
-              minZoom: 4.0,
-              maxZoom: 17.5,
-              onTap: (_, latLng) {
-                if (_isPickingLocationForMushroom &&
-                    _pendingMushroomToPlace != null) {
-                  final mushroom = _pendingMushroomToPlace!;
-                  final photo = _pendingPhotoToPlace;
-                  setState(() {
-                    _isPickingLocationForMushroom = false;
-                    _pendingMushroomToPlace = null;
-                    _pendingPhotoToPlace = null;
-                  });
-                  _openAddOrEditSpotSheet(
-                    context,
-                    initialLatLng: latLng,
-                    preselectedMushroom: mushroom,
-                    preselectedPhotoPath: photo,
-                  );
-                  return;
-                }
-                if (_selectedSpot != null) {
-                  setState(() => _selectedSpot = null);
-                }
-              },
-              onLongPress: (_, latLng) {
-                _openAddOrEditSpotSheet(context, initialLatLng: latLng);
-              },
-            ),
+      body: PopScope(
+        canPop: !_isPlacingSpotWithDiana && !_isPickingLocationForMushroom,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (_isPlacingSpotWithDiana) {
+            setState(() => _isPlacingSpotWithDiana = false);
+          } else if (_isPickingLocationForMushroom) {
+            setState(() {
+              _isPickingLocationForMushroom = false;
+              _pendingMushroomToPlace = null;
+              _pendingPhotoToPlace = null;
+            });
+          }
+        },
+        child: Stack(
+          children: [
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _defaultBasqueCenter,
+                initialZoom: 9.8,
+                minZoom: 4.0,
+                maxZoom: 17.5,
+                onTap: (_, latLng) {
+                  if (_isPlacingSpotWithDiana) {
+                    _mapController.move(
+                      latLng,
+                      _mapController.camera.zoom < 14.5
+                          ? 15.0
+                          : _mapController.camera.zoom,
+                    );
+                    HapticFeedback.selectionClick();
+                    return;
+                  }
+                  if (_isPickingLocationForMushroom &&
+                      _pendingMushroomToPlace != null) {
+                    final mushroom = _pendingMushroomToPlace!;
+                    final photo = _pendingPhotoToPlace;
+                    setState(() {
+                      _isPickingLocationForMushroom = false;
+                      _pendingMushroomToPlace = null;
+                      _pendingPhotoToPlace = null;
+                    });
+                    _openAddOrEditSpotSheet(
+                      context,
+                      initialLatLng: latLng,
+                      preselectedMushroom: mushroom,
+                      preselectedPhotoPath: photo,
+                    );
+                    return;
+                  }
+                  if (_selectedSpot != null) {
+                    setState(() => _selectedSpot = null);
+                  }
+                },
+                onLongPress: (_, latLng) {
+                  _openAddOrEditSpotSheet(context, initialLatLng: latLng);
+                },
+              ),
             children: [
               TileLayer(
                 urlTemplate: _activeLayer.urlTemplate,
@@ -1205,52 +1234,89 @@ class MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
 
-          Positioned(
-            right: 16,
-            bottom: _selectedSpot != null ? 275 : 112,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'btn_gps_center',
-                  backgroundColor: AutumnColors.parchmentBg,
-                  foregroundColor: AutumnColors.boletusBrown,
-                  tooltip: s.tr(
-                    eu: 'Zentratu nire GPS posizioan',
-                    es: 'Centrar en mi posición GPS',
-                    en: 'Center on my GPS location',
-                  ),
-                  onPressed: _isLocatingGps ? null : () => _centerOnUserGps(),
-                  child: _isLocatingGps
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.my_location_rounded),
-                ),
-                const SizedBox(height: 10),
-                FloatingActionButton.extended(
-                  key: const ValueKey('btn_add_spot'),
-                  heroTag: 'btn_add_spot',
-                  backgroundColor: AutumnColors.boletusBrown,
-                  foregroundColor: Colors.white,
-                  onPressed: () => _showSaveSpotLocationChoiceSheet(context),
-                  icon: const Icon(Icons.add_location_alt_rounded),
-                  label: Text(
-                    s.tr(
-                      eu: 'Gorde Lekua',
-                      es: 'Guardar Setal',
-                      en: 'Save Spot',
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // Diana de alta precisión en el centro del mapa
+          if (_isPlacingSpotWithDiana || _isPickingLocationForMushroom)
+            const MapCrosshairTarget(),
 
-          if (_selectedSpot != null)
+          // Banner interactivo si se ubica con diana / tocar con el dedo
+          if (_isPlacingSpotWithDiana)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 104,
+              left: 14,
+              right: 14,
+              child: _DianaPlacementBanner(
+                lang: lang,
+                onCancel: () => setState(() => _isPlacingSpotWithDiana = false),
+              ),
+            ),
+
+          // Barra flotante inferior de confirmación de diana
+          if (_isPlacingSpotWithDiana)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 104,
+              child: _DianaPlacementBottomBar(
+                lang: lang,
+                isLocatingGps: _isLocatingGps,
+                onCenterGps: () => _centerOnUserGps(openFormAfter: false),
+                onConfirm: () {
+                  final center = _mapController.camera.center;
+                  setState(() => _isPlacingSpotWithDiana = false);
+                  _openAddOrEditSpotSheet(context, initialLatLng: center);
+                },
+              ),
+            ),
+
+          if (!_isPlacingSpotWithDiana && !_isPickingLocationForMushroom)
+            Positioned(
+              right: 16,
+              bottom: _selectedSpot != null ? 275 : 112,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'btn_gps_center',
+                    backgroundColor: AutumnColors.parchmentBg,
+                    foregroundColor: AutumnColors.boletusBrown,
+                    tooltip: s.tr(
+                      eu: 'Zentratu nire GPS posizioan',
+                      es: 'Centrar en mi posición GPS',
+                      en: 'Center on my GPS location',
+                    ),
+                    onPressed: _isLocatingGps ? null : () => _centerOnUserGps(),
+                    child: _isLocatingGps
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location_rounded),
+                  ),
+                  const SizedBox(height: 10),
+                  FloatingActionButton.extended(
+                    key: const ValueKey('btn_add_spot'),
+                    heroTag: 'btn_add_spot',
+                    backgroundColor: AutumnColors.boletusBrown,
+                    foregroundColor: Colors.white,
+                    onPressed: () => _showSaveSpotLocationChoiceSheet(context),
+                    icon: const Icon(Icons.add_location_alt_rounded),
+                    label: Text(
+                      s.tr(
+                        eu: 'Gorde Lekua',
+                        es: 'Guardar Setal',
+                        en: 'Save Spot',
+                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          if (_selectedSpot != null &&
+              !_isPlacingSpotWithDiana &&
+              !_isPickingLocationForMushroom)
             Positioned(
               left: 16,
               right: 16,
@@ -1281,7 +1347,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
             ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -3089,6 +3156,202 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
         fontSize: 12,
       ),
       onSelected: (_) => onSelected(),
+    );
+  }
+}
+
+class _DianaPlacementBanner extends StatelessWidget {
+  final AppLanguage lang;
+  final VoidCallback onCancel;
+
+  const _DianaPlacementBanner({
+    required this.lang,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppStrings(lang);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          decoration: BoxDecoration(
+            color: AutumnColors.barkDark.withValues(alpha: 0.90),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AutumnColors.amberLeaf.withValues(alpha: 0.7),
+              width: 1.2,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black38,
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AutumnColors.amberLeaf.withValues(alpha: 0.22),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.touch_app_rounded,
+                  color: AutumnColors.amberLeaf,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      s.tr(
+                        eu: 'Ukitu hatzarekin edo mugitu diana',
+                        es: 'Toca con el dedo o mueve la diana',
+                        en: 'Tap with finger or move crosshair',
+                      ),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      s.tr(
+                        eu: 'Kokatu diana setala dagoen leku zehatzean',
+                        es: 'Apunta la diana al lugar exacto del setal',
+                        en: 'Aim crosshair at the exact mushroom spot',
+                      ),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white.withValues(alpha: 0.16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  minimumSize: Size.zero,
+                ),
+                onPressed: onCancel,
+                child: Text(
+                  s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DianaPlacementBottomBar extends StatelessWidget {
+  final AppLanguage lang;
+  final bool isLocatingGps;
+  final VoidCallback onCenterGps;
+  final VoidCallback onConfirm;
+
+  const _DianaPlacementBottomBar({
+    required this.lang,
+    required this.isLocatingGps,
+    required this.onCenterGps,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppStrings(lang);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AutumnColors.parchmentBg.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AutumnColors.warmSand),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton.filledTonal(
+            style: IconButton.styleFrom(
+              backgroundColor: AutumnColors.mossGreen.withValues(alpha: 0.15),
+              foregroundColor: AutumnColors.mossGreen,
+              padding: const EdgeInsets.all(12),
+            ),
+            tooltip: s.tr(
+              eu: 'Zentratu diana nire GPS posizioan',
+              es: 'Centrar diana en mi ubicación GPS',
+              en: 'Center crosshair on my GPS location',
+            ),
+            onPressed: isLocatingGps ? null : onCenterGps,
+            icon: isLocatingGps
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  )
+                : const Icon(Icons.my_location_rounded, size: 22),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ElevatedButton.icon(
+              key: const ValueKey('btn_confirm_diana_spot'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AutumnColors.boletusBrown,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 3,
+              ),
+              onPressed: onConfirm,
+              icon: const Icon(Icons.check_circle_rounded, size: 22),
+              label: Text(
+                s.tr(
+                  eu: 'Finkatu setala hemen',
+                  es: 'Fijar setal aquí',
+                  en: 'Set spot here',
+                ),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

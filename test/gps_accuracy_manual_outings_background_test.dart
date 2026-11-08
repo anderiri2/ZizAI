@@ -7,6 +7,7 @@ import 'package:zizai/core/services/gps_accuracy_service.dart';
 import 'package:zizai/core/widgets/gps_acquisition_sheet.dart';
 import 'package:zizai/features/map/models/foraging_spot.dart';
 import 'package:zizai/features/map/presentation/map_screen.dart';
+import 'package:zizai/features/map/presentation/widgets/map_crosshair_target.dart';
 import 'package:zizai/features/outings/data/outings_database.dart';
 import 'package:zizai/features/outings/models/foraging_outing.dart';
 import 'package:zizai/features/outings/presentation/map_spot_picker_screen.dart';
@@ -54,7 +55,7 @@ void main() {
       await tester.tap(fabAdd);
       await tester.pumpAndSettle();
 
-      // Debe mostrar el selector con ambas opciones (GPS y Mapa)
+      // Debe mostrar el selector con ambas opciones (GPS y Diana/Dedo)
       expect(
         find.text('Nire uneko GPS kokapenean').evaluate().isNotEmpty ||
             find.text('En mi ubicación GPS actual').evaluate().isNotEmpty ||
@@ -62,13 +63,29 @@ void main() {
         isTrue,
       );
       expect(
-        find.text('Maparen erdiko puntuan').evaluate().isNotEmpty ||
-            find.text('En el centro del mapa').evaluate().isNotEmpty ||
-            find.text('At map center').evaluate().isNotEmpty,
+        find.text('Mapan hatzarekin seinalatu (diana)').evaluate().isNotEmpty ||
+            find.text('Marcar con el dedo en el mapa (con diana)').evaluate().isNotEmpty ||
+            find.text('Mark on map with finger (crosshair)').evaluate().isNotEmpty,
         isTrue,
       );
       expect(find.byIcon(Icons.my_location_rounded), findsWidgets);
-      expect(find.byIcon(Icons.map_rounded), findsWidgets);
+      expect(find.byIcon(Icons.touch_app_rounded), findsWidgets);
+
+      // Al pulsar la opción de marcar con el dedo / diana, debe activar el modo Diana
+      final fingerOption = find.byIcon(Icons.touch_app_rounded);
+      expect(fingerOption, findsOneWidget);
+      await tester.tap(fingerOption);
+      await tester.pumpAndSettle();
+
+      // Debe verse la Diana en pantalla y el botón de confirmar
+      expect(find.byType(MapCrosshairTarget), findsOneWidget);
+      expect(find.byKey(const ValueKey('btn_confirm_diana_spot')), findsOneWidget);
+
+      // Al pulsar "Fijar setal aquí", abre el formulario de registro del setal
+      await tester.tap(find.byKey(const ValueKey('btn_confirm_diana_spot')));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.save_rounded), findsOneWidget);
     });
   });
 
