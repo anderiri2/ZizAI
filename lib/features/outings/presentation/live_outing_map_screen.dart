@@ -13,6 +13,7 @@ import '../../catalog/models/mushroom.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
 import '../../map/presentation/widgets/foraging_spot_marker.dart';
+import '../../map/presentation/widgets/map_crosshair_target.dart';
 import '../../map/services/offline_map_service.dart';
 import '../data/outings_database.dart';
 import 'outings_screen.dart';
@@ -29,7 +30,8 @@ class LiveOutingMapScreen extends ConsumerStatefulWidget {
 
 class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
   final MapController _mapController = MapController();
-  MapLayerType _activeLayer = MapLayerType.topo;
+  final OfflineCachingTileProvider _offlineTileProvider =
+      OfflineCachingTileProvider();
   bool _isPickingSpotOnMap = false;
 
   @override
@@ -90,6 +92,7 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
     final catalog =
         ref.read(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
 
+    if (!mounted) return;
     final newSpot = await showModalBottomSheet<ForagingSpot>(
       context: context,
       isScrollControlled: true,
@@ -104,11 +107,6 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
 
     if (newSpot != null) {
       await ref.read(foragingSpotsProvider.notifier).saveSpot(newSpot);
-      if (!activeState.isManual) {
-        ref
-            .read(activeOutingRecorderProvider.notifier)
-            .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
-      }
 
       if (mounted) {
         final lang = ref.read(appLanguageProvider);
@@ -152,11 +150,6 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
 
       if (newSpot != null) {
         await ref.read(foragingSpotsProvider.notifier).saveSpot(newSpot);
-        if (!activeState.isManual) {
-          ref
-              .read(activeOutingRecorderProvider.notifier)
-              .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
-        }
 
         if (mounted) {
           final lang = ref.read(appLanguageProvider);
@@ -261,6 +254,8 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
     final seconds = (secs % 60).toString().padLeft(2, '0');
     final elapsedFormatted = '$hours:$mins:$seconds';
 
+    final activeLayer = ref.watch(activeMapLayerProvider);
+
     final center = activeState.routePoints.isNotEmpty
         ? activeState.routePoints.last
         : (outingSpots.isNotEmpty
@@ -282,9 +277,10 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: _activeLayer.urlTemplate,
+                urlTemplate: activeLayer.urlTemplate,
                 userAgentPackageName: 'com.zizai.zizai',
-                maxNativeZoom: _activeLayer.maxZoom,
+                maxNativeZoom: activeLayer.maxZoom,
+                tileProvider: _offlineTileProvider,
               ),
               if (!activeState.isManual && activeState.routePoints.length >= 2)
                 PolylineLayer(
@@ -350,6 +346,10 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
               ),
             ],
           ),
+
+          // Diana de alta precisión si está en modo ubicar seta en el mapa
+          if (_isPickingSpotOnMap)
+            const MapCrosshairTarget(),
 
           // Banner interactivo si está en modo "Ubicar seta en el mapa"
           if (_isPickingSpotOnMap)
@@ -533,6 +533,45 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                           fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () {
+                          ref.read(activeMapLayerProvider.notifier).state =
+                              activeLayer.next;
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  AutumnColors.amberLeaf.withValues(alpha: 0.55),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                activeLayer.icon,
+                                size: 14,
+                                color: AutumnColors.amberLeaf,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                activeLayer.shortLabel(lang),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -551,20 +590,13 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                   heroTag: 'live_outing_topo_switch',
                   backgroundColor: AutumnColors.parchmentBg,
                   foregroundColor: AutumnColors.boletusBrown,
-                  onPressed: () => setState(() {
-                    _activeLayer = switch (_activeLayer) {
-                      MapLayerType.topo => MapLayerType.satellite,
-                      MapLayerType.satellite => MapLayerType.streets,
-                      MapLayerType.streets => MapLayerType.topo,
-                    };
-                  }),
-                  tooltip: _activeLayer.localized(lang),
+                  onPressed: () {
+                    ref.read(activeMapLayerProvider.notifier).state =
+                        activeLayer.next;
+                  },
+                  tooltip: activeLayer.localized(lang),
                   child: Icon(
-                    switch (_activeLayer) {
-                      MapLayerType.topo => Icons.terrain_rounded,
-                      MapLayerType.satellite => Icons.satellite_alt_rounded,
-                      MapLayerType.streets => Icons.map_rounded,
-                    },
+                    activeLayer.icon,
                     size: 20,
                   ),
                 ),

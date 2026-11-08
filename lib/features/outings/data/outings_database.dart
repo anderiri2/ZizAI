@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as p;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/foraging_outing.dart';
@@ -359,6 +360,16 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
       if (perm == LocationPermission.denied ||
           perm == LocationPermission.deniedForever) {
         return;
+      }
+
+      // En Android 13+ (API 33+), el servicio en primer plano requiere permiso explícito de notificaciones
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        try {
+          final notifStatus = await Permission.notification.status;
+          if (!notifStatus.isGranted) {
+            await Permission.notification.request();
+          }
+        } catch (_) {}
       }
 
       late final LocationSettings locationSettings;

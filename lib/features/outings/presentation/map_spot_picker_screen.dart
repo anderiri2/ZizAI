@@ -40,7 +40,6 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
   final MapController _mapController = MapController();
   final OfflineCachingTileProvider _offlineTileProvider =
       OfflineCachingTileProvider();
-  MapLayerType _activeLayer = MapLayerType.topo;
   LatLng? _pickedPoint;
 
   static const LatLng _defaultForestCenter = LatLng(43.0340, -2.7270);
@@ -123,6 +122,7 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
   Widget build(BuildContext context) {
     final lang = ref.watch(appLanguageProvider);
     final s = AppStrings(lang);
+    final activeLayer = ref.watch(activeMapLayerProvider);
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     final allSpots =
@@ -177,9 +177,9 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: _activeLayer.urlTemplate,
+                urlTemplate: activeLayer.urlTemplate,
                 userAgentPackageName: 'com.zizai.zizai',
-                maxNativeZoom: _activeLayer.maxZoom,
+                maxNativeZoom: activeLayer.maxZoom,
                 tileProvider: _offlineTileProvider,
               ),
               if (!isManualOuting && routePoints.length >= 2)
@@ -340,6 +340,45 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                             ],
                           ),
                         ),
+                        InkWell(
+                          onTap: () {
+                            ref.read(activeMapLayerProvider.notifier).state =
+                                activeLayer.next;
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AutumnColors.amberLeaf
+                                    .withValues(alpha: 0.55),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  activeLayer.icon,
+                                  size: 14,
+                                  color: AutumnColors.amberLeaf,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  activeLayer.shortLabel(lang),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         IconButton(
                           style: IconButton.styleFrom(
                             backgroundColor: Colors.white12,
@@ -384,22 +423,11 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
               backgroundColor: AutumnColors.parchmentBg,
               foregroundColor: AutumnColors.boletusBrown,
               onPressed: () {
-                setState(() {
-                  _activeLayer = switch (_activeLayer) {
-                    MapLayerType.topo => MapLayerType.satellite,
-                    MapLayerType.satellite => MapLayerType.streets,
-                    MapLayerType.streets => MapLayerType.topo,
-                  };
-                });
+                ref.read(activeMapLayerProvider.notifier).state =
+                    activeLayer.next;
               },
-              tooltip: _activeLayer.localized(lang),
-              child: Icon(
-                switch (_activeLayer) {
-                  MapLayerType.topo => Icons.terrain_rounded,
-                  MapLayerType.satellite => Icons.satellite_alt_rounded,
-                  MapLayerType.streets => Icons.map_rounded,
-                },
-              ),
+              tooltip: activeLayer.localized(lang),
+              child: Icon(activeLayer.icon),
             ),
           ),
         ],

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -83,7 +83,50 @@ enum MapLayerType {
     if (val == 'streets' || val == 'osm') return MapLayerType.streets;
     return MapLayerType.topo;
   }
+
+  MapLayerType get next => switch (this) {
+        MapLayerType.topo => MapLayerType.satellite,
+        MapLayerType.satellite => MapLayerType.streets,
+        MapLayerType.streets => MapLayerType.topo,
+      };
+
+  String shortLabel(AppLanguage lang) {
+    switch (this) {
+      case MapLayerType.topo:
+        return 'Topo';
+      case MapLayerType.satellite:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Satelitea';
+          case AppLanguage.en:
+            return 'Satellite';
+          case AppLanguage.es:
+            return 'Satélite';
+        }
+      case MapLayerType.streets:
+        switch (lang) {
+          case AppLanguage.eu:
+            return 'Kalea';
+          case AppLanguage.en:
+            return 'Street';
+          case AppLanguage.es:
+            return 'Calle';
+        }
+    }
+  }
+
+  IconData get icon => switch (this) {
+        MapLayerType.topo => Icons.terrain_rounded,
+        MapLayerType.satellite => Icons.satellite_alt_rounded,
+        MapLayerType.streets => Icons.map_outlined,
+      };
 }
+
+/// Provider global que mantiene el tipo de mapa seleccionado sincronizado
+/// entre el Mapa Global, la tarjeta de Salida activa, el Mapa en Vivo a pantalla
+/// completa y el selector de setales.
+final activeMapLayerProvider =
+    StateProvider<MapLayerType>((ref) => MapLayerType.topo);
 
 class OfflineMapRegion {
   final String id;

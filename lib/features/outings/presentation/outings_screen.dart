@@ -1,8 +1,8 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import '../../../core/localization/app_localizations.dart';
@@ -16,6 +16,7 @@ import '../../catalog/presentation/widgets/mushroom_search_picker.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
 import '../../map/presentation/widgets/foraging_spot_marker.dart';
+import '../../map/services/offline_map_service.dart';
 import '../data/outings_database.dart';
 import '../models/foraging_outing.dart';
 import 'live_outing_map_screen.dart';
@@ -446,30 +447,29 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
         final isManual = selectedMode == 1;
         LatLng? initialPoint;
         if (!isManual) {
+          if (!mounted) return;
           final hasPerm = await GpsAccuracyService.ensureLocationPermission(
             context,
             lang: lang,
           );
-          if (!hasPerm) return;
+          if (!hasPerm || !mounted) return;
 
-          if (mounted) {
-            final defaultTitle = titleCtrl.text.trim().isEmpty
-                ? s.tr(
-                    eu: "Udazkeneko irteera",
-                    es: "Salida de otoño",
-                    en: "Autumn outing",
-                  )
-                : titleCtrl.text.trim();
+          final defaultTitle = titleCtrl.text.trim().isEmpty
+              ? s.tr(
+                  eu: 'Udazkeneko irteera',
+                  es: 'Salida de otoño',
+                  en: 'Autumn outing',
+                )
+              : titleCtrl.text.trim();
 
-            initialPoint = await GpsAcquisitionSheet.show(
-              context,
-              outingTitle: defaultTitle,
-              lang: lang,
-            );
+          initialPoint = await GpsAcquisitionSheet.show(
+            context,
+            outingTitle: defaultTitle,
+            lang: lang,
+          );
 
-            // Si el usuario canceló la fijación GPS, no se inicia la salida
-            if (initialPoint == null) return;
-          }
+          // Si el usuario canceló la fijación GPS, no se inicia la salida
+          if (initialPoint == null) return;
         }
         await ref.read(activeOutingRecorderProvider.notifier).startOuting(
               titleCtrl.text,
@@ -534,12 +534,6 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
 
     if (newSpot != null) {
       await ref.read(foragingSpotsProvider.notifier).saveSpot(newSpot);
-      if (!activeState.isManual) {
-        // En salidas con ruta GPS, añadimos la coordenada del hallazgo al trazado
-        ref
-            .read(activeOutingRecorderProvider.notifier)
-            .addRoutePoint(LatLng(newSpot.latitude, newSpot.longitude));
-      }
     }
   }
 
@@ -739,11 +733,6 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                       .where((s) => s.outingId == activeOuting.activeOutingId)
                       .toList(),
                   onOpenFullscreenLiveMap: _openFullscreenLiveOutingMap,
-                  onAddPointTap: (latLng) {
-                    ref
-                        .read(activeOutingRecorderProvider.notifier)
-                        .addRoutePoint(latLng);
-                  },
                   onRegisterFind: () =>
                       _openRegisterFindInActiveOuting(activeOuting),
                   onPickSpotOnMap: () => _openMapSpotPickerForOuting(
@@ -910,7 +899,6 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
   final MapController mapController;
   final String elapsedFormatted;
   final List<ForagingSpot> outingSpots;
-  final ValueChanged<LatLng> onAddPointTap;
   final VoidCallback onRegisterFind;
   final VoidCallback onTogglePause;
   final VoidCallback onFinish;
@@ -923,7 +911,6 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
     required this.mapController,
     required this.elapsedFormatted,
     required this.outingSpots,
-    required this.onAddPointTap,
     required this.onRegisterFind,
     required this.onTogglePause,
     required this.onFinish,
@@ -936,6 +923,7 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
     final s = AppStrings(lang);
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    final activeLayer = ref.watch(activeMapLayerProvider);
     final center = activeState.routePoints.isNotEmpty
         ? activeState.routePoints.last
         : (outingSpots.isNotEmpty
@@ -1033,7 +1021,8 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+                          urlTemplate: activeLayer.urlTemplate,
+                          maxNativeZoom: activeLayer.maxZoom,
                           userAgentPackageName: 'com.zizai.zizai',
                         ),
                         if (activeState.routePoints.length >= 2)
@@ -1080,6 +1069,56 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                           ],
                         ),
                       ],
+                    ),
+                    // Selector de tipo de mapa (Topo / Satélite / Callejero)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: InkWell(
+                        onTap: () {
+                          ref.read(activeMapLayerProvider.notifier).state =
+                              activeLayer.next;
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AutumnColors.barkDark
+                                    .withValues(alpha: 0.88),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AutumnColors.amberLeaf
+                                      .withValues(alpha: 0.7),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    activeLayer.icon,
+                                    size: 13,
+                                    color: AutumnColors.amberLeaf,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    activeLayer.shortLabel(lang),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                     // Botón flotante para ampliar a pantalla completa
                     Positioned(
@@ -1757,6 +1796,7 @@ class _OutingRouteMiniMap extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    final activeLayer = ref.watch(activeMapLayerProvider);
     final hasRoute = !isManual && routePoints.length >= 2;
     final largestSpot = findLargestSpot(outingSpots);
     final cam = _computeCamera(largestSpot);
@@ -1790,7 +1830,8 @@ class _OutingRouteMiniMap extends ConsumerWidget {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+                urlTemplate: activeLayer.urlTemplate,
+                maxNativeZoom: activeLayer.maxZoom,
                 userAgentPackageName: 'com.zizai.zizai',
               ),
               if (hasRoute)
@@ -1916,6 +1957,25 @@ class OutingDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(currentOuting.title),
         actions: [
+          Consumer(
+            builder: (context, ref, _) {
+              final activeLayer = ref.watch(activeMapLayerProvider);
+              return TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: AutumnColors.boletusBrown,
+                ),
+                icon: Icon(activeLayer.icon, size: 16),
+                label: Text(
+                  activeLayer.shortLabel(lang),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                onPressed: () {
+                  ref.read(activeMapLayerProvider.notifier).state =
+                      activeLayer.next;
+                },
+              );
+            },
+          ),
           IconButton(
             tooltip: s.tr(
               eu: 'Gehitu perretxikoa mapan hautatuz',
@@ -1963,9 +2023,15 @@ class OutingDetailScreen extends ConsumerWidget {
                       : null,
                 ),
                 children: [
-                  TileLayer(
-                    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.zizai.zizai',
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final activeLayer = ref.watch(activeMapLayerProvider);
+                      return TileLayer(
+                        urlTemplate: activeLayer.urlTemplate,
+                        maxNativeZoom: activeLayer.maxZoom,
+                        userAgentPackageName: 'com.zizai.zizai',
+                      );
+                    },
                   ),
                   if (currentOuting.routePoints.length >= 2)
                     PolylineLayer(
@@ -2262,11 +2328,9 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
               onMushroomChanged: (m) {
                 setState(() {
                   _selectedMushroom = m;
-                  if (m != null) {
-                    final mName = m.latinWithCommon(lang);
-                    _titleCtrl.text =
-                        '${s.tr(eu: "Aurkikuntza", es: "Hallazgo de", en: "Find of")}: $mName';
-                  }
+                  final mName = m.latinWithCommon(lang);
+                  _titleCtrl.text =
+                      '${s.tr(eu: "Aurkikuntza", es: "Hallazgo de", en: "Find of")}: $mName';
                 });
               },
             ),

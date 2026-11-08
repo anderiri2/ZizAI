@@ -55,7 +55,6 @@ class MapScreenState extends ConsumerState<MapScreen> {
   final MapController _mapController = MapController();
   final OfflineCachingTileProvider _defaultOfflineTileProvider =
       OfflineCachingTileProvider();
-  MapLayerType _activeLayer = MapLayerType.topo;
   bool _showAllOutings = true;
   bool _showStandaloneSpots = true;
   final Set<String> _selectedOutingIds = <String>{};
@@ -89,8 +88,9 @@ class MapScreenState extends ConsumerState<MapScreen> {
   static const LatLng _defaultBasqueCenter = LatLng(43.0150, -2.5200);
 
   LatLngBounds get currentViewportBounds => _mapController.camera.visibleBounds;
-  bool get isUsingTopoLayer => _activeLayer == MapLayerType.topo;
-  MapLayerType get activeLayer => _activeLayer;
+  bool get isUsingTopoLayer =>
+      ref.read(activeMapLayerProvider) == MapLayerType.topo;
+  MapLayerType get activeLayer => ref.read(activeMapLayerProvider);
 
   void moveToRegion(LatLng center, double zoom) {
     _mapController.move(center, zoom);
@@ -108,7 +108,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
       builder: (_) => OfflineMapsSheet(
         currentBounds: _mapController.camera.visibleBounds,
         isTopoLayer: isUsingTopoLayer,
-        activeLayer: _activeLayer,
+        activeLayer: ref.read(activeMapLayerProvider),
         onSelectRegionOnMap: (center, zoom) {
           _mapController.move(center, zoom);
         },
@@ -710,6 +710,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
     if (_selectedMushroomSpeciesFilter != null) activeFilterCount++;
     if (_edibilityFilter != 'all') activeFilterCount++;
 
+    final activeLayer = ref.watch(activeMapLayerProvider);
+
     return Scaffold(
       body: PopScope(
         canPop: !_isPlacingSpotWithDiana && !_isPickingLocationForMushroom,
@@ -772,9 +774,9 @@ class MapScreenState extends ConsumerState<MapScreen> {
               ),
             children: [
               TileLayer(
-                urlTemplate: _activeLayer.urlTemplate,
+                urlTemplate: activeLayer.urlTemplate,
                 userAgentPackageName: 'com.zizai.zizai',
-                maxNativeZoom: _activeLayer.maxZoom,
+                maxNativeZoom: activeLayer.maxZoom,
                 tileProvider:
                     widget.customTileProvider ?? _defaultOfflineTileProvider,
               ),
@@ -938,37 +940,13 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   _HeaderPillButton(
-                                    icon: switch (_activeLayer) {
-                                      MapLayerType.topo =>
-                                        Icons.terrain_rounded,
-                                      MapLayerType.satellite =>
-                                        Icons.satellite_alt_rounded,
-                                      MapLayerType.streets =>
-                                        Icons.map_outlined,
-                                    },
-                                    label: switch (_activeLayer) {
-                                      MapLayerType.topo => 'Topo',
-                                      MapLayerType.satellite => s.tr(
-                                          eu: 'Satelitea',
-                                          es: 'Satélite',
-                                          en: 'Satellite'),
-                                      MapLayerType.streets => s.tr(
-                                          eu: 'Kalea',
-                                          es: 'Calle',
-                                          en: 'Street'),
-                                    },
-                                    active: _activeLayer != MapLayerType.streets,
+                                    icon: activeLayer.icon,
+                                    label: activeLayer.shortLabel(s.lang),
+                                    active: activeLayer != MapLayerType.streets,
                                     onTap: () {
-                                      setState(() {
-                                        _activeLayer = switch (_activeLayer) {
-                                          MapLayerType.topo =>
-                                            MapLayerType.satellite,
-                                          MapLayerType.satellite =>
-                                            MapLayerType.streets,
-                                          MapLayerType.streets =>
-                                            MapLayerType.topo,
-                                        };
-                                      });
+                                      ref
+                                          .read(activeMapLayerProvider.notifier)
+                                          .state = activeLayer.next;
                                     },
                                   ),
                                   const SizedBox(width: 6),
@@ -1708,7 +1686,6 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
   String? _selectedMushroomId;
   String? _selectedMushroomName;
   String? _photoPath;
-  bool _isLoadingGps = false;
 
   @override
   void initState() {
@@ -2420,16 +2397,8 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          onPressed:
-                              _isLoadingGps ? null : _fillCurrentGpsLocation,
-                          icon: _isLoadingGps
-                              ? const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.my_location_rounded, size: 15),
+                          onPressed: _fillCurrentGpsLocation,
+                          icon: const Icon(Icons.my_location_rounded, size: 15),
                           label: Text(
                             s.tr(
                               eu: 'Uneko GPSa',

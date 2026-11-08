@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import '../localization/app_localizations.dart';
 
 /// Niveles de calidad de la fijación de señal GPS en el monte.

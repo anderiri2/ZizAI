@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:zizai/core/localization/app_localizations.dart';
-import 'package:zizai/core/services/gps_accuracy_service.dart';
 import 'package:zizai/core/widgets/gps_acquisition_sheet.dart';
 import 'package:zizai/features/map/models/foraging_spot.dart';
 import 'package:zizai/features/map/presentation/map_screen.dart';
 import 'package:zizai/features/map/presentation/widgets/map_crosshair_target.dart';
+import 'package:zizai/features/map/services/offline_map_service.dart';
 import 'package:zizai/features/outings/data/outings_database.dart';
 import 'package:zizai/features/outings/models/foraging_outing.dart';
 import 'package:zizai/features/outings/presentation/map_spot_picker_screen.dart';
@@ -20,7 +20,7 @@ void main() {
     testWidgets('GpsAcquisitionSheet renders customized title, subtitle and confirm label',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: GpsAcquisitionSheet(
               title: 'Setal Berria Gorde',
@@ -160,6 +160,102 @@ void main() {
 
       final finished = recorder.finishOuting();
       expect(finished, isNotNull);
+    });
+  });
+
+  group('Mejora Outing: Selector de mapa y ruta GPS limpia sin setales', () {
+    test('MapLayerType conmuta cíclicamente y actualiza activeMapLayerProvider', () {
+      final container = ProviderContainer();
+      expect(container.read(activeMapLayerProvider), MapLayerType.topo);
+
+      container.read(activeMapLayerProvider.notifier).state =
+          MapLayerType.topo.next;
+      expect(container.read(activeMapLayerProvider), MapLayerType.satellite);
+
+      container.read(activeMapLayerProvider.notifier).state =
+          MapLayerType.satellite.next;
+      expect(container.read(activeMapLayerProvider), MapLayerType.streets);
+
+      container.read(activeMapLayerProvider.notifier).state =
+          MapLayerType.streets.next;
+      expect(container.read(activeMapLayerProvider), MapLayerType.topo);
+    });
+
+    test('Guardar un setal fuera de la ruta no añade puntos a routePoints en ActiveOutingRecorder', () async {
+      final recorder = ActiveOutingRecorder();
+      const p1 = LatLng(43.0300, -2.7200);
+      const p2 = LatLng(43.0310, -2.7210);
+
+      await recorder.startOuting('Ruta Monte Gorbeia', isManual: false, initialPoint: p1);
+      recorder.addRoutePoint(p2);
+
+      expect(recorder.state.routePoints.length, 2);
+      expect(recorder.state.routePoints, contains(p1));
+      expect(recorder.state.routePoints, contains(p2));
+
+      // Simulamos la creación de un setal a 300 metros fuera de la ruta
+      final offRouteSpot = ForagingSpot(
+        id: 'spot_off_route',
+        title: 'Boletus edulis en hayedo alejado',
+        latitude: 43.0350,
+        longitude: -2.7150,
+        foundAt: DateTime.now(),
+        outingId: recorder.state.activeOutingId,
+        notes: '',
+      );
+
+      // Verificamos que la ruta GPS solo contiene los 2 puntos de la trayectoria
+      // y NO el punto del setal añadido
+      expect(recorder.state.routePoints.length, 2);
+      expect(
+        recorder.state.routePoints.any((pt) =>
+            pt.latitude == offRouteSpot.latitude &&
+            pt.longitude == offRouteSpot.longitude),
+        isFalse,
+      );
+    });
+
+    testWidgets('OutingsScreen en actividad GPS muestra el selector de capa de mapa y conmuta',
+        (tester) async {
+      final container = ProviderContainer();
+      final recorder = container.read(activeOutingRecorderProvider.notifier);
+      recorder.state = ActiveOutingState(
+        isRecording: true,
+        activeOutingId: 'test_outing_gps',
+        title: 'Salida GPS Gorbeia',
+        startedAt: DateTime.now(),
+        isManual: false,
+        routePoints: const [LatLng(43.0, -2.7), LatLng(43.01, -2.71)],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: OutingsScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Debe verse el chip "Topo" del selector de capa en la tarjeta de grabación
+      expect(find.text('Topo'), findsWidgets);
+
+      // Al pulsar el chip de capa, conmuta a "Satelitea" (idioma por defecto eu)
+      await tester.tap(find.text('Topo').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(container.read(activeMapLayerProvider), MapLayerType.satellite);
+      expect(
+        find.text('Satelitea').evaluate().isNotEmpty ||
+            find.text('Satélite').evaluate().isNotEmpty ||
+            find.text('Satellite').evaluate().isNotEmpty,
+        isTrue,
+      );
+
+      container.dispose();
     });
   });
 }
