@@ -534,22 +534,36 @@ class ZizAIApp {
   async fetchLatestRelease() {
     try {
       const res = await fetch('https://api.github.com/repos/anderiri2/ZizAI/releases/latest');
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.tag_name) {
-        this.latestReleaseTag = data.tag_name;
-        document.querySelectorAll('.release-tag-text').forEach(el => {
-          el.textContent = data.tag_name;
-        });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.tag_name) {
+          this.latestReleaseTag = data.tag_name;
+          document.querySelectorAll('.release-tag-text').forEach(el => {
+            el.textContent = data.tag_name;
+          });
+        }
+
+        // Buscar si hay un archivo .apk en los assets
+        if (Array.isArray(data.assets)) {
+          const apkAsset = data.assets.find(a => a.name && a.name.endsWith('.apk'));
+          if (apkAsset && apkAsset.browser_download_url) {
+            this.latestApkUrl = apkAsset.browser_download_url;
+            document.querySelectorAll('.apk-download-link').forEach(el => {
+              el.href = this.latestApkUrl;
+            });
+          }
+        }
+        return;
       }
 
-      // Buscar si hay un archivo .apk en los assets
-      if (Array.isArray(data.assets)) {
-        const apkAsset = data.assets.find(a => a.name && a.name.endsWith('.apk'));
-        if (apkAsset && apkAsset.browser_download_url) {
-          this.latestApkUrl = apkAsset.browser_download_url;
-          document.querySelectorAll('.apk-download-link').forEach(el => {
-            el.href = this.latestApkUrl;
+      // Fallback: Si no hay release formal con assets pero sí tags en el repositorio
+      const tagsRes = await fetch('https://api.github.com/repos/anderiri2/ZizAI/tags');
+      if (tagsRes.ok) {
+        const tags = await tagsRes.json();
+        if (Array.isArray(tags) && tags.length > 0 && tags[0].name) {
+          this.latestReleaseTag = tags[0].name;
+          document.querySelectorAll('.release-tag-text').forEach(el => {
+            el.textContent = tags[0].name;
           });
         }
       }
