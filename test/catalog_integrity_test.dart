@@ -52,6 +52,55 @@ void main() {
       }
     });
 
+    test('No existen fotos repetidas en una misma especie ni fotos compartidas entre especies', () {
+      final seenPaths = <String, String>{};
+      final seenByteSignatures = <String, String>{};
+
+      for (final m in catalog) {
+        final localPaths = <String>{};
+        final localSigs = <String>{};
+
+        for (final imgPath in m.images) {
+          expect(
+            localPaths.add(imgPath),
+            isTrue,
+            reason: 'Ruta de imagen repetida dentro de la especie ${m.id}: $imgPath',
+          );
+          expect(
+            seenPaths.containsKey(imgPath),
+            isFalse,
+            reason: 'Ruta de imagen $imgPath compartida entre ${seenPaths[imgPath]} y ${m.id}',
+          );
+          seenPaths[imgPath] = m.id;
+
+          final bytes = File(imgPath).readAsBytesSync();
+          expect(bytes.length, greaterThan(2048), reason: 'Imagen inválida o vacía: $imgPath');
+
+          // Firma rápida y determinista del binario (longitud + muestra completa de bytes)
+          var hash1 = 0x811c9dc5;
+          var hash2 = 0x01000193;
+          for (var i = 0; i < bytes.length; i++) {
+            hash1 = ((hash1 ^ bytes[i]) * 0x01000193) & 0x7fffffff;
+            hash2 = ((hash2 + bytes[i] * (i + 1)) * 0x5bd1e995) & 0x7fffffff;
+          }
+          final sig = '${bytes.length}:$hash1:$hash2';
+
+          expect(
+            localSigs.add(sig),
+            isTrue,
+            reason: 'La especie ${m.id} tiene dos fotos idénticas ($imgPath)',
+          );
+          expect(
+            seenByteSignatures.containsKey(sig),
+            isFalse,
+            reason:
+                'Foto idéntica compartida entre especies: $imgPath (${m.id}) tiene el mismo contenido que ${seenByteSignatures[sig]}',
+          );
+          seenByteSignatures[sig] = '${m.id} ($imgPath)';
+        }
+      }
+    });
+
     test('Todas las referencias cruzadas de confusiones apuntan a especies válidas del catálogo', () {
       final validIds = catalog.map((m) => m.id).toSet();
       for (final m in catalog) {

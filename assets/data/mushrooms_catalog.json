@@ -41,7 +41,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/agaricus_arvensis_1.jpg"
+      "assets/images/mushrooms/agaricus_arvensis_1.jpg",
+      "assets/images/mushrooms/agaricus_arvensis_2.jpg"
     ],
     "englishName": "Horse Mushroom",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -96,7 +97,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/agaricus_bisporus_1.jpg"
+      "assets/images/mushrooms/agaricus_bisporus_1.jpg",
+      "assets/images/mushrooms/agaricus_bisporus_2.jpg"
     ],
     "englishName": "Button Mushroom",
     "edibilityLabelEu": "Jangarri ona",
@@ -162,7 +164,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/agaricus_campestris_1.jpg"
+      "assets/images/mushrooms/agaricus_campestris_1.jpg",
+      "assets/images/mushrooms/agaricus_campestris_2.jpg"
     ],
     "englishName": "Field Mushroom",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -922,7 +925,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/amanita_verna_1.jpg"
+      "assets/images/mushrooms/amanita_verna_1.jpg",
+      "assets/images/mushrooms/amanita_verna_2.jpg"
     ],
     "englishName": "Fool's Mushroom / Spring Destroying Angel",
     "edibilityLabelEu": "Hilgarria",
@@ -1335,7 +1339,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/boletus_reticulatus_1.jpg"
+      "assets/images/mushrooms/boletus_reticulatus_1.jpg",
+      "assets/images/mushrooms/boletus_reticulatus_2.jpg"
     ],
     "englishName": "Summer Cep",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -1580,7 +1585,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/cantharellus_subpruinosus_1.jpg"
+      "assets/images/mushrooms/cantharellus_subpruinosus_1.jpg",
+      "assets/images/mushrooms/cantharellus_subpruinosus_2.jpg"
     ],
     "englishName": "Cantharellus pallens (Cantharellus subpruinosus) (Ziza hori pruinaduna)",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -1702,7 +1708,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/chlorophyllum_rhacodes_1.jpg"
+      "assets/images/mushrooms/chlorophyllum_rhacodes_1.jpg",
+      "assets/images/mushrooms/chlorophyllum_rhacodes_2.jpg"
     ],
     "englishName": "Shaggy Parasol",
     "edibilityLabelEu": "Jangarria kontuz (ondo prestatuta)",
@@ -1813,7 +1820,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/clathrus_archeri_1.jpg"
+      "assets/images/mushrooms/clathrus_archeri_1.jpg",
+      "assets/images/mushrooms/clathrus_archeri_2.jpg"
     ],
     "englishName": "Devil's Fingers",
     "edibilityLabelEu": "Balio kulinariorik gabea",
@@ -2271,7 +2279,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/cortinarius_caperatus_1.jpg"
+      "assets/images/mushrooms/cortinarius_caperatus_1.jpg",
+      "assets/images/mushrooms/cortinarius_caperatus_2.jpg"
     ],
     "englishName": "Cortinarius caperatus (Rozites caperatus) (ziza zimurra)",
     "edibilityLabelEu": "Jangarri ona",
@@ -2326,7 +2335,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/cortinarius_orellanus_1.jpg"
+      "assets/images/mushrooms/cortinarius_orellanus_1.jpg",
+      "assets/images/mushrooms/cortinarius_orellanus_2.jpg"
     ],
     "englishName": "Fool's Webcap",
     "edibilityLabelEu": "Hilgarria",
@@ -2381,7 +2391,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/cortinarius_praestans_1.jpg"
+      "assets/images/mushrooms/cortinarius_praestans_1.jpg",
+      "assets/images/mushrooms/cortinarius_praestans_2.jpg"
     ],
     "englishName": "Cortinarius praestans (Sare-ziza bikaina)",
     "edibilityLabelEu": "Jangarri ona",
@@ -2436,7 +2447,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/craterellus_cinereus_1.jpg"
+      "assets/images/mushrooms/craterellus_cinereus_1.jpg",
+      "assets/images/mushrooms/craterellus_cinereus_2.jpg"
     ],
     "englishName": "Ashen chanterelle",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -2670,7 +2682,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/agrocybe_cylindracea_1.jpg"
+      "assets/images/mushrooms/agrocybe_cylindracea_1.jpg",
+      "assets/images/mushrooms/agrocybe_cylindracea_2.jpg"
     ],
     "englishName": "Cyclocybe aegerita (Agrocybe cylindracea) (Makal-ziza)",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -2736,7 +2749,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/entoloma_sinuatum_1.jpg"
+      "assets/images/mushrooms/entoloma_sinuatum_1.jpg",
+      "assets/images/mushrooms/entoloma_sinuatum_2.jpg"
     ],
     "englishName": "Livid Pinkgill",
     "edibilityLabelEu": "Toxikoa",
@@ -3126,7 +3140,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/grifola_frondosa_1.jpg"
+      "assets/images/mushrooms/grifola_frondosa_1.jpg",
+      "assets/images/mushrooms/grifola_frondosa_2.jpg"
     ],
     "englishName": "Grifola frondosa (Gaztainondo-ardagaia)",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -3237,7 +3252,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/helvella_crispa_1.jpg"
+      "assets/images/mushrooms/helvella_crispa_1.jpg",
+      "assets/images/mushrooms/helvella_crispa_2.jpg"
     ],
     "englishName": "Helvella crispa (Mitra zuria)",
     "edibilityLabelEu": "Toxikoa",
@@ -3292,7 +3308,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/helvella_lacunosa_1.jpg"
+      "assets/images/mushrooms/helvella_lacunosa_1.jpg",
+      "assets/images/mushrooms/helvella_lacunosa_2.jpg"
     ],
     "englishName": "Helvella lacunosa (Mitra beltza)",
     "edibilityLabelEu": "Toxikoa",
@@ -3403,7 +3420,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/hydnum_rufescens_1.jpg"
+      "assets/images/mushrooms/hydnum_rufescens_1.jpg",
+      "assets/images/mushrooms/hydnum_rufescens_2.jpg"
     ],
     "englishName": "Terracotta Hedgehog",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -3872,7 +3890,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/hypholoma_fasciculare_1.jpg"
+      "assets/images/mushrooms/hypholoma_fasciculare_1.jpg",
+      "assets/images/mushrooms/hypholoma_fasciculare_2.jpg"
     ],
     "englishName": "Sulphur Tuft",
     "edibilityLabelEu": "Toxikoa",
@@ -3983,7 +4002,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/infundibulicybe_geotropa_1.jpg"
+      "assets/images/mushrooms/infundibulicybe_geotropa_1.jpg",
+      "assets/images/mushrooms/infundibulicybe_geotropa_2.jpg"
     ],
     "englishName": "Infundibulicybe geotropa (Clitocybe geotropa) (Urri-ziza)",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -4038,7 +4058,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/inocybe_erubescens_1.jpg"
+      "assets/images/mushrooms/inocybe_erubescens_1.jpg",
+      "assets/images/mushrooms/inocybe_erubescens_2.jpg"
     ],
     "englishName": "Deadly Fibrecap",
     "edibilityLabelEu": "Hilgarria",
@@ -4093,7 +4114,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/kuehneromyces_mutabilis_1.jpg"
+      "assets/images/mushrooms/kuehneromyces_mutabilis_1.jpg",
+      "assets/images/mushrooms/kuehneromyces_mutabilis_2.jpg"
     ],
     "englishName": "Kuehneromyces mutabilis (Pholiota mutabilis) (Egur-ziza aldakorra)",
     "edibilityLabelEu": "Jangarri ona",
@@ -4495,7 +4517,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/laetiporus_sulphureus_1.jpg"
+      "assets/images/mushrooms/laetiporus_sulphureus_1.jpg",
+      "assets/images/mushrooms/laetiporus_sulphureus_2.jpg"
     ],
     "englishName": "Chicken of the Woods",
     "edibilityLabelEu": "Jangarria kontuz (ondo prestatuta)",
@@ -6386,7 +6409,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/stropharia_aeruginosa_1.jpg"
+      "assets/images/mushrooms/stropharia_aeruginosa_1.jpg",
+      "assets/images/mushrooms/stropharia_aeruginosa_2.jpg"
     ],
     "englishName": "Stropharia aeruginosa (Estrofaria berdea)",
     "edibilityLabelEu": "Balio kulinariorik gabea",
@@ -6497,7 +6521,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/suillus_bovinus_1.jpg"
+      "assets/images/mushrooms/suillus_bovinus_1.jpg",
+      "assets/images/mushrooms/suillus_bovinus_2.jpg"
     ],
     "englishName": "Bovine bolete (Jersey cow mushroom)",
     "edibilityLabelEu": "Jangarria kontuz (ondo prestatuta)",
@@ -6552,7 +6577,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/suillus_granulatus_1.jpg"
+      "assets/images/mushrooms/suillus_granulatus_1.jpg",
+      "assets/images/mushrooms/suillus_granulatus_2.jpg"
     ],
     "englishName": "Weeping Bolete",
     "edibilityLabelEu": "Jangarria kontuz (ondo prestatuta)",
@@ -6607,7 +6633,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/suillus_luteus_1.jpg"
+      "assets/images/mushrooms/suillus_luteus_1.jpg",
+      "assets/images/mushrooms/suillus_luteus_2.jpg"
     ],
     "englishName": "Slippery Jack",
     "edibilityLabelEu": "Jangarri ona",
@@ -6762,7 +6789,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/tricholoma_pardinum_1.jpg"
+      "assets/images/mushrooms/tricholoma_pardinum_1.jpg",
+      "assets/images/mushrooms/tricholoma_pardinum_2.jpg"
     ],
     "englishName": "Tricholoma pardinum (Tricholoma tigrinum) (Ziza nabarra)",
     "edibilityLabelEu": "Toxikoa",
@@ -6985,7 +7013,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/tuber_melanosporum_1.jpg"
+      "assets/images/mushrooms/tuber_melanosporum_1.jpg",
+      "assets/images/mushrooms/tuber_melanosporum_2.jpg"
     ],
     "englishName": "Black Périgord Truffle",
     "edibilityLabelEu": "Jangarri bikaina",
@@ -7107,7 +7136,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/volvopluteus_gloiocephalus_1.jpg"
+      "assets/images/mushrooms/volvopluteus_gloiocephalus_1.jpg",
+      "assets/images/mushrooms/volvopluteus_gloiocephalus_2.jpg"
     ],
     "englishName": "Volvopluteus gloiocephalus (Volvariella gloiocephala) (Bolbaria mukitsua)",
     "edibilityLabelEu": "Jangarri ona",
@@ -7162,7 +7192,8 @@
       }
     ],
     "images": [
-      "assets/images/mushrooms/xerocomellus_chrysenteron_1.jpg"
+      "assets/images/mushrooms/xerocomellus_chrysenteron_1.jpg",
+      "assets/images/mushrooms/xerocomellus_chrysenteron_2.jpg"
     ],
     "englishName": "Xerocomellus chrysenteron (Boletus chrysenteron) (Onddo urregorria)",
     "edibilityLabelEu": "Jangarri ona",

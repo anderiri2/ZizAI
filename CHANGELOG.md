@@ -2,6 +2,24 @@
 
 Todos los cambios relevantes de **ZizAI** siguen el flujo Gitflow (`feature/*` → `develop` → `main`) con etiquetas de versión semántica.
 
+## [1.7.2] - 2026-11-09 (`v1.7.2`)
+### Añadido
+- **Selector de Capas en Salidas en Vivo**: Permite alternar entre capa Satelital (Esri World Imagery) y Topográfica directamente desde la pantalla de seguimiento de salidas (`LiveOutingMapScreen`).
+- **Icono Vectorial Nativo para Notificación de Fondo**: Inclusión de `ic_notification.xml` con regla `keep.xml` y referencia explícita en Kotlin para evitar su eliminación durante la ofuscación y reducción de recursos (R8).
+- **Diagnóstico y Permisos de Google Drive (`appDataFolder`)**: Inclusión automática del scope `driveAppdataScope` en el inicio de sesión con Google y mensajes de diagnóstico accionables en la pantalla de Backup.
+
+### Corregido
+- **Visibilidad Estable de la Notificación en Segundo Plano (Android)**: Inicialización del canal de notificación `geolocator_channel_01` con nivel `IMPORTANCE_LOW` en `MainActivity.kt` para evitar que el plugin asigne `IMPORTANCE_NONE` y el sistema oculte el Foreground Service.
+- **Liberación de Canales GPS antes de Iniciar Salida**: Cancelación activa del stream de radar previo (`GpsAcquisitionSheet`) para permitir que la configuración de la notificación persistente se entregue correctamente al servicio de grabación.
+- **Compatibilidad con iOS y Swift Package Manager**: Adición del archivo de bloqueo `Package.resolved` en `.gitignore` y sincronización con el workspace de Xcode.
+- **Unicidad de Fotografías en el Catálogo Micológico**: Eliminación de fotos duplicadas dentro de una misma especie y fotos compartidas entre especies distintas, completando las 252 imágenes verificadas para las 126 especies con validación por hash binario y perceptual.
+
+## [1.7.1] - 2026-11-08 (`v1.7.1`)
+### Añadido
+- **Diana Interactiva y Marcado Táctil en el Mapa (`MapCrosshairTarget`)**:
+  - Selector visual tipo retícula de precisión para ubicar setales exactamente en el punto deseado con toque táctil o centrando la vista en el mapa.
+  - Modos de marcado dual: ubicación instantánea con dedo en pantalla o fijación con coordenadas en el punto central.
+
 ## [1.7.0] - 2026-11-08 (`v1.7.0`)
 ### Añadido
 - **Precisión GPS Garantizada al Guardar Setas en el Mapa**:
