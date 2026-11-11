@@ -6,9 +6,9 @@
 
 ---
 
-# 🍄 ZizAI — Mycological Field Guide, GPS Routes, Offline Satellite/Topo Maps & AI
+# 🍄 ZizAI — Offline Mycological Field Guide, Private Spots Map & GPS Routes
 
-**ZizAI** is a cross-platform mobile application built with **Flutter** (Android & iOS) for mushroom foraging enthusiasts. It uses a **100% standalone architecture (serverless)**, leveraging the user's personal Google account both for private cloud backups in **Google Drive (`appDataFolder`)** and for mycological identification powered by **Gemini AI**, with no need to manually configure API keys in Google AI Studio.
+**ZizAI** is a cross-platform mobile application built with **Flutter** (Android & iOS) for mushroom foraging enthusiasts. It operates on a **100% standalone architecture (serverless & 100% private)**, storing all data locally on the device (`SQLite`) and optionally using the user's personal Google account for encrypted cloud backups in **Google Drive (`appDataFolder`)**.
 
 🌐 **Official Website (GitHub Pages)**: [https://anderiri2.github.io/ZizAI/](https://anderiri2.github.io/ZizAI/)
 
@@ -23,7 +23,7 @@
 ### 🤝 How can you help?
 1. **Join the closed test** with your Google Play (Android) account.
 2. **Install ZizAI** and test it once your access is enabled.
-3. **Keep the app installed for 14 consecutive days** and open it regularly to test its features (catalog, offline maps, GPS routes, or AI identifier).
+3. **Keep the app installed for 14 consecutive days** and open it regularly to test its features (offline catalog, satellite/topo maps, GPS routes, and backups).
 
 👉 **Want to join?** [**Open an Issue here on GitHub**](https://github.com/AnderIri2/ZizAI/issues/new?title=Google+Play+Beta+Tester&body=Hi,+I+would+like+to+join+the+14-day+closed+test+for+ZizAI.) to sign up for the 14-day closed beta track. Thank you for supporting the project! 🍄
 
@@ -31,9 +31,9 @@
 
 ## ✨ Key Features
 
-### 1. 📖 Mushrooms (100% Offline Mycological Catalog — 126 Species & 221 Real Photos)
-- **Complete Trilingual Localization**: all descriptions and species cards in **Basque / Euskara** (default), **Spanish** and **English**.
-- **A–Z** alphabetical sorting selectable by **Basque**, **Spanish** or **Scientific Name**.
+### 1. 📖 Mushrooms (100% Offline Mycological Catalog — 126 Species & 252 Real Photos)
+- **Complete Trilingual Localization**: all descriptions and species cards in **Basque / Euskara**, **Spanish** and **English** (automatically detects device system language with English fallback).
+- **A–Z** alphabetical sorting selectable by **Basque**, **Spanish**, **English** or **Scientific Name (Latin)**.
 - Real-time accent-insensitive search bar and quick filters (*Choice Edible*, *Edible*, *Caution*, *Toxic/Deadly*, *Autumn*, *Spring*, *Favorites*).
 - Detailed species profile with real photo carousel, 4-block morphology (*Cap / Txapela*, *Hymenium*, *Stem / Hanka*, *Flesh, Odor & Taste*), habitat, season, 6-tier edibility rating and **Interactive Common Lookalikes** cross-linked between profiles.
 - **Direct Interactive Map Placement**: *"Save location of this mushroom on the Map"* button that opens the map with an interactive banner to drop a pin with a single tap.
@@ -44,11 +44,12 @@
   - **Topographic with Contour Lines (`OpenTopoMap`)**: terrain relief and elevation contours to plan slopes and altitude changes.
   - **Standard (`OpenStreetMap`)**: network of forest tracks, trails and access roads.
 - **Fixed Upright Marker Orientation (`rotate: true`)**: specimen counts and species icons counter-rotate automatically so they always remain upright and readable when rotating the map.
-- **Dual-Precision Spot Saving**:
+- **Multi-Mode Spot Saving**:
   - **Satellite GPS Location**: modal radar (`GpsAcquisitionSheet`) ensuring accurate satellite lock (< 15 m) before saving.
   - **Finger Tap on Map (with Interactive Crosshair Reticle)**: high-precision central reticle with crosshair, contrast halos and floating pin; tap anywhere on the map to instantly center the reticle or pan the map for millimeter adjustments.
+  - **Manual Coordinates Entry**: direct latitude/longitude input when logging known coordinates.
 - **Automatic Cache & Offline Downloads (`OfflineCachingTileProvider` & `OfflineMapsSheet`)**: caches viewed tiles on disk and allows downloading custom bounding boxes or 6 natural parks (*Gorbeia*, *Urbasa & Andia*, *Irati*, *Aralar*, *Urkiola*, *Izki*) in both topographic and satellite modes for zero-coverage areas.
-- **Unified Filters & Routes Panel (`Filtroak eta Rutak`)**: filter markers by specific species (with search and thumbnails), edibility level, standalone spots vs outings, and simultaneous GPS route overlays with an autumn color palette.
+- **Unified Filters & Routes Panel**: filter markers by specific species (with search and thumbnails), edibility level, standalone spots vs outings, and simultaneous GPS route overlays with an autumn color palette.
 
 ### 3. 🥾 Forest Outings & GPS Routes
 - **GPS Fix Acquisition Mechanism (`GPS Fix Acquisition`)**:
@@ -61,26 +62,22 @@
   - Quick chips bar for common autumn species (*Boletus*, *Cantharellus*, *Lactarius*, *Amanita caesarea*, etc.).
   - Full-screen search with focused keyboard and instant filtering by any trilingual or scientific name.
 - **Flexible Outing Modes**:
-  - **Live GPS Route**: real-time tracking with route polyline, drift-free stopwatch, distance, Android Foreground Service notification and basket counter.
+  - **Live GPS Route**: real-time tracking with route polyline, drift-free stopwatch, distance, Android Foreground Service background notification and basket counter.
   - **Live Manual Outing (Basket Mode)**: 0% satellite battery drain, logging finds by tapping on the interactive map (`MapSpotPickerScreen`).
   - **Past Retrospective Outing**: post-outing registration with date, duration and map spot selection.
-- **Expanded Map View (`LiveOutingMapScreen`)**: full-screen immersive mode with satellite/topo/standard switcher, floating stopwatch, and quick logging (*"Log at my current GPS"* or *"Place on map"*).
+- **Expanded Map View (`LiveOutingMapScreen`)**: full-screen immersive mode with satellite/topo/standard layer switcher, floating stopwatch, and quick logging (*"Log at my current GPS"* or *"Place on map"*).
 - **History & Summary Cards**: real cartographic mini-map (`_OutingRouteMiniMap`) displaying the GPS route polyline, duration, distance and basket breakdown with specimen count and weight in grams.
 
-### 4. ✨ AI Photo (Gemini Mycological Identifier without Google AI Studio)
-- Visual identification powered by **Multimodal Gemini** directly using the user's Google OAuth session (no need to create API keys in Google AI Studio).
-- **Offline Mode with Pending Queue**: saves photos taken in the woods as *"Pending connection"* to process them automatically once signal returns, while immediately answering with the **Local Morphological Assistant** across all 126 catalog species.
-- One-tap saving: button on the AI suggestion card to log the species and its photo directly onto the Global Map or the active Outing.
-
-### 5. ☁️ Full Google Drive Backup (`appDataFolder`) with Smart Merge
-- Packages all user activity (`spots.json`, `outings.json`, `favorites.json`, `ai_chats.json`, `offline_regions.json` and `photos/` folder) into `zizai_backup.zip`.
+### 4. ☁️ Full Google Drive Backup (`appDataFolder`) with Smart Merge
+- Packages all user activity (`spots.json`, `outings.json`, `favorites.json`, `offline_regions.json` and `photos/` folder) into `zizai_backup.zip`.
 - **Smart Merge by ID**: merges remote cloud data with local records without overwriting or duplicating existing outings or mushroom spots (with a full replace option also available).
-- Supports exportable and importable **Local ZIP Snapshots** without a Google connection.
+- **Automatic Backup Option**: optionally syncs activity to Google Drive automatically after saving an outing.
+- Supports exportable and importable **Local ZIP Snapshots** on the phone without a Google connection.
 
-### 6. ⚙️ Slide-Out Navigation Drawer (`SettingsDrawer`)
-- Slide-out side menu accessible from any main screen (`☰`).
+### 5. ⚙️ Slide-Out Settings Drawer (`SettingsDrawer`)
+- Accessible by tapping the top-left **ZizAI** logo on the main screen.
 - Dynamic language switcher (**Euskara**, **Castellano**, **English**).
-- Google OAuth status diagnostics, SHA-1 setup guide, ZIP snapshot management and responsible foraging & mycological safety guidelines.
+- Google account connection status (`appDataFolder`), quick access to local ZIP snapshots, **100% Data Privacy Guarantee** details, and the **Mycological Safety Decalogue**.
 
 ---
 
@@ -100,18 +97,17 @@ The repository manages the code lifecycle through `feature/*` branches, integrat
 - `v0.1.0`: Core app foundation, autumn theme, splash, login and 126-species offline catalog.
 - `v0.2.0` (`feature/outings-gps-routes`): Forest Outings GPS recorder, summary cards and Global Map filtering.
 - `v0.3.0` (`feature/offline-map-regions`): Offline map tile cache and zero-coverage mycological region downloads.
-- `v0.4.0` (`feature/gemini-ai-identifier`): Gemini AI mycological identifier (single OAuth) and offline pending queue.
-- `v1.0.0` (`feature/full-activity-drive-backup`): Full Google Drive backup with Smart Merge and 5-tab navigation.
-- `v1.1.0` (`feature/amanita-caesarea-branding`): New *Amanita caesarea* logo & native icons and 3-stage animated opening splash.
-- `v1.2.0` (`feature/trilingual-eu-es-en`): Full trilingual support (`EU` / `ES` / `EN`) with Basque as the primary default language.
+- `v1.0.0` (`feature/full-activity-drive-backup`): Full Google Drive backup (`appDataFolder`) with Smart Merge and local ZIP snapshots.
+- `v1.1.0` (`feature/amanita-caesarea-branding`): *Amanita caesarea* logo & native icons and 3-stage animated opening splash.
+- `v1.2.0` (`feature/trilingual-eu-es-en`): Full trilingual support (`EU` / `ES` / `EN`).
 - `v1.3.0` (`feature/custom-caesarea-logo-and-2s-splash`): Illustrated *Amanita caesarea* logo on dark forest background and 2.0-second botanical animated splash.
-- `v1.4.0` (`feature/settings-drawer-manual-outings`): Left slide-out drawer (`SettingsDrawer`), GPS-free manual and retrospective outings, and OAuth diagnostics.
+- `v1.4.0` (`feature/settings-drawer-manual-outings`): Left slide-out drawer (`SettingsDrawer`), GPS-free manual and retrospective outings.
 - `v1.5.0` (`feature/catalog-map-picker-filters-redesign`): Interactive mushroom placement from catalog, unified modal map filters & routes sheet, full-screen outing map (`LiveOutingMapScreen`) and 100% localized strings.
-- `v1.5.1` (`feature/icon-and-minimap-fixes`): Full-bleed adaptive native icon on Android/iOS without white borders, real cartographic mini-map on outing cards and catalog geographic cleanup.
+- `v1.5.1` (`feature/icon-and-minimap-fixes`): Full-bleed adaptive native icon on Android/iOS without white borders, real cartographic mini-map on outing cards and 4-tab bottom navigation (`Mushrooms`, `Map`, `Outings`, `Backup`).
 - `v1.6.0` (`feature/gps-satellite-mushroom-search`): Pure satellite map layer (Esri World Imagery), GPS signal & accuracy acquisition (`GpsAcquisitionSheet`), reactive mushroom search (`MushroomSearchPicker`), upright marker rotation (`rotate: true`) and full rebranding to ZizAI.
 - `v1.7.0` (`feature/map-gps-accuracy-manual-basket-background`): Radar GPS fix selector when saving spots on the map, manual outings redesigned as pure mycological baskets, background Foreground Service with persistent notification and drift-free stopwatch.
 - `v1.7.1`: Interactive crosshair reticle (*diana*) and finger-tap spot placement mode on the map.
-- `v1.7.2`: Map layer selector in outings, pure GPS route tracking, Android background GPS notification improvements, Drive `appDataFolder` scope at sign-in and catalog photo deduplication.
+- `v1.7.2`: Map layer selector in outings, pure GPS route tracking, Android background GPS notification improvements, Drive `appDataFolder` scope at sign-in and catalog photo deduplication (252 unique real photos).
 
 ---
 

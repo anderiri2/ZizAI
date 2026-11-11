@@ -1,5 +1,5 @@
 name: zizai
-description: "ZizAI - Guía micológica de campo, rutas GPS, mapas offline e IA con backup en Google Drive."
+description: "ZizAI - Guía micológica de campo offline, mapa privado de setales y rutas GPS con backup en Google Drive."
 publish_to: 'none'
 version: 1.7.2+15
 
