@@ -63,9 +63,9 @@
   - Full-screen search with focused keyboard and instant filtering by any trilingual or scientific name.
 - **Flexible Outing Modes**:
   - **Live GPS Route**: real-time tracking with route polyline, drift-free stopwatch, distance, Android Foreground Service background notification and basket counter.
-  - **Live Manual Outing (Basket Mode)**: 0% satellite battery drain, logging finds by tapping on the interactive map (`MapSpotPickerScreen`).
-  - **Past Retrospective Outing**: post-outing registration with date, duration and map spot selection.
-- **Expanded Map View (`LiveOutingMapScreen`)**: full-screen immersive mode with satellite/topo/standard layer switcher, floating stopwatch, and quick logging (*"Log at my current GPS"* or *"Place on map"*).
+  - **Live Manual Outing (Basket Mode)**: 0% satellite battery drain, logging finds on the interactive map using the high-precision central **Crosshair Reticle (`MapCrosshairTarget`)** and confirmation bar (`MapSpotPickerScreen`).
+  - **Past Retrospective Outing**: post-outing registration with date, duration and crosshair map spot selection.
+- **Expanded Map View (`LiveOutingMapScreen`)**: full-screen immersive mode with satellite/topo/standard layer switcher, floating stopwatch, and quick logging (*"Spot here"* at current GPS or *"Place on Map"* with the interactive crosshair reticle).
 - **History & Summary Cards**: real cartographic mini-map (`_OutingRouteMiniMap`) displaying the GPS route polyline, duration, distance and basket breakdown with specimen count and weight in grams.
 
 ### 4. ☁️ Full Google Drive Backup (`appDataFolder`) with Smart Merge

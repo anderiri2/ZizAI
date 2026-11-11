@@ -63,9 +63,9 @@
   - Búsqueda a pantalla completa con teclado enfocado y filtrado instantáneo por cualquier denominación trilingüe o científica.
 - **Grabación y Modos de Salida Flexibles**:
   - **Ruta GPS en Vivo**: seguimiento en tiempo real con polilínea de trazado, cronómetro sin deriva, distancia, servicio en segundo plano con notificación en Android y recuento de cesta.
-  - **Salida Manual en Directo (Modo Cesta)**: 0% consumo de batería satelital, registrando hallazgos tocando en el mapa interactivo (`MapSpotPickerScreen`).
-  - **Salida Pasada Retrospectiva**: registro a posteriori con fecha, duración y selección de setales en mapa.
-- **Vista de Mapa Ampliada (`LiveOutingMapScreen`)**: modo inmersivo a pantalla completa con conmutador satelital/topo/estándar, cronómetro flotante, y registro rápido *"Anotar en mi GPS actual"* o *"Ubicar en el mapa"*.
+  - **Salida Manual en Directo (Modo Cesta)**: 0% consumo de batería satelital, ubicando hallazgos en el mapa mediante la **Diana Interactiva (`MapCrosshairTarget`)** y barra de confirmación (`MapSpotPickerScreen`).
+  - **Salida Pasada Retrospectiva**: registro a posteriori con fecha, duración y selección de setales en mapa con diana.
+- **Vista de Mapa Ampliada (`LiveOutingMapScreen`)**: modo inmersivo a pantalla completa con conmutador satelital/topo/estándar, cronómetro flotante, y registro rápido *"Anotar aquí"* (GPS actual) o *"Ubicar en Mapa"* con la diana interactiva.
 - **Historial y Tarjetas Resumen**: mini-mapa cartográfico real (`_OutingRouteMiniMap`) con la polilínea GPS de la ruta, duración, distancia y desglose de la cesta con número de ejemplares y peso en gramos.
 
 ### 4. ☁️ Backup Integral en Google Drive (`appDataFolder`) con Fusión Inteligente

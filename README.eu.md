@@ -63,9 +63,9 @@
   - Pantaila osoko bilaketa teklatua fokatuta eta berehalako iragazketa edozein izen hirueledun edo zientifikoren arabera.
 - **Grabazio eta Irteera Modu Malguak**:
   - **Zuzeneko GPS Ibilbidea**: denbora errealeko jarraipena ibilbidearen polilerroarekin, desbideratzerik gabeko kronometroarekin, distantziarekin, Android bigarren planoko jakinarazpenarekin eta saskiaren zenbaketarekin.
-  - **Zuzeneko Eskuzko Irteera (Saski Modua)**: %0 satelite-bateria kontsumoa, aurkikuntzak mapa interaktiboan ukituz erregistratuz (`MapSpotPickerScreen`).
-  - **Iraganeko Atzera Begirako Irteera**: ondorengo erregistroa datarekin, iraupenarekin eta mapan perretxiko-lekuen hautaketarekin.
-- **Mapa Ikuspegi Handitua (`LiveOutingMapScreen`)**: pantaila osoko murgiltze modua satelite/topo/estandar aldagailuarekin, kronometro flotatzailearekin eta erregistro azkarrarekin (*"Erregistratu nire uneko GPSan"* edo *"Kokatu mapan"*).
+  - **Zuzeneko Eskuzko Irteera (Saski Modua)**: %0 satelite-bateria kontsumoa, aurkikuntzak mapan **Itu Interaktiboarekin (`MapCrosshairTarget`)** eta baieztapen-barrarekin kokatuz (`MapSpotPickerScreen`).
+  - **Iraganeko Atzera Begirako Irteera**: ondorengo erregistroa datarekin, iraupenarekin eta mapan perretxiko-lekuen itu bidezko hautaketarekin.
+- **Mapa Ikuspegi Handitua (`LiveOutingMapScreen`)**: pantaila osoko murgiltze modua satelite/topo/estandar aldagailuarekin, kronometro flotatzailearekin eta erregistro azkarrarekin (*"Perretxikoa hemen"* uneko GPSan edo *"Kokatu Mapan"* itu interaktiboarekin).
 - **Historia eta Laburpen Txartelak**: benetako mini-mapa kartografikoa (`_OutingRouteMiniMap`) ibilbidearen GPS polilerroarekin, iraupenarekin, distantziarekin eta saskiaren banaketarekin (ale-kopurua eta pisua gramotan).
 
 ### 4. ☁️ Segurtasun-kopia Integrala Google Drive-n (`appDataFolder`) Bategite Adimendunarekin

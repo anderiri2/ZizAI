@@ -107,7 +107,7 @@ void main() {
       expect(manualOuting.formattedDuration, '1h 0m');
     });
 
-    testWidgets('MapSpotPickerScreen no muestra botón de trazar ruta a mano y ofrece botón GPS',
+    testWidgets('MapSpotPickerScreen muestra Diana interactiva, botón GPS y barra de confirmación',
         (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
@@ -125,8 +125,54 @@ void main() {
       expect(find.text('Ibilbidea marraztu'), findsNothing);
       expect(find.text('Trazar ruta'), findsNothing);
 
-      // Debe existir el botón flotante GPS para ubicar setas
+      // Debe mostrarse la Diana central (MapCrosshairTarget)
+      expect(find.byType(MapCrosshairTarget), findsOneWidget);
+
+      // Debe existir el botón GPS para centrar la diana y el botón de confirmar diana
       expect(find.byKey(const ValueKey('btn_gps_picker_spot')), findsOneWidget);
+      expect(find.byKey(const ValueKey('btn_confirm_diana_spot')), findsOneWidget);
+
+      // Al pulsar "Fijar setal aquí", abre el formulario de hallazgo en la salida
+      await tester.tap(find.byKey(const ValueKey('btn_confirm_diana_spot')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OutingFindFormSheet), findsOneWidget);
+    });
+
+    testWidgets('OutingsScreen en Salida Manual muestra botón único de ubicar en mapa sin icono redundante',
+        (tester) async {
+      final container = ProviderContainer();
+      final recorder = container.read(activeOutingRecorderProvider.notifier);
+      recorder.state = ActiveOutingState(
+        isRecording: true,
+        activeOutingId: 'test_outing_manual',
+        title: 'Salida Manual Urbasa',
+        startedAt: DateTime.now(),
+        isManual: true,
+        routePoints: const [],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: OutingsScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(
+        find.text('Kokatu Perretxikoa Mapan').evaluate().isNotEmpty ||
+            find.text('Ubicar Seta en Mapa').evaluate().isNotEmpty ||
+            find.text('Place Mushroom on Map').evaluate().isNotEmpty,
+        isTrue,
+      );
+      // Solo un icono touch_app_rounded en la tarjeta (dentro del botón principal, sin botón secundario duplicado)
+      expect(find.byIcon(Icons.touch_app_rounded), findsOneWidget);
+
+      container.dispose();
     });
   });
 

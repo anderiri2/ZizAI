@@ -514,11 +514,17 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
   Future<void> _openRegisterFindInActiveOuting(
     ActiveOutingState activeState,
   ) async {
+    if (activeState.isManual || activeState.routePoints.isEmpty) {
+      await _openMapSpotPickerForOuting(
+        activeState.activeOutingId!,
+        activeState.title,
+      );
+      return;
+    }
+
     final catalog =
         ref.read(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
-    final currentPos = activeState.routePoints.isNotEmpty
-        ? activeState.routePoints.last
-        : const LatLng(43.0350, -2.7280);
+    final currentPos = activeState.routePoints.last;
 
     final newSpot = await showModalBottomSheet<ForagingSpot>(
       context: context,
@@ -1232,14 +1238,27 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  onPressed: onRegisterFind,
-                  icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                  onPressed: activeState.isManual
+                      ? (onPickSpotOnMap ?? onRegisterFind)
+                      : onRegisterFind,
+                  icon: Icon(
+                    activeState.isManual
+                        ? Icons.touch_app_rounded
+                        : Icons.add_location_alt_rounded,
+                    size: 18,
+                  ),
                   label: Text(
-                    s.tr(
-                      eu: 'Perretxikoa Hemen Gorde',
-                      es: 'Anotar Seta Aquí',
-                      en: 'Spot Mushroom Here',
-                    ),
+                    activeState.isManual
+                        ? s.tr(
+                            eu: 'Kokatu Perretxikoa Mapan',
+                            es: 'Ubicar Seta en Mapa',
+                            en: 'Place Mushroom on Map',
+                          )
+                        : s.tr(
+                            eu: 'Perretxikoa Hemen Gorde',
+                            es: 'Anotar Seta Aquí',
+                            en: 'Spot Mushroom Here',
+                          ),
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -1257,7 +1276,7 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                       : Icons.pause_rounded,
                 ),
               ),
-              if (onPickSpotOnMap != null) ...[
+              if (!activeState.isManual && onPickSpotOnMap != null) ...[
                 const SizedBox(width: 6),
                 IconButton.filled(
                   style: IconButton.styleFrom(
@@ -1265,9 +1284,9 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                     foregroundColor: Colors.white,
                   ),
                   tooltip: s.tr(
-                    eu: 'Kokatu perretxikoa mapan pantaila osoan',
-                    es: 'Ubicar seta en el mapa a pantalla completa',
-                    en: 'Locate mushroom on fullscreen map',
+                    eu: 'Kokatu perretxikoa mapan dianarekin',
+                    es: 'Ubicar seta en el mapa con diana',
+                    en: 'Locate mushroom on map with crosshair',
                   ),
                   onPressed: onPickSpotOnMap,
                   icon: const Icon(Icons.touch_app_rounded, size: 20),

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -11,11 +12,12 @@ import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
+import '../../map/presentation/widgets/foraging_spot_marker.dart';
+import '../../map/presentation/widgets/map_crosshair_target.dart';
 import '../../map/services/offline_map_service.dart';
 import '../data/outings_database.dart';
 import '../models/foraging_outing.dart';
 import 'outings_screen.dart';
-import '../../map/presentation/widgets/foraging_spot_marker.dart';
 
 class MapSpotPickerScreen extends ConsumerStatefulWidget {
   final String outingId;
@@ -40,7 +42,6 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
   final MapController _mapController = MapController();
   final OfflineCachingTileProvider _offlineTileProvider =
       OfflineCachingTileProvider();
-  LatLng? _pickedPoint;
 
   static const LatLng _defaultForestCenter = LatLng(43.0340, -2.7270);
 
@@ -68,9 +69,9 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
         en: '${widget.outingTitle} • GPS Fix',
       ),
       confirmButtonLabel: s.tr(
-        eu: 'Finkatu koordenatuak',
-        es: 'Fijar coordenadas',
-        en: 'Lock coordinates',
+        eu: 'Zentratu diana hemen',
+        es: 'Centrar diana aquí',
+        en: 'Center crosshair here',
       ),
       lang: lang,
     );
@@ -78,16 +79,22 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
     if (pos != null && mounted) {
       _mapController.move(
         pos,
-        _mapController.camera.zoom < 14 ? 14.5 : _mapController.camera.zoom,
+        _mapController.camera.zoom < 15.0 ? 15.5 : _mapController.camera.zoom,
       );
-      _handleMapTap(pos);
+      HapticFeedback.selectionClick();
     }
   }
 
-  Future<void> _handleMapTap(LatLng point) async {
-    setState(() {
-      _pickedPoint = point;
-    });
+  void _handleMapTapToAimDiana(LatLng point) {
+    _mapController.move(
+      point,
+      _mapController.camera.zoom < 14.5 ? 15.0 : _mapController.camera.zoom,
+    );
+    HapticFeedback.selectionClick();
+  }
+
+  Future<void> _confirmDianaCenterSpot() async {
+    final point = _mapController.camera.center;
 
     if (widget.pickCoordinatesOnly) {
       Navigator.of(context).pop(point);
@@ -97,7 +104,7 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
     final allMushrooms =
         ref.read(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
 
-    // Abrir formulario para registrar la seta en esta posición seleccionada
+    // Abrir formulario para registrar la seta en la posición central exacta de la diana
     final newSpot = await showModalBottomSheet<ForagingSpot>(
       context: context,
       isScrollControlled: true,
@@ -144,7 +151,9 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
             activeOuting.isRecording &&
             activeOuting.activeOutingId == widget.outingId)
         ? activeOuting.routePoints
-        : (!isManualOuting ? (savedOuting?.routePoints ?? const <LatLng>[]) : const <LatLng>[]);
+        : (!isManualOuting
+            ? (savedOuting?.routePoints ?? const <LatLng>[])
+            : const <LatLng>[]);
 
     ForagingSpot? largestSpot;
     for (final sp in existingOutingSpots) {
@@ -170,10 +179,10 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
             mapController: _mapController,
             options: MapOptions(
               initialCenter: center,
-              initialZoom: 13.5,
+              initialZoom: 14.5,
               minZoom: 5.0,
               maxZoom: 18.0,
-              onTap: (_, latLng) => _handleMapTap(latLng),
+              onTap: (_, latLng) => _handleMapTapToAimDiana(latLng),
             ),
             children: [
               TileLayer(
@@ -230,38 +239,13 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                       ),
                     ),
                   ),
-                  // Marcador provisional del punto seleccionado
-                  if (_pickedPoint != null)
-                    Marker(
-                      point: _pickedPoint!,
-                      width: 44,
-                      height: 44,
-                      rotate: true,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AutumnColors.terracotta,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AutumnColors.terracotta
-                                  .withValues(alpha: 0.5),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.location_on_rounded,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ],
           ),
+
+          // Diana interactiva de alta precisión en el centro del mapa
+          const MapCrosshairTarget(),
 
           // Banner interactivo flotante en la parte superior
           SafeArea(
@@ -277,10 +261,10 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      color: AutumnColors.barkDark.withValues(alpha: 0.88),
+                      color: AutumnColors.barkDark.withValues(alpha: 0.90),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: AutumnColors.amberLeaf.withValues(alpha: 0.6),
+                        color: AutumnColors.amberLeaf.withValues(alpha: 0.65),
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -302,38 +286,38 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
                           child: const Icon(
                             Icons.touch_app_rounded,
                             color: AutumnColors.amberLeaf,
-                            size: 24,
+                            size: 22,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                widget.pickCoordinatesOnly
-                                    ? s.tr(
-                                        eu: 'Ukitu mapan posizio zehatza hautatzeko',
-                                        es: 'Toca el mapa para seleccionar la posición exacta',
-                                        en: 'Tap map to select exact location',
-                                      )
-                                    : s.tr(
-                                        eu: 'Ukitu mapan perretxikoa kokatzeko',
-                                        es: 'Toca en el mapa para ubicar la seta',
-                                        en: 'Tap on the map to place mushroom',
-                                      ),
+                                s.tr(
+                                  eu: 'Ukitu hatzarekin edo mugitu diana',
+                                  es: 'Toca con el dedo o mueve la diana',
+                                  en: 'Tap with finger or move crosshair',
+                                ),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,
-                                  fontSize: 14,
+                                  fontSize: 13.5,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${widget.outingTitle} • ${existingOutingSpots.length} ${s.tr(eu: "perretxiko-leku", es: "setales", en: "spots")}',
+                                widget.pickCoordinatesOnly
+                                    ? s.tr(
+                                        eu: 'Kokatu diana posizio zehatzean',
+                                        es: 'Apunta la diana a la posición exacta',
+                                        en: 'Aim crosshair at exact location',
+                                      )
+                                    : '${widget.outingTitle} • ${existingOutingSpots.length} ${s.tr(eu: "perretxiko-leku", es: "setales", en: "spots")}',
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.75),
+                                  color: Colors.white.withValues(alpha: 0.78),
                                   fontSize: 11.5,
                                 ),
                               ),
@@ -395,28 +379,9 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
             ),
           ),
 
-          // Botón GPS para ubicar seta en posición actual precisa
+          // Botón flotante para alternar capa Topográfica / Satélite / Callejero
           Positioned(
-            bottom: 84,
-            right: 18,
-            child: FloatingActionButton.small(
-              key: const ValueKey('btn_gps_picker_spot'),
-              heroTag: 'btn_gps_picker_spot',
-              backgroundColor: AutumnColors.boletusBrown,
-              foregroundColor: Colors.white,
-              onPressed: _handleGpsSpotPick,
-              tooltip: s.tr(
-                eu: 'Nire uneko GPS kokapenean kokatu',
-                es: 'Ubicar en mi posición GPS actual',
-                en: 'Place at current GPS location',
-              ),
-              child: const Icon(Icons.my_location_rounded),
-            ),
-          ),
-
-          // Botón flotante para alternar capa Topográfica / OSM
-          Positioned(
-            bottom: 30,
+            bottom: MediaQuery.of(context).padding.bottom + 94,
             right: 18,
             child: FloatingActionButton.small(
               heroTag: 'toggle_topo_layer_picker',
@@ -428,6 +393,83 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
               },
               tooltip: activeLayer.localized(lang),
               child: Icon(activeLayer.icon),
+            ),
+          ),
+
+          // Barra inferior de confirmación de Diana (idéntica a la del Mapa Global)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 18,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AutumnColors.parchmentBg.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AutumnColors.warmSand),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 16,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  IconButton.filledTonal(
+                    key: const ValueKey('btn_gps_picker_spot'),
+                    style: IconButton.styleFrom(
+                      backgroundColor:
+                          AutumnColors.mossGreen.withValues(alpha: 0.15),
+                      foregroundColor: AutumnColors.mossGreen,
+                      padding: const EdgeInsets.all(12),
+                    ),
+                    tooltip: s.tr(
+                      eu: 'Zentratu diana nire GPS posizioan',
+                      es: 'Centrar diana en mi ubicación GPS',
+                      en: 'Center crosshair on my GPS location',
+                    ),
+                    onPressed: _handleGpsSpotPick,
+                    icon: const Icon(Icons.my_location_rounded, size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      key: const ValueKey('btn_confirm_diana_spot'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AutumnColors.boletusBrown,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 3,
+                      ),
+                      onPressed: _confirmDianaCenterSpot,
+                      icon: const Icon(Icons.check_circle_rounded, size: 22),
+                      label: Text(
+                        widget.pickCoordinatesOnly
+                            ? s.tr(
+                                eu: 'Finkatu koordenatuak hemen',
+                                es: 'Fijar coordenadas aquí',
+                                en: 'Set coordinates here',
+                              )
+                            : s.tr(
+                                eu: 'Finkatu setala hemen',
+                                es: 'Fijar setal aquí',
+                                en: 'Set spot here',
+                              ),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
