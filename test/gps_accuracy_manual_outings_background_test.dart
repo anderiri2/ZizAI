@@ -10,6 +10,7 @@ import 'package:zizai/features/map/presentation/widgets/map_crosshair_target.dar
 import 'package:zizai/features/map/services/offline_map_service.dart';
 import 'package:zizai/features/outings/data/outings_database.dart';
 import 'package:zizai/features/outings/models/foraging_outing.dart';
+import 'package:zizai/features/outings/presentation/live_outing_map_screen.dart';
 import 'package:zizai/features/outings/presentation/map_spot_picker_screen.dart';
 import 'package:zizai/features/outings/presentation/outings_screen.dart';
 
@@ -300,6 +301,47 @@ void main() {
             find.text('Satellite').evaluate().isNotEmpty,
         isTrue,
       );
+
+      container.dispose();
+    });
+
+    testWidgets(
+        'LiveOutingMapScreen oculta el FAB duplicado de localización al activar modo Diana',
+        (tester) async {
+      final container = ProviderContainer();
+      final recorder = container.read(activeOutingRecorderProvider.notifier);
+      recorder.state = ActiveOutingState(
+        isRecording: true,
+        activeOutingId: 'test_outing_live_diana',
+        title: 'Salida Manual Urkiola',
+        startedAt: DateTime.now(),
+        isManual: true,
+        routePoints: const [],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: LiveOutingMapScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Antes de activar la diana solo hay 1 botón de localización (el FAB lateral)
+      expect(find.byIcon(Icons.my_location_rounded), findsOneWidget);
+
+      // Pulsamos el botón principal "Kokatu Mapan" / "Ubicar en Mapa"
+      final placeBtn = find.byIcon(Icons.touch_app_rounded);
+      expect(placeBtn, findsOneWidget);
+      await tester.tap(placeBtn);
+      await tester.pump();
+
+      // En modo Diana, el FAB lateral de localización se oculta y solo queda el de la barra inferior
+      expect(find.byType(MapCrosshairTarget), findsOneWidget);
+      expect(find.byKey(const ValueKey('btn_confirm_live_diana_spot')), findsOneWidget);
+      expect(find.byIcon(Icons.my_location_rounded), findsOneWidget);
 
       container.dispose();
     });

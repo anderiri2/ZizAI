@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
@@ -179,55 +178,48 @@ class MapScreenState extends ConsumerState<MapScreen> {
 
   Future<void> _centerOnUserGps({bool openFormAfter = false}) async {
     final lang = ref.read(appLanguageProvider);
-    final hasPerm = await GpsAccuracyService.ensureLocationPermission(context, lang: lang);
-    if (!hasPerm) return;
+    final hasPerm = await GpsAccuracyService.ensureLocationPermission(
+      context,
+      lang: lang,
+    );
+    if (!hasPerm || !mounted) return;
 
-    setState(() {
-      _isLocatingGps = true;
-      _lastGpsAccuracy = null;
-    });
+    final s = AppStrings(lang);
+    final locked = await GpsAcquisitionSheet.show(
+      context,
+      title: s.tr(
+        eu: 'GPS Kokapena Zehaztu',
+        es: 'Localizar mi posición GPS',
+        en: 'Locate my GPS position',
+      ),
+      subtitle: s.tr(
+        eu: 'Doitasun handiko GPS seinalea bilatzen',
+        es: 'Buscando señal GPS de alta precisión',
+        en: 'Locking high-accuracy GPS fix',
+      ),
+      confirmButtonLabel: s.tr(
+        eu: 'Zentratu hemen',
+        es: 'Centrar aquí',
+        en: 'Center here',
+      ),
+      lang: lang,
+    );
+    await ref
+        .read(activeOutingRecorderProvider.notifier)
+        .ensureGpsStreamActive();
 
-    try {
-      final pos = await GpsAccuracyService.acquireAccurateFix(
-        maxAcceptableMeters: 25.0,
-        timeout: const Duration(seconds: 10),
+    if (locked != null && mounted) {
+      setState(() {
+        _currentUserLocation = locked;
+      });
+      _mapController.move(
+        locked,
+        _mapController.camera.zoom < 15.0 ? 15.5 : _mapController.camera.zoom,
       );
+      HapticFeedback.selectionClick();
 
-      if (pos != null) {
-        final target = LatLng(pos.latitude, pos.longitude);
-        setState(() {
-          _currentUserLocation = target;
-          _lastGpsAccuracy = pos.accuracy;
-        });
-        _mapController.move(target, 15.5);
-
-        if (openFormAfter && mounted) {
-          await _openAddOrEditSpotSheet(context, initialLatLng: target);
-        }
-      } else {
-        final lastKnown = await Geolocator.getLastKnownPosition();
-        if (lastKnown != null) {
-          final target = LatLng(lastKnown.latitude, lastKnown.longitude);
-          setState(() {
-            _currentUserLocation = target;
-            _lastGpsAccuracy = lastKnown.accuracy;
-          });
-          _mapController.move(target, 15.0);
-          if (openFormAfter && mounted) {
-            await _openAddOrEditSpotSheet(context, initialLatLng: target);
-          }
-        }
-      }
-    } catch (_) {
-      if (mounted) {
-        final fallback = _mapController.camera.center;
-        if (openFormAfter) {
-          await _openAddOrEditSpotSheet(context, initialLatLng: fallback);
-        }
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLocatingGps = false);
+      if (openFormAfter && mounted) {
+        await _openAddOrEditSpotSheet(context, initialLatLng: locked);
       }
     }
   }

@@ -177,6 +177,16 @@ class GpsAccuracyService {
     StreamSubscription<Position>? sub;
     Position? bestSeen;
 
+    void onCandidatePosition(Position pos) {
+      if (bestSeen == null || pos.accuracy < bestSeen!.accuracy) {
+        bestSeen = pos;
+      }
+      if (pos.accuracy <= maxAcceptableMeters && !completer.isCompleted) {
+        sub?.cancel();
+        completer.complete(pos);
+      }
+    }
+
     final timer = Timer(timeout, () {
       if (!completer.isCompleted) {
         sub?.cancel();
@@ -185,24 +195,42 @@ class GpsAccuracyService {
     });
 
     try {
-      sub = getPositionStream(distanceFilter: 0).listen((pos) {
-        if (bestSeen == null || pos.accuracy < bestSeen!.accuracy) {
-          bestSeen = pos;
-        }
-        if (pos.accuracy <= maxAcceptableMeters) {
-          timer.cancel();
-          sub?.cancel();
-          if (!completer.isCompleted) {
-            completer.complete(pos);
+      sub = getPositionStream(distanceFilter: 0).listen(
+        (pos) {
+          onCandidatePosition(pos);
+          if (completer.isCompleted) {
+            timer.cancel();
           }
+        },
+        onError: (_) {
+          if (!completer.isCompleted && bestSeen != null) {
+            timer.cancel();
+            sub?.cancel();
+            completer.complete(bestSeen);
+          }
+        },
+      );
+
+      // Consultar también posición puntual por si el stream no emite cambios en reposo/emulador
+      unawaited(() async {
+        try {
+          final current = await Geolocator.getCurrentPosition();
+          onCandidatePosition(current);
+          if (completer.isCompleted) {
+            timer.cancel();
+          }
+        } catch (_) {
+          try {
+            final last = await Geolocator.getLastKnownPosition();
+            if (last != null) {
+              onCandidatePosition(last);
+              if (completer.isCompleted) {
+                timer.cancel();
+              }
+            }
+          } catch (_) {}
         }
-      }, onError: (_) {
-        if (!completer.isCompleted) {
-          timer.cancel();
-          sub?.cancel();
-          completer.complete(bestSeen);
-        }
-      });
+      }());
     } catch (_) {
       timer.cancel();
       sub?.cancel();

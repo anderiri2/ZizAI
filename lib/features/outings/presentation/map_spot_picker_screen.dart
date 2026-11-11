@@ -75,6 +75,9 @@ class _MapSpotPickerScreenState extends ConsumerState<MapSpotPickerScreen> {
       ),
       lang: lang,
     );
+    await ref
+        .read(activeOutingRecorderProvider.notifier)
+        .ensureGpsStreamActive();
 
     if (pos != null && mounted) {
       _mapController.move(

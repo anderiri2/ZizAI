@@ -429,6 +429,13 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
     }
   }
 
+  /// Reanuda el stream GPS de la salida activa si otro modal puntual de fijación GPS liberó el canal nativo.
+  Future<void> ensureGpsStreamActive() async {
+    if (state.isRecording && !state.isManual) {
+      await _startGpsStream();
+    }
+  }
+
   void addRoutePoint(LatLng newPoint) {
     if (!state.isRecording) return;
     final pts = List<LatLng>.from(state.routePoints);

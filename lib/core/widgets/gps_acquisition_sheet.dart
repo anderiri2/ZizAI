@@ -80,25 +80,41 @@ class _GpsAcquisitionSheetState extends State<GpsAcquisitionSheet>
     _startListeningGps();
   }
 
+  void _onPositionUpdate(Position pos) {
+    if (!mounted) return;
+    setState(() {
+      _latestPosition = pos;
+      if (_bestAccuracy == null || pos.accuracy < _bestAccuracy!) {
+        _bestAccuracy = pos.accuracy;
+      }
+    });
+
+    // Si la precisión alcanza el umbral objetivo, iniciar cuenta de confirmación
+    if (pos.accuracy <= widget.targetAccuracyMeters && !_isAutoStarting) {
+      _triggerAutoStart(pos);
+    }
+  }
+
   void _startListeningGps() {
     _positionSub = GpsAccuracyService.getPositionStream(distanceFilter: 0).listen(
-      (pos) {
-        if (!mounted) return;
-        setState(() {
-          _latestPosition = pos;
-          if (_bestAccuracy == null || pos.accuracy < _bestAccuracy!) {
-            _bestAccuracy = pos.accuracy;
-          }
-        });
-
-        // Si la precisión alcanza el umbral objetivo, iniciar cuenta de confirmación
-        if (pos.accuracy <= widget.targetAccuracyMeters &&
-            !_isAutoStarting) {
-          _triggerAutoStart(pos);
-        }
-      },
+      _onPositionUpdate,
       onError: (_) {},
     );
+
+    unawaited(() async {
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null && mounted && _latestPosition == null) {
+          _onPositionUpdate(last);
+        }
+      } catch (_) {}
+      try {
+        final current = await Geolocator.getCurrentPosition();
+        if (mounted && _latestPosition == null) {
+          _onPositionUpdate(current);
+        }
+      } catch (_) {}
+    }());
   }
 
   void _triggerAutoStart(Position finalPos) {

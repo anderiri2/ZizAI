@@ -41,22 +41,16 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
     super.dispose();
   }
 
-  void _centerOnUserOrRoute(ActiveOutingState activeState) {
-    if (activeState.routePoints.isNotEmpty) {
-      _mapController.move(activeState.routePoints.last, 16.0);
-    }
-  }
-
-  Future<void> _centerDianaOnGps(ActiveOutingState activeState) async {
+  Future<void> _centerOnUserOrRoute(ActiveOutingState activeState) async {
     if (!activeState.isManual && activeState.routePoints.isNotEmpty) {
-      _mapController.move(
-        activeState.routePoints.last,
-        _mapController.camera.zoom < 15.0 ? 15.5 : _mapController.camera.zoom,
-      );
+      _mapController.move(activeState.routePoints.last, 16.0);
       HapticFeedback.selectionClick();
       return;
     }
+    await _centerDianaOnGps(activeState);
+  }
 
+  Future<void> _centerDianaOnGps(ActiveOutingState activeState) async {
     final lang = ref.read(appLanguageProvider);
     final hasPerm = await GpsAccuracyService.ensureLocationPermission(
       context,
@@ -84,6 +78,9 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
       ),
       lang: lang,
     );
+    await ref
+        .read(activeOutingRecorderProvider.notifier)
+        .ensureGpsStreamActive();
     if (locked != null && mounted) {
       _mapController.move(
         locked,
@@ -661,7 +658,7 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
             // Botones laterales rápidos de capa y recentrado
             Positioned(
               right: 14,
-              bottom: 120,
+              bottom: _isPickingSpotOnMap ? 94 : 120,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -679,15 +676,17 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                       size: 20,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  FloatingActionButton.small(
-                    heroTag: 'live_outing_center_btn',
-                    backgroundColor: AutumnColors.parchmentBg,
-                    foregroundColor: AutumnColors.boletusBrown,
-                    onPressed: () => _centerOnUserOrRoute(activeState),
-                    tooltip: s.tr(eu: 'Zentratu', es: 'Centrar', en: 'Center'),
-                    child: const Icon(Icons.my_location_rounded, size: 20),
-                  ),
+                  if (!_isPickingSpotOnMap) ...[
+                    const SizedBox(height: 8),
+                    FloatingActionButton.small(
+                      heroTag: 'live_outing_center_btn',
+                      backgroundColor: AutumnColors.parchmentBg,
+                      foregroundColor: AutumnColors.boletusBrown,
+                      onPressed: () => _centerOnUserOrRoute(activeState),
+                      tooltip: s.tr(eu: 'Zentratu', es: 'Centrar', en: 'Center'),
+                      child: const Icon(Icons.my_location_rounded, size: 20),
+                    ),
+                  ],
                 ],
               ),
             ),
