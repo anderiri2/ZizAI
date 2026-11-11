@@ -899,7 +899,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
   }
 }
 
-class _ActiveOutingRecorderCard extends ConsumerWidget {
+class _ActiveOutingRecorderCard extends ConsumerStatefulWidget {
   final ActiveOutingState activeState;
   final AppLanguage lang;
   final MapController mapController;
@@ -925,16 +925,115 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ActiveOutingRecorderCard> createState() =>
+      _ActiveOutingRecorderCardState();
+}
+
+class _ActiveOutingRecorderCardState
+    extends ConsumerState<_ActiveOutingRecorderCard> {
+  static const double _miniMapZoom = 16.0;
+  late LatLng _currentCenter;
+  bool _isMapReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentCenter = _computeBaseCenter();
+  }
+
+  LatLng _computeBaseCenter() {
+    if (widget.activeState.routePoints.isNotEmpty) {
+      return widget.activeState.routePoints.last;
+    }
+    if (widget.outingSpots.isNotEmpty) {
+      return LatLng(
+        widget.outingSpots.last.latitude,
+        widget.outingSpots.last.longitude,
+      );
+    }
+    return widget.activeState.initialCenterPoint ??
+        const LatLng(43.0340, -2.7270);
+  }
+
+  void _moveMapTo(LatLng target) {
+    if (_isMapReady) {
+      try {
+        widget.mapController.move(target, _miniMapZoom);
+      } catch (_) {}
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        widget.mapController.move(target, _miniMapZoom);
+      } catch (_) {}
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _ActiveOutingRecorderCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.activeState.activeOutingId !=
+        oldWidget.activeState.activeOutingId) {
+      _currentCenter = _computeBaseCenter();
+      _moveMapTo(_currentCenter);
+      return;
+    }
+
+    final spotAdded = widget.outingSpots.isNotEmpty &&
+        (oldWidget.outingSpots.isEmpty ||
+            widget.outingSpots.length > oldWidget.outingSpots.length ||
+            widget.outingSpots.last.id != oldWidget.outingSpots.last.id);
+    if (spotAdded) {
+      _currentCenter = LatLng(
+        widget.outingSpots.last.latitude,
+        widget.outingSpots.last.longitude,
+      );
+      _moveMapTo(_currentCenter);
+      return;
+    }
+
+    final routeUpdated = widget.activeState.routePoints.isNotEmpty &&
+        (oldWidget.activeState.routePoints.isEmpty ||
+            widget.activeState.routePoints.length !=
+                oldWidget.activeState.routePoints.length ||
+            widget.activeState.routePoints.last !=
+                oldWidget.activeState.routePoints.last);
+    if (routeUpdated) {
+      _currentCenter = widget.activeState.routePoints.last;
+      _moveMapTo(_currentCenter);
+      return;
+    }
+
+    if (widget.activeState.initialCenterPoint != null &&
+        widget.activeState.initialCenterPoint !=
+            oldWidget.activeState.initialCenterPoint) {
+      _currentCenter = widget.activeState.initialCenterPoint!;
+      _moveMapTo(_currentCenter);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeState = widget.activeState;
+    final lang = widget.lang;
+    final mapController = widget.mapController;
+    final elapsedFormatted = widget.elapsedFormatted;
+    final outingSpots = widget.outingSpots;
+    final onRegisterFind = widget.onRegisterFind;
+    final onTogglePause = widget.onTogglePause;
+    final onFinish = widget.onFinish;
+    final onPickSpotOnMap = widget.onPickSpotOnMap;
+    final onOpenFullscreenLiveMap = widget.onOpenFullscreenLiveMap;
+
     final s = AppStrings(lang);
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     final activeLayer = ref.watch(activeMapLayerProvider);
-    final center = activeState.routePoints.isNotEmpty
+    final center = _currentCenter;
+    final userMarkerPoint = activeState.routePoints.isNotEmpty
         ? activeState.routePoints.last
-        : (outingSpots.isNotEmpty
-            ? LatLng(outingSpots.last.latitude, outingSpots.last.longitude)
-            : const LatLng(43.0340, -2.7270));
+        : activeState.initialCenterPoint;
     final km = (activeState.distanceMeters / 1000.0).toStringAsFixed(2);
     final totalSpecimens =
         outingSpots.fold<int>(0, (sum, sp) => sum + sp.quantityCount);
@@ -1016,10 +1115,19 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                 child: Stack(
                   children: [
                     FlutterMap(
+                      key: ValueKey(
+                        'mini_map_${activeState.activeOutingId}_${center.latitude.toStringAsFixed(5)}_${center.longitude.toStringAsFixed(5)}',
+                      ),
                       mapController: mapController,
                       options: MapOptions(
                         initialCenter: center,
-                        initialZoom: 14.2,
+                        initialZoom: _miniMapZoom,
+                        onMapReady: () {
+                          _isMapReady = true;
+                          try {
+                            mapController.move(center, _miniMapZoom);
+                          } catch (_) {}
+                        },
                         interactionOptions: const InteractionOptions(
                           flags: InteractiveFlag.none,
                         ),
@@ -1057,9 +1165,9 @@ class _ActiveOutingRecorderCard extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            if (activeState.routePoints.isNotEmpty)
+                            if (userMarkerPoint != null)
                               Marker(
-                                point: activeState.routePoints.last,
+                                point: userMarkerPoint,
                                 width: 22,
                                 height: 22,
                                 rotate: true,

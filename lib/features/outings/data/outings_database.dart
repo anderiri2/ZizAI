@@ -234,6 +234,7 @@ class ActiveOutingState {
   final int elapsedSeconds;
   final double distanceMeters;
   final List<LatLng> routePoints;
+  final LatLng? initialCenterPoint;
   final String notes;
   final bool isManual;
 
@@ -246,6 +247,7 @@ class ActiveOutingState {
     this.elapsedSeconds = 0,
     this.distanceMeters = 0.0,
     this.routePoints = const [],
+    this.initialCenterPoint,
     this.notes = '',
     this.isManual = false,
   });
@@ -259,6 +261,7 @@ class ActiveOutingState {
     int? elapsedSeconds,
     double? distanceMeters,
     List<LatLng>? routePoints,
+    LatLng? initialCenterPoint,
     String? notes,
     bool? isManual,
   }) {
@@ -271,6 +274,7 @@ class ActiveOutingState {
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
       distanceMeters: distanceMeters ?? this.distanceMeters,
       routePoints: routePoints ?? this.routePoints,
+      initialCenterPoint: initialCenterPoint ?? this.initialCenterPoint,
       notes: notes ?? this.notes,
       isManual: isManual ?? this.isManual,
     );
@@ -293,7 +297,8 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
   }) async {
     final now = DateTime.now();
     final id = 'outing_${now.millisecondsSinceEpoch}';
-    final startPts = initialPoint != null ? <LatLng>[initialPoint] : <LatLng>[];
+    final startPts =
+        initialPoint != null && !isManual ? <LatLng>[initialPoint] : <LatLng>[];
     _lastPauseTime = null;
     _accumulatedPausedSeconds = 0;
 
@@ -306,13 +311,40 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
       elapsedSeconds: 0,
       distanceMeters: 0.0,
       routePoints: startPts,
+      initialCenterPoint: initialPoint,
       isManual: isManual,
     );
 
     _startTimer();
     if (!isManual) {
       await _startGpsStream();
+    } else if (initialPoint == null) {
+      unawaited(_resolveInitialManualCenter(id));
     }
+  }
+
+  Future<void> _resolveInitialManualCenter(String outingId) async {
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return;
+      final perm = await Geolocator.checkPermission();
+      if (perm != LocationPermission.whileInUse &&
+          perm != LocationPermission.always) {
+        return;
+      }
+      Position? pos;
+      try {
+        pos = await Geolocator.getLastKnownPosition();
+      } catch (_) {}
+      pos ??= await Geolocator.getCurrentPosition();
+      if (state.isRecording &&
+          state.activeOutingId == outingId &&
+          state.initialCenterPoint == null) {
+        state = state.copyWith(
+          initialCenterPoint: LatLng(pos.latitude, pos.longitude),
+        );
+      }
+    } catch (_) {}
   }
 
   ForagingOuting createRetrospectiveOuting({
@@ -410,13 +442,32 @@ class ActiveOutingRecorder extends StateNotifier<ActiveOutingState> {
       // Breve margen para que el singleton de GeolocatorAndroid en Dart libere el canal nativo
       await Future.delayed(const Duration(milliseconds: 300));
 
+      if (state.isRecording && !state.isManual && state.routePoints.isEmpty) {
+        final activeId = state.activeOutingId;
+        unawaited(() async {
+          try {
+            Position? seedPos;
+            try {
+              seedPos = await Geolocator.getLastKnownPosition();
+            } catch (_) {}
+            seedPos ??= await Geolocator.getCurrentPosition();
+            if (state.isRecording &&
+                state.activeOutingId == activeId &&
+                state.routePoints.isEmpty) {
+              addRoutePoint(LatLng(seedPos.latitude, seedPos.longitude));
+            }
+          } catch (_) {}
+        }());
+      }
+
       _positionSub = Geolocator.getPositionStream(
         locationSettings: locationSettings,
       ).listen(
         (pos) {
           if (state.isRecording && !state.isPaused) {
-            // Descartar lecturas ruidosas con margen de error excesivo (> 35 m en monte)
-            if (pos.accuracy > 35.0) return;
+            // Descartar lecturas ruidosas con margen de error excesivo (> 35 m en monte),
+            // salvo si aún no existe ningún punto inicial en la ruta.
+            if (pos.accuracy > 35.0 && state.routePoints.isNotEmpty) return;
             addRoutePoint(LatLng(pos.latitude, pos.longitude));
           }
         },

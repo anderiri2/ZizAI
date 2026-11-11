@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -342,6 +343,54 @@ void main() {
       expect(find.byType(MapCrosshairTarget), findsOneWidget);
       expect(find.byKey(const ValueKey('btn_confirm_live_diana_spot')), findsOneWidget);
       expect(find.byIcon(Icons.my_location_rounded), findsOneWidget);
+
+      container.dispose();
+    });
+
+    testWidgets(
+        'Mini-mapa en OutingsScreen se centra en posición GPS con zoom 16.0 y sigue nuevos puntos en tiempo real',
+        (tester) async {
+      final container = ProviderContainer();
+      final recorder = container.read(activeOutingRecorderProvider.notifier);
+      const startPos = LatLng(43.2630, -2.9350);
+      const nextPos = LatLng(43.2642, -2.9365);
+
+      recorder.state = ActiveOutingState(
+        isRecording: true,
+        activeOutingId: 'test_outing_mini_map_center',
+        title: 'Ruta Pagomakurre',
+        startedAt: DateTime.now(),
+        isManual: false,
+        routePoints: const [startPos],
+        initialCenterPoint: startPos,
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: OutingsScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final mapFinder = find.byType(FlutterMap);
+      expect(mapFinder, findsOneWidget);
+
+      final initialMap = tester.widget<FlutterMap>(mapFinder);
+      expect(initialMap.options.initialZoom, 16.0);
+      expect(initialMap.options.initialCenter, startPos);
+
+      // Al llegar un nuevo punto GPS, el mini-mapa se centra automáticamente en el nuevo punto
+      recorder.addRoutePoint(nextPos);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final updatedMap = tester.widget<FlutterMap>(find.byType(FlutterMap));
+      expect(updatedMap.options.initialZoom, 16.0);
+      expect(updatedMap.options.initialCenter, nextPos);
 
       container.dispose();
     });

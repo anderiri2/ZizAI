@@ -289,7 +289,8 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
         ? activeState.routePoints.last
         : (outingSpots.isNotEmpty
             ? LatLng(outingSpots.last.latitude, outingSpots.last.longitude)
-            : const LatLng(43.0340, -2.7270));
+            : (activeState.initialCenterPoint ??
+                const LatLng(43.0340, -2.7270)));
 
     return Scaffold(
       body: PopScope(
