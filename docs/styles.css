@@ -378,6 +378,121 @@ body {
 }
 
 /* ==========================================================================
+   Aviso Beta Testers Google Play (14 Días)
+   ========================================================================== */
+.beta-section {
+  max-width: 1200px;
+  margin: -38px auto 0;
+  padding: 0 24px;
+  position: relative;
+  z-index: 10;
+}
+
+.beta-banner-card {
+  background: linear-gradient(135deg, #2C1B12 0%, #3F2416 100%);
+  border: 2px solid var(--amber-leaf);
+  border-radius: var(--radius-xl);
+  padding: 36px 40px;
+  color: var(--text-light);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  display: grid;
+  grid-template-columns: 1.45fr 0.55fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.beta-badge {
+  display: inline-block;
+  background: rgba(232, 163, 49, 0.2);
+  border: 1px solid rgba(232, 163, 49, 0.6);
+  color: var(--amber-leaf);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+
+.beta-title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  color: #FFFFFF;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.beta-desc {
+  font-size: 1rem;
+  color: rgba(251, 246, 238, 0.9);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.beta-desc strong {
+  color: var(--amber-leaf);
+}
+
+.beta-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.beta-step-pill {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(234, 219, 196, 0.22);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--parchment-bg);
+}
+
+.beta-step-num {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  background: var(--amber-leaf);
+  color: var(--bark-dark);
+  font-weight: 800;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.beta-banner-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(232, 163, 49, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+}
+
+.beta-cta-btn {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+.beta-cta-note {
+  font-size: 0.85rem;
+  color: rgba(251, 246, 238, 0.75);
+  font-weight: 600;
+}
+
+/* ==========================================================================
    Secciones Comunes
    ========================================================================== */
 .section {
@@ -962,6 +1077,13 @@ body {
     grid-template-columns: 1fr;
   }
   .privacy-banner-card {
+    grid-template-columns: 1fr;
+  }
+  .beta-banner-card {
+    grid-template-columns: 1fr;
+    padding: 28px 22px;
+  }
+  .beta-steps-grid {
     grid-template-columns: 1fr;
   }
   .nav-links {

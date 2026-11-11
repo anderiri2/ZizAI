@@ -23,6 +23,17 @@ const I18N = {
     heroCtaDownload: "Deskargatu APK (Doan)",
     heroCtaGithub: "GitHub Kode Irekia",
 
+    // Beta Testers Google Play
+    betaBadge: "🧪 GOOGLE PLAY BETA · 14 EGUNEKO PROBA",
+    betaTitle: "Google Play-rako Beta Tester Bila Gabiltza!",
+    betaDesc: "Garatzaile independenteen aplikazioak Google Play Store-n argitaratu ahal izateko, Google-k <strong>gutxienez 12 erabiltzailek aplikazioa 14 egunez jarraian modu jarraituan probatzea</strong> eskatzen du proba itxi batean. Lagundu iezaguzu ZizAI mundu guztiarentzat eskuragarri jartzen!",
+    betaStep1: "Eman izena GitHub Issue baten bidez zure Google Play kontuarekin.",
+    betaStep2: "Instalatu ZizAI sarbidea aktibatzen dizugunean.",
+    betaStep3: "Mantendu instalatuta 14 egunez jarraian eta probatu bere funtzioak.",
+    betaCtaBtn: "Parte Hartu (Ireki Issue bat GitHub-en)",
+    betaCtaNote: "Mila esker proiektua babesteagatik!",
+    betaIssueUrl: "https://github.com/AnderIri2/ZizAI/issues/new?title=Beta+Tester+Google+Play&body=Kaixo,+ZizAI-ren+14+eguneko+proban+parte+hartu+nahi+dut.",
+
     // Objetivo
     sectionObjectiveTag: "MISIOA ETA FILOSOFIA",
     sectionObjectiveTitle: "Zergatik sortu da ZizAI?",
@@ -144,6 +155,17 @@ const I18N = {
     heroPill4: "⚡ Salidas Ligeras (0% gasto de batería)",
     heroCtaDownload: "Descargar APK (Gratis)",
     heroCtaGithub: "Código en GitHub",
+
+    // Beta Testers Google Play
+    betaBadge: "🧪 GOOGLE PLAY BETA · PRUEBA DE 14 DÍAS",
+    betaTitle: "¡Buscamos Beta Testers para Google Play!",
+    betaDesc: "Para que Google Play permita publicar aplicaciones de desarrolladores independientes en producción, exige superar una <strong>prueba cerrada con al menos 12 usuarios probando la app de forma continua durante 14 días consecutivos</strong>. ¡Ayúdanos a llevar ZizAI a Google Play Store!",
+    betaStep1: "Apúntate abriendo un Issue en GitHub con tu cuenta de Google Play.",
+    betaStep2: "Instala ZizAI cuando activemos tu acceso a la prueba cerrada.",
+    betaStep3: "Mantenla instalada 14 días seguidos y ábrela periódicamente.",
+    betaCtaBtn: "Apuntarme como Beta Tester (GitHub Issue)",
+    betaCtaNote: "¡Mil gracias por apoyar el proyecto!",
+    betaIssueUrl: "https://github.com/AnderIri2/ZizAI/issues/new?title=Beta+Tester+Google+Play&body=Hola,+quiero+participar+en+la+prueba+de+14+d%C3%ADas+de+ZizAI.",
 
     // Objetivo
     sectionObjectiveTag: "MISIÓN Y FILOSOFÍA",
@@ -267,6 +289,17 @@ const I18N = {
     heroCtaDownload: "Download APK (Free)",
     heroCtaGithub: "View on GitHub",
 
+    // Beta Testers Google Play
+    betaBadge: "🧪 GOOGLE PLAY BETA · 14-DAY CLOSED TEST",
+    betaTitle: "Looking for Google Play Beta Testers!",
+    betaDesc: "To unlock production access on Google Play for independent developers, Google requires a <strong>closed test with at least 12 testers continuously opted-in and testing the app for 14 consecutive days</strong>. Help us launch ZizAI on the Google Play Store!",
+    betaStep1: "Sign up by opening a GitHub Issue with your Google Play account.",
+    betaStep2: "Install ZizAI once your closed beta access is enabled.",
+    betaStep3: "Keep the app installed for 14 consecutive days and test it regularly.",
+    betaCtaBtn: "Join Beta Test (Open GitHub Issue)",
+    betaCtaNote: "Thank you for supporting the project!",
+    betaIssueUrl: "https://github.com/AnderIri2/ZizAI/issues/new?title=Google+Play+Beta+Tester&body=Hi,+I+would+like+to+join+the+14-day+closed+test+for+ZizAI.",
+
     // Objetivo
     sectionObjectiveTag: "MISSION & PHILOSOPHY",
     sectionObjectiveTitle: "Why was ZizAI built?",
@@ -375,7 +408,7 @@ class ZizAIApp {
   constructor() {
     this.currentLang = this.detectLanguage();
     this.currentScreenTab = 'catalog';
-    this.latestReleaseTag = 'v1.7.0';
+    this.latestReleaseTag = 'v1.7.2';
     this.latestApkUrl = 'https://github.com/anderiri2/ZizAI/releases/latest';
 
     this.initElements();
@@ -459,6 +492,11 @@ class ZizAIApp {
         el.innerHTML = t[key];
       }
     });
+
+    const betaIssueBtn = document.getElementById('betaIssueBtn');
+    if (betaIssueBtn && t.betaIssueUrl) {
+      betaIssueBtn.href = t.betaIssueUrl;
+    }
 
     // Actualizar rutas de capturas de pantalla según el idioma
     this.updateScreenshots();
