@@ -67,6 +67,8 @@
   - **Salida Pasada Retrospectiva**: registro a posteriori con fecha, duración y selección de setales en mapa con diana.
 - **Vista de Mapa Ampliada (`LiveOutingMapScreen`)**: modo inmersivo a pantalla completa con conmutador satelital/topo/estándar, cronómetro flotante, y registro rápido *"Anotar aquí"* (GPS actual) o *"Ubicar en Mapa"* con la diana interactiva.
 - **Historial y Tarjetas Resumen**: mini-mapa cartográfico real (`_OutingRouteMiniMap`) con la polilínea GPS de la ruta, duración, distancia y desglose de la cesta con número de ejemplares y peso en gramos.
+- **Autoguardado Continuo Anti-Pérdida y Recuperación Automática**: las salidas activas y los setales anotados se guardan continuamente en tiempo real desde el inicio de la salida, restaurando sesiones interrumpidas o reconstruyendo salidas huérfanas desde los setales si la app se cerrara inesperadamente.
+- **Continuar Salidas Finalizadas**: cualquier salida terminada puede reanudarse en cualquier momento desde su tarjeta resumen o pantalla de detalle, conservando su identificador, recorrido, setales previos, distancia y tiempo acumulado.
 
 ### 4. ☁️ Backup Integral en Google Drive (`appDataFolder`) con Fusión Inteligente
 - Empaqueta toda la actividad del usuario (`spots.json`, `outings.json`, `favorites.json`, `offline_regions.json` y carpeta de fotos `photos/`) dentro de `zizai_backup.zip`.

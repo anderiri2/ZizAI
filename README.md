@@ -67,6 +67,8 @@
   - **Past Retrospective Outing**: post-outing registration with date, duration and crosshair map spot selection.
 - **Expanded Map View (`LiveOutingMapScreen`)**: full-screen immersive mode with satellite/topo/standard layer switcher, floating stopwatch, and quick logging (*"Spot here"* at current GPS or *"Place on Map"* with the interactive crosshair reticle).
 - **History & Summary Cards**: real cartographic mini-map (`_OutingRouteMiniMap`) displaying the GPS route polyline, duration, distance and basket breakdown with specimen count and weight in grams.
+- **Continuous Fail-Safe Auto-Save & Recovery**: active outings and recorded spots are saved continuously in real time from the moment an outing starts, automatically recovering interrupted sessions or reconstructing orphaned outings from saved spots even if the app closes unexpectedly.
+- **Continue Finished Outings**: any completed outing can be resumed at any time from its summary card or detail screen, preserving its ID, route, recorded spots, distance, and accumulated duration.
 
 ### 4. ☁️ Full Google Drive Backup (`appDataFolder`) with Smart Merge
 - Packages all user activity (`spots.json`, `outings.json`, `favorites.json`, `offline_regions.json` and `photos/` folder) into `zizai_backup.zip`.

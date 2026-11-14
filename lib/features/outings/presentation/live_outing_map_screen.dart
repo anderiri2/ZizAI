@@ -128,6 +128,10 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
         ),
         lang: lang,
       );
+      if (!mounted) return;
+      await ref
+          .read(activeOutingRecorderProvider.notifier)
+          .ensureGpsStreamActive();
       if (locked == null) return;
       targetLocation = locked;
       _mapController.move(targetLocation, 16.0);
@@ -161,6 +165,9 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
 
     if (newSpot != null) {
       await ref.read(foragingSpotsProvider.notifier).saveSpot(newSpot);
+      await ref
+          .read(activeOutingRecorderProvider.notifier)
+          .persistActiveOutingSnapshot();
 
       if (mounted) {
         final lang = ref.read(appLanguageProvider);
@@ -201,51 +208,10 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
     List<ForagingSpot> outingSpots,
   ) async {
     final lang = ref.read(appLanguageProvider);
-    final s = AppStrings(lang);
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AutumnColors.parchmentBg,
-        title: Text(
-          s.tr(
-            eu: 'Irteera amaitu?',
-            es: '¿Terminar la salida al monte?',
-            en: 'Finish foraging outing?',
-          ),
-          style: const TextStyle(
-            color: AutumnColors.boletusBrown,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          s.tr(
-            eu: 'Ibilbidea eta bildutako ${outingSpots.length} perretxiko-leku gorde egingo dira zure historian.',
-            es: 'El recorrido y los ${outingSpots.length} setales anotados se guardarán permanentemente en tu historial.',
-            en: 'The route and ${outingSpots.length} recorded spots will be saved to your history.',
-          ),
-          style: const TextStyle(color: AutumnColors.barkDark),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AutumnColors.mossGreen,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              s.tr(
-                  eu: 'Amaitu eta Gorde',
-                  es: 'Terminar y Guardar',
-                  en: 'Finish & Save'),
-            ),
-          ),
-        ],
-      ),
+    final confirm = await showConfirmFinishOutingDialog(
+      context,
+      lang: lang,
+      spotsCount: outingSpots.length,
     );
 
     if (confirm == true) {

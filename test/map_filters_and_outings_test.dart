@@ -333,5 +333,129 @@ void main() {
       expect(lat, closeTo(43.12345, 0.00001));
       expect(lng, closeTo(-2.56789, 0.00001));
     });
+
+    test('OutingsDatabase.recoverOrphanedOutingsFromSpots reconstructs missing outings and ignores temp/legacy spots', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final outingsDb = OutingsDatabase();
+
+      final spot1 = ForagingSpot(
+        id: 'spot_rec_1',
+        title: 'Boletus Urbasa',
+        latitude: 42.85,
+        longitude: -2.18,
+        mushroomName: 'Boletus edulis',
+        notes: 'Hayedo',
+        foundAt: DateTime(2026, 10, 12, 9, 15),
+        outingId: 'outing_orphan_1',
+        outingTitle: 'Urbasa Norte',
+        quantityCount: 3,
+        weightGrams: 420,
+      );
+      final spot2 = ForagingSpot(
+        id: 'spot_rec_2',
+        title: 'Cantharellus Urbasa',
+        latitude: 42.86,
+        longitude: -2.19,
+        mushroomName: 'Cantharellus cibarius',
+        notes: '',
+        foundAt: DateTime(2026, 10, 12, 10, 45),
+        outingId: 'outing_orphan_1',
+        outingTitle: 'Urbasa Norte',
+        quantityCount: 5,
+      );
+      final tempSpot = ForagingSpot(
+        id: 'spot_temp',
+        title: 'Temporal',
+        latitude: 42.90,
+        longitude: -2.20,
+        notes: '',
+        foundAt: DateTime(2026, 10, 12, 11, 0),
+        outingId: 'temp',
+        outingTitle: 'Temp',
+      );
+      final legacySpot = ForagingSpot(
+        id: 'spot_legacy',
+        title: 'Legacy',
+        latitude: 43.0,
+        longitude: -2.7,
+        notes: '',
+        foundAt: DateTime(2024, 10, 1),
+        outingId: 'outing_gorbeia_otzarreta',
+        outingTitle: 'Sample',
+      );
+      final soloSpot = ForagingSpot(
+        id: 'spot_solo',
+        title: 'Solo',
+        latitude: 43.1,
+        longitude: -2.5,
+        notes: '',
+        foundAt: DateTime(2026, 10, 12, 12, 0),
+      );
+
+      final recoveredCount = await outingsDb.recoverOrphanedOutingsFromSpots([
+        spot1,
+        spot2,
+        tempSpot,
+        legacySpot,
+        soloSpot,
+      ]);
+
+      expect(recoveredCount, 1);
+      final outings = await outingsDb.getAllOutings();
+      expect(outings.length, 1);
+      expect(outings.first.id, 'outing_orphan_1');
+      expect(outings.first.title, 'Urbasa Norte');
+      expect(outings.first.startedAt, DateTime(2026, 10, 12, 9, 15));
+      expect(outings.first.endedAt, DateTime(2026, 10, 12, 10, 45));
+      expect(outings.first.durationSeconds, 5400);
+      expect(outings.first.routePoints, isEmpty);
+      expect(outings.first.isManual, isTrue);
+
+      // Idempotent on subsequent runs
+      final secondRun = await outingsDb.recoverOrphanedOutingsFromSpots([spot1, spot2]);
+      expect(secondRun, 0);
+    });
+
+    test('ActiveOutingRecorder auto-saves immediately before finishOuting and restores on restart', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final db = OutingsDatabase();
+      final recorder = ActiveOutingRecorder(db: db);
+      addTearDown(() {
+        if (recorder.mounted) recorder.dispose();
+      });
+
+      const p1 = LatLng(43.0300, -2.7200);
+      const p2 = LatLng(43.0310, -2.7210);
+
+      await recorder.startOuting('Autoguardado Gorbeia', initialPoint: p1, isManual: false);
+      recorder.addRoutePoint(p2);
+      await recorder.persistActiveOutingSnapshot();
+
+      final persistedOutings = await db.getAllOutings();
+      expect(persistedOutings.length, 1);
+      expect(persistedOutings.first.id, recorder.state.activeOutingId);
+      expect(persistedOutings.first.title, 'Autoguardado Gorbeia');
+      expect(persistedOutings.first.routePoints.length, 2);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('zizai_active_outing_state_v1'), isNotNull);
+
+      recorder.dispose();
+
+      final freshRecorder = ActiveOutingRecorder(db: db);
+      addTearDown(() {
+        if (freshRecorder.mounted) freshRecorder.dispose();
+      });
+      await freshRecorder.restoreActiveOutingIfNeeded();
+
+      expect(freshRecorder.state.isRecording, isTrue);
+      expect(freshRecorder.state.activeOutingId, persistedOutings.first.id);
+      expect(freshRecorder.state.title, 'Autoguardado Gorbeia');
+      expect(freshRecorder.state.routePoints.length, 2);
+
+      final completed = freshRecorder.finishOuting();
+      expect(completed, isNotNull);
+      await db.upsertOuting(completed!);
+    });
   });
 }

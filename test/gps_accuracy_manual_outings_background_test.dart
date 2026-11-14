@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zizai/core/localization/app_localizations.dart';
 import 'package:zizai/core/widgets/gps_acquisition_sheet.dart';
 import 'package:zizai/features/map/models/foraging_spot.dart';
@@ -17,6 +18,10 @@ import 'package:zizai/features/outings/presentation/outings_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
 
   group('Mejora 1: Precisión GPS al guardar setas en el Mapa', () {
     testWidgets('GpsAcquisitionSheet renders customized title, subtitle and confirm label',
@@ -393,6 +398,89 @@ void main() {
       expect(updatedMap.options.initialCenter, nextPos);
 
       container.dispose();
+    });
+  });
+
+  group('Mejora 5: Reanudar Salidas Finalizadas y Desbloqueo tras Saltos GPS', () {
+    test('ActiveOutingRecorder.resumeOuting reactiva una salida finalizada conservando ID, ruta, distancia y tiempo', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final db = OutingsDatabase();
+      final recorder = ActiveOutingRecorder(db: db);
+      addTearDown(recorder.dispose);
+
+      final origStart = DateTime(2026, 10, 10, 9, 0);
+      final origEnd = DateTime(2026, 10, 10, 10, 30);
+      const p1 = LatLng(43.0300, -2.7200);
+      const p2 = LatLng(43.0310, -2.7210);
+      const p3 = LatLng(43.0320, -2.7220);
+
+      final originalOuting = ForagingOuting(
+        id: 'outing_resume_test_1',
+        title: 'Hayedo de Gorbeia',
+        startedAt: origStart,
+        endedAt: origEnd,
+        durationSeconds: 3600,
+        distanceMeters: 1850.5,
+        routePoints: const [p1, p2],
+        notes: 'Zona húmeda',
+        isManual: false,
+      );
+      await db.upsertOuting(originalOuting);
+
+      await recorder.resumeOuting(originalOuting, forceManual: true);
+
+      expect(recorder.state.isRecording, isTrue);
+      expect(recorder.state.activeOutingId, 'outing_resume_test_1');
+      expect(recorder.state.title, 'Hayedo de Gorbeia');
+      expect(recorder.state.startedAt, origStart);
+      expect(recorder.state.routePoints.length, 2);
+      expect(recorder.state.distanceMeters, closeTo(1850.5, 0.01));
+      expect(recorder.state.baseDurationSeconds, 3600);
+      expect(recorder.state.elapsedSeconds, greaterThanOrEqualTo(3600));
+      expect(recorder.state.notes, 'Zona húmeda');
+
+      recorder.addRoutePoint(p3);
+      final updated = recorder.finishOuting();
+
+      expect(updated, isNotNull);
+      expect(updated!.id, 'outing_resume_test_1');
+      expect(updated.startedAt, origStart);
+      expect(updated.routePoints.length, 3);
+      expect(updated.distanceMeters, greaterThan(1850.5));
+      expect(updated.durationSeconds, greaterThanOrEqualTo(3600));
+    });
+
+    test('ActiveOutingRecorder.addRoutePoint desbloquea saltos > 400m tras reanudar pausa o con dos lecturas confirmadas', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final db = OutingsDatabase();
+      final recorder = ActiveOutingRecorder(db: db);
+      addTearDown(recorder.dispose);
+
+      const p1 = LatLng(43.0300, -2.7200);
+      await recorder.startOuting('Salto GPS Test', isManual: true);
+      recorder.addRoutePoint(p1);
+      expect(recorder.state.routePoints.length, 1);
+
+      // Un salto único > 400m (~667m al norte) se retiene como pendiente hasta confirmarse.
+      const farPoint1 = LatLng(43.0360, -2.7200);
+      recorder.addRoutePoint(farPoint1);
+      expect(recorder.state.routePoints.length, 1);
+
+      // Una segunda lectura confirmada cerca de la primera (<= 100m) desbloquea el trazado.
+      const farPoint2 = LatLng(43.0362, -2.7201);
+      recorder.addRoutePoint(farPoint2);
+      expect(recorder.state.routePoints.length, 2);
+      expect(recorder.state.routePoints.last, farPoint2);
+
+      // Pausar y reanudar habilita el siguiente punto aunque esté a > 400m (~756m al norte).
+      recorder.togglePause();
+      recorder.togglePause();
+      const farAfterPause = LatLng(43.0430, -2.7200);
+      recorder.addRoutePoint(farAfterPause);
+      expect(recorder.state.routePoints.length, 3);
+      expect(recorder.state.routePoints.last, farAfterPause);
+
+      recorder.cancelOuting();
     });
   });
 }

@@ -101,7 +101,7 @@ const I18N = {
     screenOutingsMission: "Mendira egindako irteerak erregistratzea: ibilitako bidea, iraupena, kilometroak eta bildutako perretxikoen kopurua eta pisua (gramotan).",
     screenOutingsF1: "Zuzeneko GPS grabagailua radar-zehaztasun neurgailuarekin (< 15 m) eta teletransportazio-iragazkiarekin.",
     screenOutingsF2: "Eskuzko Modua (%0 bateria): kokatu aurkikuntzak mapan itu interaktiboarekin (diana) GPS sentsorea piztu gabe.",
-    screenOutingsF3: "Historialaren txartelak: ibilbidearen mini-mapa topografiko errealarekin eta saskiaren banaketa espezieka.",
+    screenOutingsF3: "Historialaren txartelak: ibilbidearen mini-mapa topografiko errealarekin, saskiaren banaketarekin, etengabeko autogordetze seguruarekin eta amaitutako irteerak jarraitzeko aukerarekin.",
 
     screenBackupTitle: "4. Babeskopia (Google Drive eta ZIP Tokikoa)",
     screenBackupBadge: "SMART MERGE · %100 PRIBATUA",
@@ -234,7 +234,7 @@ const I18N = {
     screenOutingsMission: "Registrar tus jornadas de recolección: recorrido exacto, distancia, duración y desglose exhaustivo de la cesta con peso en gramos.",
     screenOutingsF1: "Grabadora GPS con radar de precisión (< 15 m) y filtro activo contra saltos erráticos bajo bosque espeso.",
     screenOutingsF2: "Modo Salida Manual (0% gasto de batería): ubica tus hallazgos en el mapa con la diana interactiva sin gastar batería GPS.",
-    screenOutingsF3: "Tarjetas de historial con mini-mapa topográfico real y resumen de la cesta agrupado por especie.",
+    screenOutingsF3: "Tarjetas de historial con mini-mapa topográfico real, resumen de la cesta por especie, autoguardado continuo anti-pérdida y opción de continuar salidas finalizadas.",
 
     screenBackupTitle: "4. Backup (Google Drive y Snapshots ZIP)",
     screenBackupBadge: "SMART MERGE · 100% PRIVADO",
@@ -367,7 +367,7 @@ const I18N = {
     screenOutingsMission: "Track your expeditions: route map, elapsed time, total distance, and itemized basket tally with weight in grams.",
     screenOutingsF1: "Live GPS recorder featuring a precision radar fix (< 15 m) and anti-drift satellite filters.",
     screenOutingsF2: "Manual Outing Mode (0% battery drain): place your findings on the map with the interactive crosshair without burning phone battery.",
-    screenOutingsF3: "Outing history cards with real topographic mini-maps and species harvest breakdowns.",
+    screenOutingsF3: "Outing history cards with real topographic mini-maps, species harvest breakdowns, continuous fail-safe auto-save, and the option to continue finished outings.",
 
     screenBackupTitle: "4. Backup (Google Drive & Local Snapshots)",
     screenBackupBadge: "SMART MERGE · 100% PRIVATE",

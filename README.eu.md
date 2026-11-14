@@ -67,6 +67,8 @@
   - **Iraganeko Atzera Begirako Irteera**: ondorengo erregistroa datarekin, iraupenarekin eta mapan perretxiko-lekuen itu bidezko hautaketarekin.
 - **Mapa Ikuspegi Handitua (`LiveOutingMapScreen`)**: pantaila osoko murgiltze modua satelite/topo/estandar aldagailuarekin, kronometro flotatzailearekin eta erregistro azkarrarekin (*"Perretxikoa hemen"* uneko GPSan edo *"Kokatu Mapan"* itu interaktiboarekin).
 - **Historia eta Laburpen Txartelak**: benetako mini-mapa kartografikoa (`_OutingRouteMiniMap`) ibilbidearen GPS polilerroarekin, iraupenarekin, distantziarekin eta saskiaren banaketarekin (ale-kopurua eta pisua gramotan).
+- **Etengabeko Autogordetze Segurua eta Berreskuratze Automatikoa**: martxan dauden irteerak eta erregistratutako perretxiko-lekuak denbora errealean gordetzen dira hasieratik, aplikazioa ustekabean itxiz gero saioa berreskuratuz edo umezurtz geratutako irteerak aurkikuntzetatik berreraikiz.
+- **Amaitutako Irteerak Jarraitzea**: amaitutako edozein irteera edonoiz berrabiaraz daiteke bere laburpen-txarteletik edo xehetasun-pantailatik, jatorrizko IDa, ibilbidea, aurreko aurkikuntzak, distantzia eta metatutako denbora mantenduz.
 
 ### 4. ☁️ Segurtasun-kopia Integrala Google Drive-n (`appDataFolder`) Bategite Adimendunarekin
 - Erabiltzailearen jarduera guztia (`spots.json`, `outings.json`, `favorites.json`, `offline_regions.json` eta `photos/` argazki-karpeta) `zizai_backup.zip` barruan paketatzen du.

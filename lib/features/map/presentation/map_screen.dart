@@ -406,6 +406,11 @@ class MapScreenState extends ConsumerState<MapScreen> {
         lang: lang,
       );
 
+      if (!mounted) return;
+      await ref
+          .read(activeOutingRecorderProvider.notifier)
+          .ensureGpsStreamActive();
+
       if (accuratePoint != null && context.mounted) {
         _mapController.move(
           accuratePoint,
@@ -452,8 +457,19 @@ class MapScreenState extends ConsumerState<MapScreen> {
       ),
     );
 
+    if (!mounted) return;
+    await ref
+        .read(activeOutingRecorderProvider.notifier)
+        .ensureGpsStreamActive();
+
     if (savedSpot != null) {
       await ref.read(foragingSpotsProvider.notifier).saveSpot(savedSpot);
+      if (ref.read(activeOutingRecorderProvider).isRecording) {
+        await ref
+            .read(activeOutingRecorderProvider.notifier)
+            .persistActiveOutingSnapshot();
+      }
+      if (!mounted) return;
       setState(() => _selectedSpot = savedSpot);
       _mapController.move(
         LatLng(savedSpot.latitude, savedSpot.longitude),

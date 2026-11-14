@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -38,8 +39,232 @@ class OutingsScreen extends ConsumerStatefulWidget {
   ConsumerState<OutingsScreen> createState() => _OutingsScreenState();
 }
 
-class _OutingsScreenState extends ConsumerState<OutingsScreen> {
+/// Diálogo reutilizable para confirmar la finalización de una salida activa.
+Future<bool?> showConfirmFinishOutingDialog(
+  BuildContext context, {
+  required AppLanguage lang,
+  required int spotsCount,
+}) {
+  final s = AppStrings(lang);
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: AutumnColors.parchmentBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Text(
+        s.tr(
+          eu: 'Irteera amaitu?',
+          es: '¿Terminar la salida al monte?',
+          en: 'Finish foraging outing?',
+        ),
+        style: const TextStyle(
+          color: AutumnColors.boletusBrown,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      content: Text(
+        s.tr(
+          eu: 'Ibilbidea eta bildutako $spotsCount perretxiko-leku zure historian gordeko dira. Nahi baduzu, geroago irteera hau jarraitu ahal izango duzu.',
+          es: 'El recorrido y los $spotsCount setales anotados se guardarán permanentemente en tu historial. Si quieres, podrás continuar esta salida más adelante.',
+          en: 'The route and $spotsCount recorded spots will be saved to your history. You can also continue this outing later if you wish.',
+        ),
+        style: const TextStyle(color: AutumnColors.barkDark, height: 1.4),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AutumnColors.mossGreen,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(
+            s.tr(
+              eu: 'Amaitu eta Gorde',
+              es: 'Terminar y Guardar',
+              en: 'Finish & Save',
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Flujo interactivo compartido para reanudar/continuar una salida ya finalizada.
+Future<bool> resumeOutingInteractive(
+  BuildContext context,
+  WidgetRef ref,
+  ForagingOuting outing,
+) async {
+  final lang = ref.read(appLanguageProvider);
+  final s = AppStrings(lang);
+  final activeOuting = ref.read(activeOutingRecorderProvider);
+
+  if (activeOuting.isRecording &&
+      activeOuting.activeOutingId != null &&
+      activeOuting.activeOutingId != outing.id) {
+    final confirmSwitch = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AutumnColors.parchmentBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          s.tr(
+            eu: 'Beste irteera bat aktibo dago',
+            es: 'Ya hay una salida activa',
+            en: 'Another outing is active',
+          ),
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            color: AutumnColors.boletusBrown,
+          ),
+        ),
+        content: Text(
+          s.tr(
+            eu: '"${activeOuting.title}" gordeta utzi nahi duzu eta "${outing.title}" jarraitu?',
+            es: '¿Quieres guardar "${activeOuting.title}" y continuar "${outing.title}"?',
+            en: 'Do you want to save "${activeOuting.title}" and continue "${outing.title}"?',
+          ),
+          style: const TextStyle(color: AutumnColors.barkDark, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AutumnColors.mossGreen,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              s.tr(
+                eu: 'Gorde eta Jarraitu',
+                es: 'Guardar y Continuar',
+                en: 'Save & Continue',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmSwitch != true || !context.mounted) return false;
+  }
+
+  bool forceManual = outing.isManual;
+  if (!outing.isManual) {
+    final hasPerm = await GpsAccuracyService.ensureLocationPermission(
+      context,
+      lang: lang,
+    );
+    if (!context.mounted) return false;
+    if (!hasPerm) {
+      final continueManual = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AutumnColors.parchmentBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            s.tr(
+              eu: 'GPS seinalerik gabe jarraitu?',
+              es: '¿Continuar sin GPS?',
+              en: 'Continue without GPS?',
+            ),
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AutumnColors.boletusBrown,
+            ),
+          ),
+          content: Text(
+            s.tr(
+              eu: 'Ez dago GPS baimenik aktibatuta. Irteera eskuzko moduan jarraitu dezakezu perretxikoak mapan kokatzeko.',
+              es: 'No hay permisos de ubicación activos. Puedes continuar esta salida en modo manual para seguir anotando setas.',
+              en: 'Location permissions are unavailable. You can continue this outing in manual mode to keep logging spots.',
+            ),
+            style: const TextStyle(color: AutumnColors.barkDark, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(s.tr(eu: 'Utzi', es: 'Cancelar', en: 'Cancel')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AutumnColors.amberLeaf,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(
+                s.tr(
+                  eu: 'Jarraitu Eskuz',
+                  es: 'Continuar Sin GPS',
+                  en: 'Continue Manual',
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      if (continueManual != true || !context.mounted) return false;
+      forceManual = true;
+    }
+  }
+
+  await ref
+      .read(activeOutingRecorderProvider.notifier)
+      .resumeOuting(outing, forceManual: forceManual);
+
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AutumnColors.mossGreen,
+        content: Text(
+          s.tr(
+            eu: '"${outing.title}" irteera berriro aktibo dago',
+            es: 'Salida "${outing.title}" reanudada y activa',
+            en: 'Outing "${outing.title}" resumed and active',
+          ),
+        ),
+      ),
+    );
+  }
+  return true;
+}
+
+class _OutingsScreenState extends ConsumerState<OutingsScreen>
+    with WidgetsBindingObserver {
   final MapController _liveMapController = MapController();
+  String? _lastOrphanRecoverySignature;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final recorder = ref.read(activeOutingRecorderProvider.notifier);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      unawaited(recorder.persistActiveOutingSnapshot());
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(recorder.ensureGpsStreamActive());
+    }
+  }
 
   Future<void> _promptStartNewOuting() async {
     final lang = ref.read(appLanguageProvider);
@@ -495,19 +720,26 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
       ),
     );
 
-    if (newSpot != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AutumnColors.mossGreen,
-          content: Text(
-            s.tr(
-              eu: '"${newSpot.mushroomName ?? 'aurkikuntza'}" perretxikoa gehitu da "$outingTitle" irteerara',
-              es: 'Seta "${newSpot.mushroomName ?? 'hallazgo'}" añadida a la salida "$outingTitle"',
-              en: 'Mushroom "${newSpot.mushroomName ?? 'find'}" added to outing "$outingTitle"',
+    if (newSpot != null) {
+      if (ref.read(activeOutingRecorderProvider).isRecording) {
+        await ref
+            .read(activeOutingRecorderProvider.notifier)
+            .persistActiveOutingSnapshot();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AutumnColors.mossGreen,
+            content: Text(
+              s.tr(
+                eu: '"${newSpot.mushroomName ?? 'aurkikuntza'}" perretxikoa gehitu da "$outingTitle" irteerara',
+                es: 'Seta "${newSpot.mushroomName ?? 'hallazgo'}" añadida a la salida "$outingTitle"',
+                en: 'Mushroom "${newSpot.mushroomName ?? 'find'}" added to outing "$outingTitle"',
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -540,7 +772,34 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
 
     if (newSpot != null) {
       await ref.read(foragingSpotsProvider.notifier).saveSpot(newSpot);
+      await ref
+          .read(activeOutingRecorderProvider.notifier)
+          .persistActiveOutingSnapshot();
     }
+  }
+
+  Future<void> _confirmFinishActiveOuting(
+    ActiveOutingState activeState,
+    int spotsCount,
+  ) async {
+    final lang = ref.read(appLanguageProvider);
+    final confirm = await showConfirmFinishOutingDialog(
+      context,
+      lang: lang,
+      spotsCount: spotsCount,
+    );
+
+    if (confirm == true) {
+      final completed =
+          ref.read(activeOutingRecorderProvider.notifier).finishOuting();
+      if (completed != null) {
+        await ref.read(outingsProvider.notifier).saveOuting(completed);
+      }
+    }
+  }
+
+  Future<void> _continueOuting(ForagingOuting outing) async {
+    await resumeOutingInteractive(context, ref, outing);
   }
 
   Future<void> _confirmDeleteOuting(
@@ -636,11 +895,40 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
     final lang = ref.watch(appLanguageProvider);
     final s = AppStrings(lang);
     final outingsAsync = ref.watch(outingsProvider);
-    final allSpots =
-        ref.watch(foragingSpotsProvider).valueOrNull ?? const <ForagingSpot>[];
+    final spotsAsync = ref.watch(foragingSpotsProvider);
+    final allSpots = spotsAsync.valueOrNull ?? const <ForagingSpot>[];
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
     final activeOuting = ref.watch(activeOutingRecorderProvider);
+
+    if (outingsAsync case AsyncData(value: final loadedOutings)) {
+      if (spotsAsync case AsyncData(value: final loadedSpots)) {
+        final existingIds = loadedOutings.map((o) => o.id).toSet();
+        final hasOrphans = loadedSpots.any(
+          (sp) =>
+              sp.outingId != null &&
+              sp.outingId!.isNotEmpty &&
+              sp.outingId != 'temp' &&
+              sp.outingId != activeOuting.activeOutingId &&
+              !existingIds.contains(sp.outingId),
+        );
+        if (hasOrphans) {
+          final sig = '${loadedOutings.length}_${loadedSpots.length}';
+          if (_lastOrphanRecoverySignature != sig) {
+            _lastOrphanRecoverySignature = sig;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                unawaited(
+                  ref
+                      .read(outingsProvider.notifier)
+                      .recoverOrphanedOutings(loadedSpots),
+                );
+              }
+            });
+          }
+        }
+      }
+    }
 
     return Scaffold(
       backgroundColor: AutumnColors.parchmentBg,
@@ -750,15 +1038,11 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                         .read(activeOutingRecorderProvider.notifier)
                         .togglePause();
                   },
-                  onFinish: () async {
-                    final completed = ref
-                        .read(activeOutingRecorderProvider.notifier)
-                        .finishOuting();
-                    if (completed != null) {
-                      await ref
-                          .read(outingsProvider.notifier)
-                          .saveOuting(completed);
-                    }
+                  onFinish: () {
+                    final activeSpotsCount = allSpots
+                        .where((sp) => sp.outingId == activeOuting.activeOutingId)
+                        .length;
+                    _confirmFinishActiveOuting(activeOuting, activeSpotsCount);
                   },
                 ),
               ),
@@ -773,7 +1057,59 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                 ),
                 error: (e, _) => Center(child: Text('Error: $e')),
                 data: (outings) {
-                  if (outings.isEmpty) {
+                  final finishedOutings = outings
+                      .where((o) =>
+                          !activeOuting.isRecording ||
+                          o.id != activeOuting.activeOutingId)
+                      .toList();
+
+                  if (finishedOutings.isEmpty) {
+                    if (activeOuting.isRecording) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  AutumnColors.mossGreen.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.shield_outlined,
+                                  size: 16,
+                                  color: AutumnColors.mossGreen,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    s.tr(
+                                      eu: 'Zure uneko irteera eta perretxikoak automatikoki gordetzen ari dira.',
+                                      es: 'Tu salida actual y sus setas se están autoguardando automáticamente.',
+                                      en: 'Your active outing and mushrooms are being auto-saved continuously.',
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AutumnColors.mossGreen,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     return Center(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(
@@ -848,9 +1184,9 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
 
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(18, 8, 18, 115),
-                    itemCount: outings.length,
+                    itemCount: finishedOutings.length,
                     itemBuilder: (context, idx) {
-                      final outing = outings[idx];
+                      final outing = finishedOutings[idx];
                       final outingSpots = allSpots
                           .where((s) => s.outingId == outing.id)
                           .toList();
@@ -874,6 +1210,7 @@ class _OutingsScreenState extends ConsumerState<OutingsScreen> {
                             ),
                           );
                         },
+                        onContinueOuting: () => _continueOuting(outing),
                         onViewOnGlobalMap: (widget.onViewOutingOnGlobalMap ??
                                     widget.onViewOutingInGlobalMap) ==
                                 null
@@ -1447,6 +1784,7 @@ class _OutingSummaryCard extends StatelessWidget {
   final List<OutingHarvestItem> harvestItems;
   final List<Mushroom> catalogMushrooms;
   final VoidCallback onTap;
+  final VoidCallback? onContinueOuting;
   final VoidCallback? onViewOnGlobalMap;
   final VoidCallback? onAddSpotOnMap;
   final VoidCallback onDelete;
@@ -1458,6 +1796,7 @@ class _OutingSummaryCard extends StatelessWidget {
     required this.harvestItems,
     required this.catalogMushrooms,
     required this.onTap,
+    this.onContinueOuting,
     this.onViewOnGlobalMap,
     this.onAddSpotOnMap,
     required this.onDelete,
@@ -1711,60 +2050,92 @@ class _OutingSummaryCard extends StatelessWidget {
                 ),
 
               const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (onAddSpotOnMap != null)
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AutumnColors.boletusBrown,
-                        side: const BorderSide(color: AutumnColors.amberLeaf),
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+              Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    if (onContinueOuting != null)
+                      FilledButton.tonalIcon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor:
+                              AutumnColors.mossGreen.withValues(alpha: 0.14),
+                          foregroundColor: AutumnColors.mossGreen,
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                        ),
+                        onPressed: onContinueOuting,
+                        icon: const Icon(
+                          Icons.play_arrow_rounded,
+                          size: 16,
+                        ),
+                        label: Text(
+                          s.tr(
+                            eu: 'Jarraitu',
+                            es: 'Continuar',
+                            en: 'Continue',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      onPressed: onAddSpotOnMap,
-                      icon: const Icon(
-                        Icons.add_location_alt_rounded,
-                        size: 15,
-                      ),
-                      label: Text(
-                        s.tr(
-                          eu: 'Mapan gehitu',
-                          es: 'Añadir en mapa',
-                          en: 'Add on map',
+                    if (onAddSpotOnMap != null)
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AutumnColors.boletusBrown,
+                          side: const BorderSide(color: AutumnColors.amberLeaf),
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                         ),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                        onPressed: onAddSpotOnMap,
+                        icon: const Icon(
+                          Icons.add_location_alt_rounded,
+                          size: 15,
                         ),
-                      ),
-                    ),
-                  if (onViewOnGlobalMap != null) ...[
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        foregroundColor: AutumnColors.mossGreen,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      onPressed: onViewOnGlobalMap,
-                      icon: const Icon(Icons.map_rounded, size: 16),
-                      label: Text(
-                        s.tr(
-                          eu: 'Mapan Ikusi',
-                          es: 'Ver en Mapa',
-                          en: 'View on Map',
-                        ),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                        label: Text(
+                          s.tr(
+                            eu: 'Mapan gehitu',
+                            es: 'Añadir en mapa',
+                            en: 'Add on map',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
+                    if (onViewOnGlobalMap != null)
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          foregroundColor: AutumnColors.mossGreen,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: onViewOnGlobalMap,
+                        icon: const Icon(Icons.map_rounded, size: 16),
+                        label: Text(
+                          s.tr(
+                            eu: 'Mapan Ikusi',
+                            es: 'Ver en Mapa',
+                            en: 'View on Map',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                   ],
-                ],
+                ),
               ),
             ],
           ),
@@ -2072,6 +2443,9 @@ class OutingDetailScreen extends ConsumerWidget {
         : outingSpots;
     final currentHarvest = currentOuting.summarizeHarvest(currentSpots);
     final largestSpot = _OutingRouteMiniMap.findLargestSpot(currentSpots);
+    final activeOuting = ref.watch(activeOutingRecorderProvider);
+    final isCurrentlyActive = activeOuting.isRecording &&
+        activeOuting.activeOutingId == currentOuting.id;
 
     final center = currentOuting.routePoints.isNotEmpty
         ? currentOuting.routePoints.first
@@ -2266,6 +2640,42 @@ class OutingDetailScreen extends ConsumerWidget {
                       fontSize: 14,
                       height: 1.45,
                       color: AutumnColors.textPrimary,
+                    ),
+                  ),
+                ],
+                if (!isCurrentlyActive) ...[
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.tonalIcon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
+                            AutumnColors.mossGreen.withValues(alpha: 0.14),
+                        foregroundColor: AutumnColors.mossGreen,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final resumed = await resumeOutingInteractive(
+                          context,
+                          ref,
+                          currentOuting,
+                        );
+                        if (resumed && context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: Text(
+                        s.tr(
+                          eu: 'Irteera hau jarraitu',
+                          es: 'Continuar esta salida',
+                          en: 'Continue this outing',
+                        ),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ),
                   ),
                 ],
