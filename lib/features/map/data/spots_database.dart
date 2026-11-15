@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/foraging_spot.dart';
+import '../models/forest_zone.dart';
 
 class SpotsDatabase {
   static const String _tableName = 'foraging_spots';
@@ -21,7 +23,7 @@ class SpotsDatabase {
       final fullPath = p.join(dbDir, 'zizai_spots_v2.db');
       _db = await openDatabase(
         fullPath,
-        version: 2,
+        version: 3,
         onCreate: (db, version) async {
           await db.execute('''
             CREATE TABLE $_tableName (
@@ -37,9 +39,17 @@ class SpotsDatabase {
               outingId TEXT,
               outingTitle TEXT,
               quantityCount INTEGER NOT NULL DEFAULT 1,
-              weightGrams INTEGER
+              weightGrams INTEGER,
+              treeType TEXT
             )
           ''');
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 3) {
+            await db.execute(
+              'ALTER TABLE $_tableName ADD COLUMN treeType TEXT',
+            );
+          }
         },
       );
       return _db;
@@ -197,6 +207,32 @@ class SpotsDatabase {
     await replaceAllSpots(merged);
   }
 
+  /// Asigna automáticamente el tipo de árbol a los setales existentes que
+  /// todavía no tienen uno asignado, si caen dentro de un polígono de bosque.
+  /// Nunca sobrescribe setales que ya tengan un tipo de árbol asignado.
+  Future<int> assignTreeTypesFromForestZones(List<ForestZone> zones) async {
+    if (zones.isEmpty) return 0;
+    final current = await getAllSpots();
+    int updatedCount = 0;
+    final updated = current.map((spot) {
+      if (spot.treeType != null && spot.treeType!.trim().isNotEmpty) {
+        return spot;
+      }
+      final zone = ForestZone.findContainingZone(
+        LatLng(spot.latitude, spot.longitude),
+        zones,
+      );
+      if (zone == null) return spot;
+      updatedCount++;
+      return spot.copyWith(treeType: zone.treeType);
+    }).toList();
+
+    if (updatedCount > 0) {
+      await replaceAllSpots(updated);
+    }
+    return updatedCount;
+  }
+
   Future<void> _saveFallbackList(
     SharedPreferences prefs,
     List<ForagingSpot> spots,
@@ -268,6 +304,14 @@ class ForagingSpotsNotifier extends StateNotifier<AsyncValue<List<ForagingSpot>>
 
   Future<void> replaceAllSpots(List<ForagingSpot> spots) =>
       restoreSpots(spots, merge: false);
+
+  Future<int> assignTreeTypesFromForestZones(List<ForestZone> zones) async {
+    final updated = await _db.assignTreeTypesFromForestZones(zones);
+    if (updated > 0) {
+      await loadSpots();
+    }
+    return updated;
+  }
 }
 
 final foragingSpotsProvider =

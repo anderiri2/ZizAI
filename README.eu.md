@@ -48,8 +48,12 @@
   - **Satelite bidezko GPS Kokapena**: radar modala (`GpsAcquisitionSheet`), gorde aurretik satelite-finkapen zehatza (< 15 m) bermatzen duena.
   - **Markatu Hatzarekin Mapan (Itu Interaktiboarekin)**: zehaztasun handiko erdiko erretikula gurutze-mirarekin, kontraste-haloekin eta pin flotatzailearekin; mapako edozein puntutan hatzarekin ukitzea ahalbidetzen du itua berehala erdiratzeko edo mapa hatzarekin mugitzeko doikuntza milimetrikoak egiteko.
   - **Koordenatuen Eskuzko Sarrera**: latitudea eta longitudea zuzenean sartzeko aukera.
+- **Zuhaitz eta Habitataren Etiketatzea (`TreeSpecies`)**: gordetako perretxiko-leku bakoitza (Mapa Orokorrean edo Irteeretan) inguruko zuhaitz edo habitatarekin lotzeko aukera 12 motaren artean (*Pagadia*, *Hariztia*, *Pinudia*, *Artea*, *Gaztainadia*, *Ametza*, *Izeia*, *Urkia*, *Ibaiertza*, *Eukaliptoa*, *Belardia*, *Baso mistoa*), lehenago gordetako zuhaitzik gabeko lekuekiko bateragarritasuna mantenduz.
+- **Lineaz Kanpoko Baso Mapa Pertsonalizatua (`ForestZone`)**: marraztu eta editatu zuhaitz-espezie bati lotutako poligono koloreztatuak zuzenean mapan (mapa ukituz edo erdiguneko ituarekin `+ Puntua` erabiliz), puntuak edozein ordenatan markatuta ere gurutzatu gabeko kanpo-inguru garbia automatikoki kalkulatuz (`orderContourPoints`) eta urratsez urratseko desegitearekin, Mapa Orokorrean zein Irteeretan ikusgai:
+  - **Zuhaitzaren Aurrehautaketa Automatikoa**: mapan definitutako baso baten barruan perretxiko-leku berri bat gordetzean, dagokion basoko zuhaitza automatikoki hautatzen da (gainezarpenetan poligono txikiena lehenetsiz, eta eskuz aldatzeko aukerarekin).
+  - **Esleipen Atzeraeraginkorra**: baso-eremu bat gorde edo editatzean, barruan zuhaitzik esleituta ez zuten aurreko lekuei zuhaitz hori automatikoki ezartzen zaie, eskuz etiketatutakoak gainidatzi gabe.
 - **Cache Automatikoa eta Lineaz Kanpoko Deskargak (`OfflineCachingTileProvider` & `OfflineMapsSheet`)**: kontsultatutako lauzak diskoan gordetzen ditu eta eskualde pertsonalizatuak edo 6 parke natural mikologiko (*Gorbeia*, *Urbasa eta Andia*, *Irati*, *Aralar*, *Urkiola*, *Izki*) deskargatzeko aukera ematen du, bai modu topografikoan bai satelite moduan, estaldurarik gabeko eremuetan erabiltzeko.
-- **Iragazkien eta Ibilbideen Panel Bateratua**: markatzaileak espezie jakin baten arabera (bilatzaile eta argazkiekin), jangarritasun-mailaren arabera, puntu solteak vs irteerak iragazten ditu, eta GPS ibilbideen gainjarri aldiberekoa udazkeneko kolore-paletarekin.
+- **Iragazkien eta Ibilbideen Panel Bateratua**: markatzaileak espezie jakin baten arabera (bilatzaile eta argazkiekin), jangarritasun-mailaren arabera, zuhaitz/habitataren arabera (esleitu gabekoak barne), puntu solteak vs irteerak iragazten ditu, baso-poligonoen geruza txandakatzen du eta GPS ibilbideen gainjarri aldiberekoa eskaintzen du udazkeneko kolore-paletarekin.
 
 ### 3. 🥾 Mendiko Irteerak eta GPS Ibilbideak
 - **GPS Eskuratze eta Finkapen Mekanismoa (`GPS Fix Acquisition`)**:
@@ -71,7 +75,7 @@
 - **Amaitutako Irteerak Jarraitzea**: amaitutako edozein irteera edonoiz berrabiaraz daiteke bere laburpen-txarteletik edo xehetasun-pantailatik, jatorrizko IDa, ibilbidea, aurreko aurkikuntzak, distantzia eta metatutako denbora mantenduz.
 
 ### 4. ☁️ Segurtasun-kopia Integrala Google Drive-n (`appDataFolder`) Bategite Adimendunarekin
-- Erabiltzailearen jarduera guztia (`spots.json`, `outings.json`, `favorites.json`, `offline_regions.json` eta `photos/` argazki-karpeta) `zizai_backup.zip` barruan paketatzen du.
+- Erabiltzailearen jarduera guztia (`spots.json`, `forest_zones.json`, `outings.json`, `favorites.json`, `offline_regions.json` eta `photos/` argazki-karpeta) `zizai_backup.zip` barruan paketatzen du.
 - **Bategite Adimenduna (Smart Merge ID bidez)**: hodeiko urruneko datuak eta tokikoak konbinatzen ditu lehendik dauden irteerak edo perretxiko-lekuak gainidatzi edo bikoiztu gabe (ordezkapen osoko aukerarekin).
 - **Kopia Automatikoaren Aukera**: irteera bat amaitzean jarduera Google Drive-n automatikoki sinkronizatzeko aukera.
 - **Tokiko ZIP Argazkia** esportatzeko eta inportatzeko euskarria telefonoan bertan Google konexiorik gabe.
@@ -110,6 +114,7 @@ Biltegiak kodearen bizi-zikloa `feature/*` adarren, `develop`-eko integrazioaren
 - `v1.7.0` (`feature/map-gps-accuracy-manual-basket-background`): Radar bidezko GPS finkapen-hautatzailea mapan perretxikoak gordetzean, eskuzko irteerak saski mikologiko huts gisa birdiseinatuta, bigarren planoko Foreground Service jakinarazpen egonkorrarekin eta desbideratzerik gabeko kronometroa.
 - `v1.7.1`: Itu interaktiboa gurutze-mirarekin eta mapan hatzarekin ukituz puntuak kokatzeko modua.
 - `v1.7.2`: Mapa-geruzen hautatzailea irteeretan, GPS ibilbidearen jarraipen hutsa, bigarren planoko jakinarazpenen hobekuntzak Android-en, Drive-ko `appDataFolder` baimena saioa hastean eta katalogoko argazkien bikoiztasunen ezabaketa (252 benetako argazki bakar).
+- `v1.8.0`: Zuhaitz/habitataren etiketatzea perretxiko-lekuak gordetzean, lineaz kanpoko baso-poligonoen mapa pertsonalizatua (`ForestZone`) erpinak editatzeko aukerarekin, gurutzatu gabeko kanpo-inguru ordenaketa automatikoarekin (`orderContourPoints`) eta desegitearekin, kokapenaren araberako zuhaitz-detekzio automatikoa, baso barruko leku zaharren esleipen automatikoa, zuhaitz/baso iragazkiak eta `forest_zones.json` segurtasun-kopia.
 
 ---
 

@@ -14,9 +14,12 @@ import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
 import '../../catalog/presentation/mushroom_detail_screen.dart';
 import '../../catalog/presentation/widgets/mushroom_search_picker.dart';
+import '../../map/data/forest_zones_database.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
+import '../../map/models/forest_zone.dart';
 import '../../map/presentation/widgets/foraging_spot_marker.dart';
+import '../../map/presentation/widgets/tree_species_picker.dart';
 import '../../map/services/offline_map_service.dart';
 import '../data/outings_database.dart';
 import '../models/foraging_outing.dart';
@@ -1366,6 +1369,8 @@ class _ActiveOutingRecorderCardState
     final s = AppStrings(lang);
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    final forestZones =
+        ref.watch(forestZonesProvider).valueOrNull ?? const <ForestZone>[];
     final activeLayer = ref.watch(activeMapLayerProvider);
     final center = _currentCenter;
     final userMarkerPoint = activeState.routePoints.isNotEmpty
@@ -1476,6 +1481,10 @@ class _ActiveOutingRecorderCardState
                           maxNativeZoom: activeLayer.maxZoom,
                           userAgentPackageName: 'com.zizai.zizai',
                         ),
+                        if (forestZones.isNotEmpty)
+                          ForestZonesMapLayers.buildPolygonLayer(
+                            zones: forestZones,
+                          ),
                         if (activeState.routePoints.length >= 2)
                           PolylineLayer(
                             polylines: [
@@ -2294,6 +2303,8 @@ class _OutingRouteMiniMap extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    final forestZones =
+        ref.watch(forestZonesProvider).valueOrNull ?? const <ForestZone>[];
     final activeLayer = ref.watch(activeMapLayerProvider);
     final hasRoute = !isManual && routePoints.length >= 2;
     final largestSpot = findLargestSpot(outingSpots);
@@ -2332,6 +2343,8 @@ class _OutingRouteMiniMap extends ConsumerWidget {
                 maxNativeZoom: activeLayer.maxZoom,
                 userAgentPackageName: 'com.zizai.zizai',
               ),
+              if (forestZones.isNotEmpty)
+                ForestZonesMapLayers.buildPolygonLayer(zones: forestZones),
               if (hasRoute)
                 PolylineLayer(
                   polylines: [
@@ -2438,6 +2451,8 @@ class OutingDetailScreen extends ConsumerWidget {
             .firstOrNull ??
         outing;
     final allSpots = ref.watch(foragingSpotsProvider).valueOrNull;
+    final forestZones =
+        ref.watch(forestZonesProvider).valueOrNull ?? const <ForestZone>[];
     final currentSpots = allSpots != null
         ? allSpots.where((sp) => sp.outingId == currentOuting.id).toList()
         : outingSpots;
@@ -2534,6 +2549,8 @@ class OutingDetailScreen extends ConsumerWidget {
                       );
                     },
                   ),
+                  if (forestZones.isNotEmpty)
+                    ForestZonesMapLayers.buildPolygonLayer(zones: forestZones),
                   if (currentOuting.routePoints.length >= 2)
                     PolylineLayer(
                       polylines: [
@@ -2548,6 +2565,11 @@ class OutingDetailScreen extends ConsumerWidget {
                           strokeWidth: 4.5,
                         ),
                       ],
+                    ),
+                  if (forestZones.isNotEmpty)
+                    ForestZonesMapLayers.buildLabelMarkerLayer(
+                      zones: forestZones,
+                      lang: lang,
                     ),
                   MarkerLayer(
                     rotate: true,
@@ -2808,6 +2830,10 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
   final _qtyCtrl = TextEditingController(text: '3');
   final _weightCtrl = TextEditingController();
   Mushroom? _selectedMushroom;
+  String? _selectedTreeType;
+  String? _autoDetectedTreeType;
+  String? _autoDetectedForestName;
+  bool _userManuallySelectedTree = false;
 
   @override
   void initState() {
@@ -2822,6 +2848,16 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
       final mName = _selectedMushroom!.latinWithCommon(lang);
       _titleCtrl.text =
           '${s.tr(eu: "Aurkikuntza", es: "Hallazgo de", en: "Find of")}: $mName';
+    }
+    final forestZones =
+        ref.read(forestZonesProvider).valueOrNull ?? const <ForestZone>[];
+    final zone = ForestZone.findContainingZone(widget.position, forestZones);
+    if (zone != null) {
+      _selectedTreeType = zone.treeType;
+      _autoDetectedTreeType = zone.treeType;
+      _autoDetectedForestName = zone.name.trim().isNotEmpty
+          ? zone.name.trim()
+          : zone.species.forestLabel(lang);
     }
   }
 
@@ -2907,6 +2943,24 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
               ],
             ),
             const SizedBox(height: 12),
+            TreeSpeciesPickerField(
+              selectedTreeType: _selectedTreeType,
+              lang: lang,
+              allowUnassigned: true,
+              autoDetectedForestName: (!_userManuallySelectedTree ||
+                          _selectedTreeType == _autoDetectedTreeType) &&
+                      _autoDetectedForestName != null &&
+                      _selectedTreeType != null
+                  ? _autoDetectedForestName
+                  : null,
+              onChanged: (value) {
+                setState(() {
+                  _selectedTreeType = value;
+                  _userManuallySelectedTree = true;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _notesCtrl,
               maxLines: 2,
@@ -2961,6 +3015,7 @@ class _OutingFindFormSheetState extends ConsumerState<OutingFindFormSheet> {
                     outingTitle: widget.outingTitle,
                     quantityCount: qty < 1 ? 1 : qty,
                     weightGrams: grams,
+                    treeType: _selectedTreeType,
                   );
                   Navigator.of(context).pop(spot);
                 },

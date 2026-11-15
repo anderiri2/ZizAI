@@ -48,8 +48,12 @@
   - **Ubicación GPS Satelital**: radar modal (`GpsAcquisitionSheet`) que asegura fijación satelital precisa (< 15 m) antes de guardar.
   - **Marcar con el Dedo en el Mapa (con Diana Interactiva)**: retícula central de alta precisión con cruz de mira, halos de contraste y pin flotante; permite tocar con el dedo en cualquier punto del mapa para centrar la diana al instante o desplazar el mapa con el dedo para microajustes milimétricos.
   - **Introducción Manual de Coordenadas**: entrada directa de latitud y longitud para registrar ubicaciones conocidas.
+- **Etiquetado de Árbol / Hábitat (`TreeSpecies`)**: asocia cada setal guardado (tanto en Mapa Global como en Salidas) con el árbol o hábitat circundante entre 12 opciones (*Hayedo*, *Robledal*, *Pinar*, *Encinar*, *Castañar*, *Rebollar*, *Abetal*, *Abedular*, *Bosque de ribera*, *Eucaliptal*, *Pradera*, *Bosque mixto*), manteniendo compatibilidad total con setales antiguos sin árbol asignado.
+- **Mapa Personalizado de Bosques Offline (`ForestZone`)**: dibuja y edita polígonos de bosque coloreados por especie arbórea directamente sobre el mapa (tocando puntos o usando la diana central `+ Punto`), ordenando automáticamente el contorno exterior sin cruces entre líneas (`orderContourPoints`) y con deshacer paso a paso sin importar el orden en que marques los puntos, visibles tanto en el Mapa Global como en Salidas:
+  - **Preselección Automática por Ubicación**: al guardar un nuevo setal dentro de cualquier bosque definido en el mapa, se selecciona automáticamente su tipo de árbol (priorizando el polígono de menor área si hay solapamientos, y permitiendo ajuste manual).
+  - **Asignación Retroactiva**: al guardar o actualizar un polígono de bosque, los setales ya existentes dentro de la zona que no tenían árbol asignado heredan ese árbol automáticamente, sin sobrescribir los ya etiquetados manualmente.
 - **Caché Automática y Descargas Offline (`OfflineCachingTileProvider` & `OfflineMapsSheet`)**: almacena en disco las teselas consultadas y permite descargar regiones personalizadas o 6 parques naturales micológicos (*Gorbeia*, *Urbasa y Andia*, *Irati*, *Aralar*, *Urkiola*, *Izki*) tanto en modo topográfico como satelital para usarse en zonas sin cobertura.
-- **Panel Unificado de Filtros y Rutas**: filtra marcadores por especie concreta (con buscador y fotos), nivel de comestibilidad, puntos sueltos vs salidas, y superposición simultánea de rutas GPS con paleta cromática otoñal.
+- **Panel Unificado de Filtros y Rutas**: filtra marcadores por especie concreta (con buscador y fotos), nivel de comestibilidad, tipo de árbol/hábitat (incluidos sin especificar), puntos sueltos vs salidas, activa/oculta la capa de polígonos de bosque y superpone rutas GPS con paleta cromática otoñal.
 
 ### 3. 🥾 Salidas al Monte y Rutas GPS
 - **Mecanismo de Adquisición y Fijación GPS (`GPS Fix Acquisition`)**:
@@ -71,7 +75,7 @@
 - **Continuar Salidas Finalizadas**: cualquier salida terminada puede reanudarse en cualquier momento desde su tarjeta resumen o pantalla de detalle, conservando su identificador, recorrido, setales previos, distancia y tiempo acumulado.
 
 ### 4. ☁️ Backup Integral en Google Drive (`appDataFolder`) con Fusión Inteligente
-- Empaqueta toda la actividad del usuario (`spots.json`, `outings.json`, `favorites.json`, `offline_regions.json` y carpeta de fotos `photos/`) dentro de `zizai_backup.zip`.
+- Empaqueta toda la actividad del usuario (`spots.json`, `forest_zones.json`, `outings.json`, `favorites.json`, `offline_regions.json` y carpeta de fotos `photos/`) dentro de `zizai_backup.zip`.
 - **Fusión Inteligente (Smart Merge por ID)**: combina los datos remotos de la nube con los locales sin sobreescribir ni duplicar salidas ni setales existentes (con opción de reemplazo completo).
 - **Copia Automática Opcional**: permite sincronizar automáticamente la actividad en Google Drive al finalizar una salida.
 - Soporte para **Instantánea ZIP Local** exportable e importable en el teléfono sin necesidad de cuenta de Google.
@@ -110,6 +114,7 @@ El repositorio gestiona el ciclo de vida del código mediante ramas `feature/*`,
 - `v1.7.0` (`feature/map-gps-accuracy-manual-basket-background`): Selector de fijación GPS con radar al guardar setas en mapa, salidas manuales rediseñadas como Cestas micológicas puras (sin trazado manual a mano), Foreground Service en segundo plano con notificación estable y cronómetro sin drift.
 - `v1.7.1`: Diana interactiva con cruz de mira y modo de colocación de puntos tocando con el dedo en el mapa.
 - `v1.7.2`: Selector de capas de mapa en salidas, seguimiento GPS puro, mejoras de notificación en segundo plano en Android, alcance `appDataFolder` de Drive al iniciar sesión y deduplicación de fotos del catálogo (252 fotografías reales únicas).
+- `v1.8.0`: Etiquetado de árbol/hábitat al guardar setales, mapa personalizado de polígonos de bosque offline (`ForestZone`) con edición de vértices, ordenación automática del contorno exterior sin cruces (`orderContourPoints`) y deshacer paso a paso, detección automática del árbol por ubicación, asignación retroactiva a setales sin árbol previo, filtros por árbol/bosque e inclusión de `forest_zones.json` en el backup.
 
 ---
 

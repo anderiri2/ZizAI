@@ -12,6 +12,7 @@ class ForagingSpot {
   final String? outingTitle;
   final int quantityCount;
   final int? weightGrams;
+  final String? treeType;
 
   const ForagingSpot({
     required this.id,
@@ -27,6 +28,7 @@ class ForagingSpot {
     this.outingTitle,
     this.quantityCount = 1,
     this.weightGrams,
+    this.treeType,
   });
 
   bool get isFromOuting => outingId != null && outingId!.isNotEmpty;
@@ -45,9 +47,11 @@ class ForagingSpot {
     String? outingTitle,
     int? quantityCount,
     int? weightGrams,
+    String? treeType,
     bool clearPhoto = false,
     bool clearOuting = false,
     bool clearWeight = false,
+    bool clearTreeType = false,
   }) {
     return ForagingSpot(
       id: id ?? this.id,
@@ -63,6 +67,7 @@ class ForagingSpot {
       outingTitle: clearOuting ? null : (outingTitle ?? this.outingTitle),
       quantityCount: quantityCount ?? this.quantityCount,
       weightGrams: clearWeight ? null : (weightGrams ?? this.weightGrams),
+      treeType: clearTreeType ? null : (treeType ?? this.treeType),
     );
   }
 
@@ -81,6 +86,7 @@ class ForagingSpot {
       'outingTitle': outingTitle,
       'quantityCount': quantityCount,
       'weightGrams': weightGrams,
+      'treeType': treeType,
     };
   }
 
@@ -100,6 +106,7 @@ class ForagingSpot {
       outingTitle: map['outingTitle'] as String?,
       quantityCount: (map['quantityCount'] as num?)?.toInt() ?? 1,
       weightGrams: (map['weightGrams'] as num?)?.toInt(),
+      treeType: map['treeType'] as String?,
     );
   }
 

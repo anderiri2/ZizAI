@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,11 +7,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zizai/core/localization/app_localizations.dart';
 import 'package:zizai/features/catalog/data/catalog_repository.dart';
 import 'package:zizai/features/catalog/models/mushroom.dart';
+import 'package:zizai/features/map/data/forest_zones_database.dart';
 import 'package:zizai/features/map/data/spots_database.dart';
 import 'package:zizai/features/map/models/foraging_spot.dart';
+import 'package:zizai/features/map/models/forest_zone.dart';
+import 'package:zizai/features/map/models/tree_species.dart';
+import 'package:zizai/features/map/presentation/map_screen.dart';
 import 'package:zizai/features/map/presentation/widgets/foraging_spot_marker.dart';
+import 'package:zizai/features/map/presentation/widgets/tree_species_picker.dart';
 import 'package:zizai/features/outings/data/outings_database.dart';
 import 'package:zizai/features/outings/models/foraging_outing.dart';
+import 'package:zizai/features/outings/presentation/outings_screen.dart';
 
 void main() {
   group('ZizAI v1.5.0: Outing Recorder Clean GPS & Map Filters Tests', () {
@@ -456,6 +463,165 @@ void main() {
       final completed = freshRecorder.finishOuting();
       expect(completed, isNotNull);
       await db.upsertOuting(completed!);
+    });
+
+    testWidgets('OutingFindFormSheet auto-selects tree species when position is inside a ForestZone',
+        (tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final zone = ForestZone(
+        id: 'zone_beech_auto',
+        name: 'Hayedo de Gorbeia',
+        treeType: TreeSpecies.beech.id,
+        points: const [
+          LatLng(43.00, -2.55),
+          LatLng(43.03, -2.55),
+          LatLng(43.03, -2.49),
+          LatLng(43.00, -2.49),
+        ],
+        notes: '',
+        createdAt: DateTime(2026, 10, 10),
+      );
+      await container.read(forestZonesProvider.notifier).addZone(zone);
+
+      ForagingSpot? capturedSpot;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      capturedSpot = await showModalBottomSheet<ForagingSpot>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => const OutingFindFormSheet(
+                          position: LatLng(43.0150, -2.5200),
+                          outingId: 'outing_test_tree',
+                          outingTitle: 'Salida Hayedo',
+                          catalogMushrooms: [],
+                        ),
+                      );
+                    },
+                    child: const Text('Open Form'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Form'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TreeSpeciesPickerField), findsOneWidget);
+      expect(find.textContaining('Hayedo de Gorbeia'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.save_rounded));
+      await tester.pumpAndSettle();
+
+      expect(capturedSpot, isNotNull);
+      expect(capturedSpot!.treeType, TreeSpecies.beech.id);
+    });
+
+    testWidgets('MapScreen auto-detects forest zone tree on spot creation and draws new forest polygons',
+        (tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // Seed a forest zone covering _defaultBasqueCenter (43.0150, -2.5200)
+      final initialZone = ForestZone(
+        id: 'zone_pine_center',
+        name: 'Pinar Central',
+        treeType: TreeSpecies.pine.id,
+        points: const [
+          LatLng(42.98, -2.56),
+          LatLng(43.05, -2.56),
+          LatLng(43.05, -2.48),
+          LatLng(42.98, -2.48),
+        ],
+        notes: '',
+        createdAt: DateTime(2026, 10, 12),
+      );
+      await container.read(forestZonesProvider.notifier).addZone(initialZone);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: MapScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 1) Open Save Spot -> Crosshair -> Confirm inside Pinar Central
+      await tester.tap(find.byKey(const ValueKey('btn_add_spot')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.touch_app_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('btn_confirm_diana_spot')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(': Pinar Central'), findsOneWidget);
+      await tester.ensureVisible(find.byIcon(Icons.save_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.save_rounded));
+      await tester.pumpAndSettle();
+
+      final spots = container.read(foragingSpotsProvider).valueOrNull ?? const [];
+      expect(spots.length, 1);
+      expect(spots.first.treeType, TreeSpecies.pine.id);
+
+      // Close selected spot card if open
+      final closeSpotIcon = find.byIcon(Icons.close_rounded);
+      if (closeSpotIcon.evaluate().isNotEmpty) {
+        await tester.tap(closeSpotIcon.first);
+        await tester.pumpAndSettle();
+      }
+
+      // 2) Draw a new 3-point forest polygon on the map
+      await tester.tap(find.byKey(const ValueKey('btn_draw_forest')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('btn_add_polygon_vertex')), findsOneWidget);
+      expect(find.byKey(const ValueKey('btn_save_forest_polygon')), findsOneWidget);
+
+      final mapBox = tester.getRect(find.byType(FlutterMap));
+      await tester.tapAt(mapBox.center + const Offset(-80, 15));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      await tester.tapAt(mapBox.center + const Offset(80, 15));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      await tester.tapAt(mapBox.center + const Offset(0, 95));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('btn_save_forest_polygon')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('field_forest_zone_name')), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('field_forest_zone_name')),
+        'Nuevo Hayedo',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('btn_confirm_save_forest_zone')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('btn_confirm_save_forest_zone')));
+      await tester.pumpAndSettle();
+
+      final allZones = container.read(forestZonesProvider).valueOrNull ?? const [];
+      expect(allZones.length, 2);
+      expect(allZones.any((z) => z.name == 'Nuevo Hayedo'), isTrue);
     });
   });
 }

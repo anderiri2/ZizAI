@@ -90,11 +90,12 @@ const I18N = {
     screenCatalogF3: "Morfologia 4 ataletan (Txapela, Himenioa, Hanka, Haragia) eta espezie antzekoen arteko Nahasmen Arriskutsuen abisuak.",
 
     screenMapTitle: "2. Mapa (Perretxiko-lekuen Mapa Interaktiboa)",
-    screenMapBadge: "TOPO · SATELITEA · OFFLINE ESKUALDEAK",
-    screenMapMission: "Zure aurkikuntzak mapan zehaztasun osoz kokatzea eta bistaratzea, basoko orografia eta bidezidorrak ulertuz.",
+    screenMapBadge: "TOPO · SATELITEA · BASO MAPAK",
+    screenMapMission: "Zure aurkikuntzak mapan zehaztasun osoz kokatzea eta bistaratzea, basoko orografia, bidezidorrak eta zuhaitz-eremuak ulertuz.",
     screenMapF1: "3 geruza kartografiko: Topografikoa (curvas de nivel), Esri Satelite Ortofotografikoa eta Estándarra.",
     screenMapF2: "Offline Mapen deskargatzailea: gorde zure eskualdea mendira igo aurretik (Gorbeia, Urbasa, Irati, Aralar, Urkiola, Izki).",
-    screenMapF3: "Puntuak jangarritasun-kolorez bereizita eta GPS ibilbideak gainjarrita ikusteko aukera.",
+    screenMapF3: "Puntuak jangarritasun-kolorez bereizita, zuhaitz-iragazkiekin eta GPS ibilbideak gainjarrita ikusteko aukera.",
+    screenMapF4: "Baso Mapa Pertsonalizatua (gurutzatu gabeko kanpo-inguru automatikodun poligonoak) eta zuhaitz-hautatzailea: baso barruko leku berriak eta zuhaitzik gabeko aurrekoak automatikoki esleitzen dira.",
 
     screenOutingsTitle: "3. Irteerak (GPS Ibilbideak eta Saskiaren Laburpena)",
     screenOutingsBadge: "ZUZENEKO GPSA EDO ESKUZKO MODUA (%0 BATERIA)",
@@ -108,7 +109,7 @@ const I18N = {
     screenBackupMission: "Zure datu guztien segurtasuna bermatzea. Aldatu telefonoz edo galdu gailua, zure setalak sekula ez dira galduko.",
     screenBackupF1: "Google Drive pertsonala: kopia enkriptatua zure kontuko carpeta ezkutuan (appDataFolder) gordetzen da.",
     screenBackupF2: "Smart Merge (Fuzio Adimenduna): hodeiko datuak eta gailukoak batzen ditu ID bidez, ezer gainidatzi gabe.",
-    screenBackupF3: "Berehalako Instantánea ZIP: esportatu eta inportatu fitxategi bakar batean argazki eta ibilbide guztiak.",
+    screenBackupF3: "Berehalako Instantánea ZIP: esportatu eta inportatu fitxategi bakar batean setal, baso-poligono, argazki eta ibilbide guztiak.",
 
     // Privacidad
     privacyTitle: "Zure datuak zureak dira. %100 Pribatua.",
@@ -223,11 +224,12 @@ const I18N = {
     screenCatalogF3: "Morfología botánica detallada en 4 bloques (Sombrero, Himenio, Pie, Carne) y comparativa de confusiones frecuentes.",
 
     screenMapTitle: "2. Mapa (Cuaderno Cartográfico de Setales)",
-    screenMapBadge: "TOPO · SATÉLITE · REGIONES OFFLINE",
-    screenMapMission: "Ubicar con precisión tus hallazgos sobre curvas de nivel o fotografía satelital, visualizando los accesos y masas arbóreas.",
+    screenMapBadge: "TOPO · SATÉLITE · MAPAS DE BOSQUES",
+    screenMapMission: "Ubicar con precisión tus hallazgos sobre curvas de nivel o fotografía satelital, visualizando los accesos y tus propias zonas de arbolado.",
     screenMapF1: "3 capas cartográficas: Topográfica con curvas de nivel, Esri Satélite de alta resolución y capa Estándar.",
     screenMapF2: "Gestor de Mapas Offline para descargar zonas antes de subir al monte (Gorbeia, Urbasa, Irati, Aralar, Urkiola, Izki).",
-    screenMapF3: "Marcadores con color de comestibilidad y superposición simultánea de las rutas GPS de tus salidas.",
+    screenMapF3: "Marcadores con color de comestibilidad, filtros por tipo de árbol y superposición simultánea de rutas GPS.",
+    screenMapF4: "Mapa de Bosques Personalizado (polígonos de contorno exterior automático sin cruces) y selector de árbol/hábitat: autoselección al guardar un setal y asignación retroactiva a setales previos sin árbol.",
 
     screenOutingsTitle: "3. Salidas (Grabadora GPS e Historial)",
     screenOutingsBadge: "GPS EN VIVO O SALIDA MANUAL (0% BATERÍA)",
@@ -241,7 +243,7 @@ const I18N = {
     screenBackupMission: "Garantizar que tus setales secretos te acompañen para siempre, incluso si cambias o renuevas de teléfono móvil.",
     screenBackupF1: "Copia en tu propio Google Drive: almacenada en la carpeta privada y oculta (appDataFolder) a la que solo tú tienes acceso.",
     screenBackupF2: "Fusión Inteligente (Smart Merge): combina tus salidas de la nube con las locales sin sobreescribir ni perder nada.",
-    screenBackupF3: "Instantáneas ZIP locales: exporta un archivo .zip completo con todas tus fotos y bases de datos para guardarlo en tu PC.",
+    screenBackupF3: "Instantáneas ZIP locales: exporta un archivo .zip completo con todos tus setales, bosques, fotos y salidas para guardarlo en tu PC.",
 
     // Privacidad
     privacyTitle: "Tus datos te pertenecen. 100% Privado.",
@@ -356,11 +358,12 @@ const I18N = {
     screenCatalogF3: "4-tier morphology breakdown (Cap, Hymenium, Stem, Flesh) and dangerous confusion warnings.",
 
     screenMapTitle: "2. Map (Private Foraging Cartography)",
-    screenMapBadge: "TOPO · SATELLITE · OFFLINE REGIONS",
-    screenMapMission: "Accurately record your foraging findings on contour lines or high-res satellite orthophotos, understanding terrain elevation and forest trails.",
+    screenMapBadge: "TOPO · SATELLITE · FOREST POLYGONS",
+    screenMapMission: "Accurately record your foraging findings on contour lines or high-res satellite orthophotos, understanding terrain elevation, forest zones, and trails.",
     screenMapF1: "3 cartographic layers: Topographic contour lines, Esri World Imagery Satellite, and Standard OpenStreetMap.",
     screenMapF2: "Offline Region Manager: pre-cache natural parks before venturing into remote valleys.",
-    screenMapF3: "Edibility color-coded spot markers and simultaneous multi-route GPS track overlays.",
+    screenMapF3: "Edibility color-coded markers, tree/habitat filters, and simultaneous multi-route GPS track overlays.",
+    screenMapF4: "Custom Offline Forest Polygon Map (non-crossing outer contour polygons) & tree picker: auto-selects tree species when saving inside a forest and retroactively tags unassigned spots.",
 
     screenOutingsTitle: "3. Outings (GPS Tracker & Basket Summary)",
     screenOutingsBadge: "LIVE GPS OR ZERO-DRAIN MANUAL MODE",
@@ -374,7 +377,7 @@ const I18N = {
     screenBackupMission: "Ensure your secret foraging history follows you safely across device upgrades and phone replacements.",
     screenBackupF1: "Personal Google Drive sync: securely saved within your account's private hidden appDataFolder.",
     screenBackupF2: "Smart Merge: blends cloud backups with new local discoveries by unique ID without overwriting data.",
-    screenBackupF3: "Local ZIP Snapshots: export a self-contained archive of all photos and databases directly to your PC.",
+    screenBackupF3: "Local ZIP Snapshots: export a self-contained archive of all spots, forest zones, photos, and databases directly to your PC.",
 
     // Privacidad
     privacyTitle: "Your data belongs to you. 100% Private.",
@@ -408,7 +411,7 @@ class ZizAIApp {
   constructor() {
     this.currentLang = this.detectLanguage();
     this.currentScreenTab = 'catalog';
-    this.latestReleaseTag = 'v1.7.2';
+    this.latestReleaseTag = 'v1.8.0';
     this.latestApkUrl = 'https://github.com/anderiri2/ZizAI/releases/latest';
 
     this.initElements();

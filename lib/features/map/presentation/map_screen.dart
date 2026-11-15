@@ -21,12 +21,17 @@ import '../../catalog/presentation/mushroom_detail_screen.dart';
 import '../../outings/data/outings_database.dart';
 import '../../outings/models/foraging_outing.dart';
 import '../../outings/presentation/map_spot_picker_screen.dart';
+import '../data/forest_zones_database.dart';
 import '../data/spots_database.dart';
 import '../models/foraging_spot.dart';
+import '../models/forest_zone.dart';
+import '../models/tree_species.dart';
 import '../services/offline_map_service.dart';
 import 'offline_maps_sheet.dart';
 import 'widgets/foraging_spot_marker.dart';
+import 'widgets/forest_zone_sheets.dart';
 import 'widgets/map_crosshair_target.dart';
+import 'widgets/tree_species_picker.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   final Mushroom? initialMushroomToRegister;
@@ -56,18 +61,28 @@ class MapScreenState extends ConsumerState<MapScreen> {
       OfflineCachingTileProvider();
   bool _showAllOutings = true;
   bool _showStandaloneSpots = true;
+  bool _showForestZones = true;
   final Set<String> _selectedOutingIds = <String>{};
   String? _selectedMushroomSpeciesFilter;
   String _edibilityFilter = 'all'; // 'all', 'edible', 'toxic'
+  String _treeTypeFilter = 'all'; // 'all', TreeSpecies.id, or 'unassigned'
   bool _isLocatingGps = false;
   double? _lastGpsAccuracy;
   ForagingSpot? _selectedSpot;
+  ForestZone? _selectedForestZone;
   LatLng? _currentUserLocation;
 
   bool _isPickingLocationForMushroom = false;
   Mushroom? _pendingMushroomToPlace;
   String? _pendingPhotoToPlace;
   bool _isPlacingSpotWithDiana = false;
+
+  bool _isDrawingForestPolygon = false;
+  TreeSpecies _draftForestSpecies = TreeSpecies.beech;
+  final List<LatLng> _draftForestPoints = <LatLng>[];
+  final List<List<LatLng>> _draftForestUndoStack = <List<LatLng>>[];
+  int? _movingDraftVertexIndex;
+  ForestZone? _editingForestPolygonZone;
 
   static const List<Color> _routePalette = [
     AutumnColors.terracotta,
@@ -426,6 +441,204 @@ class MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
+  void _startDrawingForestZone({ForestZone? editingZone}) {
+    setState(() {
+      _selectedSpot = null;
+      _selectedForestZone = null;
+      _isPlacingSpotWithDiana = false;
+      _isPickingLocationForMushroom = false;
+      _pendingMushroomToPlace = null;
+      _pendingPhotoToPlace = null;
+      _isDrawingForestPolygon = true;
+      _movingDraftVertexIndex = null;
+      _editingForestPolygonZone = editingZone;
+      _draftForestUndoStack.clear();
+      _draftForestPoints
+        ..clear()
+        ..addAll(
+          editingZone != null
+              ? ForestZone.orderContourPoints(editingZone.points)
+              : const <LatLng>[],
+        );
+      if (editingZone != null) {
+        _draftForestSpecies = editingZone.species;
+      }
+    });
+    if (editingZone != null && editingZone.points.isNotEmpty) {
+      _mapController.move(
+        editingZone.centroid,
+        _mapController.camera.zoom < 13.5 ? 14.0 : _mapController.camera.zoom,
+      );
+    }
+  }
+
+  void _applyDraftPointsMutation(void Function() mutate) {
+    setState(() {
+      _draftForestUndoStack.add(List<LatLng>.from(_draftForestPoints));
+      mutate();
+      final ordered = ForestZone.orderContourPoints(_draftForestPoints);
+      _draftForestPoints
+        ..clear()
+        ..addAll(ordered);
+    });
+  }
+
+  void _undoDraftPolygonAction() {
+    setState(() {
+      if (_movingDraftVertexIndex != null &&
+          _movingDraftVertexIndex! >= 0 &&
+          _movingDraftVertexIndex! < _draftForestPoints.length) {
+        _draftForestUndoStack.add(List<LatLng>.from(_draftForestPoints));
+        _draftForestPoints.removeAt(_movingDraftVertexIndex!);
+        _movingDraftVertexIndex = null;
+        final ordered = ForestZone.orderContourPoints(_draftForestPoints);
+        _draftForestPoints
+          ..clear()
+          ..addAll(ordered);
+      } else if (_draftForestUndoStack.isNotEmpty) {
+        final previous = _draftForestUndoStack.removeLast();
+        _draftForestPoints
+          ..clear()
+          ..addAll(previous);
+      } else if (_draftForestPoints.isNotEmpty) {
+        _draftForestPoints.removeLast();
+      }
+    });
+  }
+
+  void _cancelForestDrawing() {
+    setState(() {
+      _isDrawingForestPolygon = false;
+      _draftForestPoints.clear();
+      _draftForestUndoStack.clear();
+      _movingDraftVertexIndex = null;
+      _editingForestPolygonZone = null;
+    });
+  }
+
+  Future<void> _openForestZoneFormSheet({
+    required List<LatLng> points,
+    ForestZone? existingZone,
+  }) async {
+    final orderedPoints = ForestZone.orderContourPoints(points);
+    if (orderedPoints.length < 3) return;
+    final allSpots =
+        ref.read(foragingSpotsProvider).valueOrNull ?? const <ForagingSpot>[];
+    final lang = ref.read(appLanguageProvider);
+
+    final savedZone = await showModalBottomSheet<ForestZone>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ForestZoneFormBottomSheet(
+        points: orderedPoints,
+        initialSpecies: existingZone?.species ?? _draftForestSpecies,
+        existingZone: existingZone,
+        allSpots: allSpots,
+        lang: lang,
+      ),
+    );
+
+    if (savedZone == null || !mounted) return;
+    await ref.read(forestZonesProvider.notifier).addZone(savedZone);
+    final updatedZones =
+        ref.read(forestZonesProvider).valueOrNull ?? <ForestZone>[savedZone];
+    final autoUpdatedCount = await ref
+        .read(foragingSpotsProvider.notifier)
+        .assignTreeTypesFromForestZones(updatedZones);
+    if (!mounted) return;
+
+    setState(() {
+      _isDrawingForestPolygon = false;
+      _draftForestPoints.clear();
+      _draftForestUndoStack.clear();
+      _movingDraftVertexIndex = null;
+      _editingForestPolygonZone = null;
+      _selectedForestZone = savedZone;
+      _selectedSpot = null;
+    });
+
+    final s = AppStrings(lang);
+    final message = autoUpdatedCount > 0
+        ? s.tr(
+            eu: 'Basoa gordeta (${savedZone.name}) • $autoUpdatedCount leku eguneratu dira',
+            es: 'Bosque guardado (${savedZone.name}) • $autoUpdatedCount setales asociados',
+            en: 'Forest saved (${savedZone.name}) • $autoUpdatedCount spots linked',
+          )
+        : s.tr(
+            eu: 'Basoa gordeta: ${savedZone.name}',
+            es: 'Bosque guardado: ${savedZone.name}',
+            en: 'Forest saved: ${savedZone.name}',
+          );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AutumnColors.mossGreen,
+        content: Text(message),
+      ),
+    );
+  }
+
+  Future<void> _deleteForestZone(ForestZone zone) async {
+    final lang = ref.read(appLanguageProvider);
+    final s = AppStrings(lang);
+    await ref.read(forestZonesProvider.notifier).deleteZone(zone.id);
+    if (!mounted) return;
+    setState(() {
+      if (_selectedForestZone?.id == zone.id) {
+        _selectedForestZone = null;
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          s.tr(
+            eu: 'Baso eremua ezabatuta',
+            es: 'Zona de bosque eliminada',
+            en: 'Forest zone deleted',
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openSavedForestZonesListSheet(
+    List<ForestZone> zones,
+    List<ForagingSpot> allSpots,
+  ) {
+    final lang = ref.read(appLanguageProvider);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AutumnColors.parchmentBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => SavedForestZonesSheet(
+        zones: zones,
+        allSpots: allSpots,
+        lang: lang,
+        onStartDrawingNew: () => _startDrawingForestZone(),
+        onSelectZone: (zone) {
+          setState(() {
+            _selectedForestZone = zone;
+            _selectedSpot = null;
+            _showForestZones = true;
+          });
+          if (zone.points.isNotEmpty) {
+            _mapController.move(
+              zone.centroid,
+              _mapController.camera.zoom < 13.0
+                  ? 13.8
+                  : _mapController.camera.zoom,
+            );
+          }
+        },
+        onEditZonePolygon: (zone) =>
+            _startDrawingForestZone(editingZone: zone),
+        onDeleteZone: (zone) => _deleteForestZone(zone),
+      ),
+    );
+  }
+
   Future<void> _openAddOrEditSpotSheet(
     BuildContext context, {
     required LatLng initialLatLng,
@@ -435,6 +648,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
   }) async {
     final allMushrooms =
         ref.read(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    final allForestZones =
+        ref.read(forestZonesProvider).valueOrNull ?? const <ForestZone>[];
     final activeOuting = ref.read(activeOutingRecorderProvider);
 
     final savedSpot = await showModalBottomSheet<ForagingSpot>(
@@ -453,6 +668,7 @@ class MapScreenState extends ConsumerState<MapScreen> {
             ? activeOuting.title
             : null,
         catalogMushrooms: allMushrooms,
+        forestZones: allForestZones,
         lang: ref.read(appLanguageProvider),
       ),
     );
@@ -493,6 +709,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
         allMushrooms: allMushrooms,
         initialSpeciesFilter: _selectedMushroomSpeciesFilter,
         initialEdibilityFilter: _edibilityFilter,
+        initialTreeTypeFilter: _treeTypeFilter,
+        initialShowForestZones: _showForestZones,
         initialShowAllOutings: _showAllOutings,
         initialShowStandaloneSpots: _showStandaloneSpots,
         initialSelectedOutingIds: _selectedOutingIds,
@@ -501,6 +719,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
         onApply: ({
           String? speciesFilter,
           required String edibilityFilter,
+          required String treeTypeFilter,
+          required bool showForestZones,
           required bool showAllOutings,
           required bool showStandaloneSpots,
           required Set<String> selectedOutingIds,
@@ -508,6 +728,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
           setState(() {
             _selectedMushroomSpeciesFilter = speciesFilter;
             _edibilityFilter = edibilityFilter;
+            _treeTypeFilter = treeTypeFilter;
+            _showForestZones = showForestZones;
             _showAllOutings = showAllOutings;
             _showStandaloneSpots = showStandaloneSpots;
             _selectedOutingIds.clear();
@@ -624,6 +846,16 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                     fontSize: 12.5,
                                   ),
                                 ),
+                              if (TreeSpecies.tryFromId(spot.treeType) != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 3),
+                                  child: TreeSpeciesBadge(
+                                    species:
+                                        TreeSpecies.tryFromId(spot.treeType)!,
+                                    lang: lang,
+                                    compact: true,
+                                  ),
+                                ),
                               Text(
                                 spot.isFromOuting
                                     ? s.tr(
@@ -680,6 +912,8 @@ class MapScreenState extends ConsumerState<MapScreen> {
         ref.watch(outingsProvider).valueOrNull ?? const <ForagingOuting>[];
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    final allForestZones =
+        ref.watch(forestZonesProvider).valueOrNull ?? const <ForestZone>[];
 
     // Filtrar los puntos según el selector del Mapa Global
     final visibleSpots = allSpots.where((s) {
@@ -701,8 +935,25 @@ class MapScreenState extends ConsumerState<MapScreen> {
           if (_edibilityFilter == 'toxic' && !m.isToxic) return false;
         }
       }
+      if (_treeTypeFilter == TreeSpecies.unassignedFilterId) {
+        if (s.treeType != null && s.treeType!.trim().isNotEmpty) return false;
+      } else if (_treeTypeFilter != 'all') {
+        if (s.treeType != _treeTypeFilter) return false;
+      }
       return true;
     }).toList();
+
+    final visibleForestZones = !_showForestZones
+        ? const <ForestZone>[]
+        : allForestZones.where((z) {
+            if (_treeTypeFilter == TreeSpecies.unassignedFilterId) {
+              return false;
+            }
+            if (_treeTypeFilter != 'all' && z.treeType != _treeTypeFilter) {
+              return false;
+            }
+            return true;
+          }).toList();
 
     // Filtrar las polilíneas de las rutas GPS a mostrar
     final visibleOutingRoutes = allOutings.where((o) {
@@ -717,15 +968,21 @@ class MapScreenState extends ConsumerState<MapScreen> {
     }
     if (_selectedMushroomSpeciesFilter != null) activeFilterCount++;
     if (_edibilityFilter != 'all') activeFilterCount++;
+    if (!_showForestZones) activeFilterCount++;
+    if (_treeTypeFilter != 'all') activeFilterCount++;
 
     final activeLayer = ref.watch(activeMapLayerProvider);
 
     return Scaffold(
       body: PopScope(
-        canPop: !_isPlacingSpotWithDiana && !_isPickingLocationForMushroom,
+        canPop: !_isPlacingSpotWithDiana &&
+            !_isPickingLocationForMushroom &&
+            !_isDrawingForestPolygon,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
-          if (_isPlacingSpotWithDiana) {
+          if (_isDrawingForestPolygon) {
+            _cancelForestDrawing();
+          } else if (_isPlacingSpotWithDiana) {
             setState(() => _isPlacingSpotWithDiana = false);
           } else if (_isPickingLocationForMushroom) {
             setState(() {
@@ -745,6 +1002,20 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 minZoom: 4.0,
                 maxZoom: 17.5,
                 onTap: (_, latLng) {
+                  if (_isDrawingForestPolygon) {
+                    _applyDraftPointsMutation(() {
+                      if (_movingDraftVertexIndex != null &&
+                          _movingDraftVertexIndex! >= 0 &&
+                          _movingDraftVertexIndex! < _draftForestPoints.length) {
+                        _draftForestPoints[_movingDraftVertexIndex!] = latLng;
+                        _movingDraftVertexIndex = null;
+                      } else {
+                        _draftForestPoints.add(latLng);
+                      }
+                    });
+                    HapticFeedback.selectionClick();
+                    return;
+                  }
                   if (_isPlacingSpotWithDiana) {
                     _mapController.move(
                       latLng,
@@ -772,11 +1043,26 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     );
                     return;
                   }
-                  if (_selectedSpot != null) {
-                    setState(() => _selectedSpot = null);
+                  final tappedZone = ForestZone.findContainingZone(
+                    latLng,
+                    visibleForestZones,
+                  );
+                  if (tappedZone != null) {
+                    setState(() {
+                      _selectedForestZone = tappedZone;
+                      _selectedSpot = null;
+                    });
+                    return;
+                  }
+                  if (_selectedSpot != null || _selectedForestZone != null) {
+                    setState(() {
+                      _selectedSpot = null;
+                      _selectedForestZone = null;
+                    });
                   }
                 },
                 onLongPress: (_, latLng) {
+                  if (_isDrawingForestPolygon) return;
                   _openAddOrEditSpotSheet(context, initialLatLng: latLng);
                 },
               ),
@@ -788,6 +1074,35 @@ class MapScreenState extends ConsumerState<MapScreen> {
                 tileProvider:
                     widget.customTileProvider ?? _defaultOfflineTileProvider,
               ),
+              if (visibleForestZones.isNotEmpty)
+                ForestZonesMapLayers.buildPolygonLayer(
+                  zones: visibleForestZones,
+                  selectedZoneId: _selectedForestZone?.id,
+                ),
+              if (_isDrawingForestPolygon && _draftForestPoints.length >= 3)
+                PolygonLayer(
+                  polygonLabels: false,
+                  polygons: [
+                    Polygon(
+                      points: _draftForestPoints,
+                      color: _draftForestSpecies.color.withValues(alpha: 0.30),
+                      borderColor: _draftForestSpecies.color,
+                      borderStrokeWidth: 2.8,
+                    ),
+                  ],
+                ),
+              if (_isDrawingForestPolygon && _draftForestPoints.length >= 2)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _draftForestPoints.length >= 3
+                          ? [..._draftForestPoints, _draftForestPoints.first]
+                          : _draftForestPoints,
+                      color: _draftForestSpecies.color,
+                      strokeWidth: 2.6,
+                    ),
+                  ],
+                ),
               // Capa de polilíneas de las rutas GPS de las Salidas con paleta cromática otoñal
               if (visibleOutingRoutes.isNotEmpty)
                 PolylineLayer(
@@ -805,6 +1120,20 @@ class MapScreenState extends ConsumerState<MapScreen> {
                       strokeWidth: isHighlighted ? 5.2 : 3.8,
                     );
                   }).toList(),
+                ),
+              if (visibleForestZones.isNotEmpty)
+                ForestZonesMapLayers.buildLabelMarkerLayer(
+                  zones: visibleForestZones,
+                  lang: lang,
+                  selectedZoneId: _selectedForestZone?.id,
+                  onZoneTap: _isDrawingForestPolygon
+                      ? null
+                      : (zone) {
+                          setState(() {
+                            _selectedForestZone = zone;
+                            _selectedSpot = null;
+                          });
+                        },
                 ),
               if (_currentUserLocation != null)
                 MarkerLayer(
@@ -838,7 +1167,10 @@ class MapScreenState extends ConsumerState<MapScreen> {
                     rotate: true,
                     child: GestureDetector(
                       onTap: () {
-                        setState(() => _selectedSpot = spot);
+                        setState(() {
+                          _selectedSpot = spot;
+                          _selectedForestZone = null;
+                        });
                         _mapController.move(
                           LatLng(spot.latitude, spot.longitude),
                           _mapController.camera.zoom < 12.5
@@ -860,6 +1192,61 @@ class MapScreenState extends ConsumerState<MapScreen> {
                   );
                 }).toList(),
               ),
+              if (_isDrawingForestPolygon && _draftForestPoints.isNotEmpty)
+                MarkerLayer(
+                  markers: List<Marker>.generate(
+                    _draftForestPoints.length,
+                    (idx) {
+                      final pt = _draftForestPoints[idx];
+                      final isMoving = _movingDraftVertexIndex == idx;
+                      return Marker(
+                        point: pt,
+                        width: isMoving ? 34 : 26,
+                        height: isMoving ? 34 : 26,
+                        alignment: Alignment.center,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _movingDraftVertexIndex =
+                                  _movingDraftVertexIndex == idx ? null : idx;
+                            });
+                            HapticFeedback.selectionClick();
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isMoving
+                                  ? AutumnColors.amberLeaf
+                                  : _draftForestSpecies.color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: isMoving ? 2.6 : 2.0,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.25),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${idx + 1}',
+                                style: TextStyle(
+                                  fontSize: isMoving ? 12 : 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: isMoving
+                                      ? AutumnColors.barkDark
+                                      : Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
             ],
           ),
 
@@ -912,6 +1299,16 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
+                                _HeaderPillButton(
+                                  icon: Icons.forest_rounded,
+                                  label: '${allForestZones.length}',
+                                  active: !_showForestZones,
+                                  onTap: () => _openSavedForestZonesListSheet(
+                                    allForestZones,
+                                    allSpots,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
                                 _HeaderPillButton(
                                   icon: Icons.eco_rounded,
                                   label: '${visibleSpots.length}',
@@ -1058,15 +1455,47 @@ class MapScreenState extends ConsumerState<MapScreen> {
                                         );
                                       }(),
                                     ],
+                                    if (!_showForestZones)
+                                      _ActiveFilterTag(
+                                        icon: Icons.forest_rounded,
+                                        label: s.tr(
+                                          eu: 'Basoak OFF',
+                                          es: 'Bosques OFF',
+                                          en: 'Forests OFF',
+                                        ),
+                                        onRemove: () => setState(
+                                            () => _showForestZones = true),
+                                      ),
+                                    if (_treeTypeFilter != 'all')
+                                      _ActiveFilterTag(
+                                        icon: TreeSpecies.tryFromId(
+                                                    _treeTypeFilter)
+                                                ?.icon ??
+                                            Icons.park_rounded,
+                                        label: _treeTypeFilter ==
+                                                TreeSpecies.unassignedFilterId
+                                            ? s.tr(
+                                                eu: 'Zuhaitzik gabe',
+                                                es: 'Sin árbol',
+                                                en: 'No tree',
+                                              )
+                                            : TreeSpecies.fromId(
+                                                    _treeTypeFilter)
+                                                .label(lang),
+                                        onRemove: () => setState(
+                                            () => _treeTypeFilter = 'all'),
+                                      ),
                                     Padding(
                                       padding: const EdgeInsets.only(left: 4),
                                       child: InkWell(
                                         onTap: () => setState(() {
                                           _showAllOutings = true;
                                           _showStandaloneSpots = true;
+                                          _showForestZones = true;
                                           _selectedOutingIds.clear();
                                           _selectedMushroomSpeciesFilter = null;
                                           _edibilityFilter = 'all';
+                                          _treeTypeFilter = 'all';
                                         }),
                                         borderRadius:
                                             BorderRadius.circular(12),
@@ -1221,8 +1650,65 @@ class MapScreenState extends ConsumerState<MapScreen> {
             ),
 
           // Diana de alta precisión en el centro del mapa
-          if (_isPlacingSpotWithDiana || _isPickingLocationForMushroom)
-            const MapCrosshairTarget(),
+          if (_isPlacingSpotWithDiana ||
+              _isPickingLocationForMushroom ||
+              _isDrawingForestPolygon)
+            MapCrosshairTarget(
+              accentColor: _isDrawingForestPolygon
+                  ? _draftForestSpecies.color
+                  : AutumnColors.terracotta,
+            ),
+
+          // Banner interactivo de dibujo/edición de polígonos de bosque
+          if (_isDrawingForestPolygon)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 104,
+              left: 14,
+              right: 14,
+              child: ForestDrawingBanner(
+                lang: lang,
+                pointsCount: _draftForestPoints.length,
+                selectedSpecies: _draftForestSpecies,
+                movingVertexIndex: _movingDraftVertexIndex,
+                isEditingExisting: _editingForestPolygonZone != null,
+                onSpeciesChanged: (species) =>
+                    setState(() => _draftForestSpecies = species),
+                onCancel: _cancelForestDrawing,
+              ),
+            ),
+
+          // Barra inferior de dibujo de polígonos de bosque
+          if (_isDrawingForestPolygon)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 104,
+              child: ForestDrawingBottomBar(
+                lang: lang,
+                pointsCount: _draftForestPoints.length,
+                movingVertexIndex: _movingDraftVertexIndex,
+                species: _draftForestSpecies,
+                onUndoOrDeleteVertex: _undoDraftPolygonAction,
+                onAddOrMoveVertexAtCenter: () {
+                  final center = _mapController.camera.center;
+                  _applyDraftPointsMutation(() {
+                    if (_movingDraftVertexIndex != null &&
+                        _movingDraftVertexIndex! >= 0 &&
+                        _movingDraftVertexIndex! < _draftForestPoints.length) {
+                      _draftForestPoints[_movingDraftVertexIndex!] = center;
+                      _movingDraftVertexIndex = null;
+                    } else {
+                      _draftForestPoints.add(center);
+                    }
+                  });
+                  HapticFeedback.selectionClick();
+                },
+                onSave: () => _openForestZoneFormSheet(
+                  points: _draftForestPoints,
+                  existingZone: _editingForestPolygonZone,
+                ),
+              ),
+            ),
 
           // Banner interactivo si se ubica con diana / tocar con el dedo
           if (_isPlacingSpotWithDiana)
@@ -1254,10 +1740,14 @@ class MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
 
-          if (!_isPlacingSpotWithDiana && !_isPickingLocationForMushroom)
+          if (!_isPlacingSpotWithDiana &&
+              !_isPickingLocationForMushroom &&
+              !_isDrawingForestPolygon)
             Positioned(
               right: 16,
-              bottom: _selectedSpot != null ? 275 : 112,
+              bottom: (_selectedSpot != null || _selectedForestZone != null)
+                  ? 285
+                  : 112,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -1280,6 +1770,20 @@ class MapScreenState extends ConsumerState<MapScreen> {
                         : const Icon(Icons.my_location_rounded),
                   ),
                   const SizedBox(height: 10),
+                  FloatingActionButton.small(
+                    key: const ValueKey('btn_draw_forest'),
+                    heroTag: 'btn_draw_forest',
+                    backgroundColor: AutumnColors.mossGreen,
+                    foregroundColor: Colors.white,
+                    tooltip: s.tr(
+                      eu: 'Marraztu baso eremua',
+                      es: 'Dibujar zona de bosque',
+                      en: 'Draw forest zone',
+                    ),
+                    onPressed: () => _startDrawingForestZone(),
+                    child: const Icon(Icons.forest_rounded),
+                  ),
+                  const SizedBox(height: 10),
                   FloatingActionButton.extended(
                     key: const ValueKey('btn_add_spot'),
                     heroTag: 'btn_add_spot',
@@ -1300,9 +1804,40 @@ class MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
 
+          if (_selectedForestZone != null &&
+              _selectedSpot == null &&
+              !_isPlacingSpotWithDiana &&
+              !_isPickingLocationForMushroom &&
+              !_isDrawingForestPolygon)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 104,
+              child: SelectedForestZoneCard(
+                zone: _selectedForestZone!,
+                spotsInsideCount: allSpots
+                    .where(
+                      (sp) => _selectedForestZone!.containsPoint(
+                        LatLng(sp.latitude, sp.longitude),
+                      ),
+                    )
+                    .length,
+                lang: lang,
+                onClose: () => setState(() => _selectedForestZone = null),
+                onEditData: () => _openForestZoneFormSheet(
+                  points: _selectedForestZone!.points,
+                  existingZone: _selectedForestZone!,
+                ),
+                onEditPolygon: () =>
+                    _startDrawingForestZone(editingZone: _selectedForestZone!),
+                onDelete: () => _deleteForestZone(_selectedForestZone!),
+              ),
+            ),
+
           if (_selectedSpot != null &&
               !_isPlacingSpotWithDiana &&
-              !_isPickingLocationForMushroom)
+              !_isPickingLocationForMushroom &&
+              !_isDrawingForestPolygon)
             Positioned(
               left: 16,
               right: 16,
@@ -1596,6 +2131,15 @@ class _SelectedSpotCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (TreeSpecies.tryFromId(spot.treeType) != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: TreeSpeciesBadge(
+                          species: TreeSpecies.tryFromId(spot.treeType)!,
+                          lang: lang,
+                          compact: true,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -1666,6 +2210,7 @@ class _SpotFormBottomSheet extends StatefulWidget {
   final String? activeOutingId;
   final String? activeOutingTitle;
   final List<Mushroom> catalogMushrooms;
+  final List<ForestZone> forestZones;
   final AppLanguage lang;
 
   const _SpotFormBottomSheet({
@@ -1676,6 +2221,7 @@ class _SpotFormBottomSheet extends StatefulWidget {
     this.activeOutingId,
     this.activeOutingTitle,
     required this.catalogMushrooms,
+    this.forestZones = const <ForestZone>[],
     required this.lang,
   });
 
@@ -1694,6 +2240,10 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
   String? _selectedMushroomId;
   String? _selectedMushroomName;
   String? _photoPath;
+  String? _selectedTreeType;
+  String? _autoDetectedTreeType;
+  String? _autoDetectedForestName;
+  bool _userManuallySelectedTree = false;
 
   @override
   void initState() {
@@ -1712,13 +2262,13 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
       text: existing?.title ?? defaultTitle,
     );
     _notesController = TextEditingController(text: existing?.notes ?? '');
+    final initialLat = existing?.latitude ?? widget.initialLatLng.latitude;
+    final initialLng = existing?.longitude ?? widget.initialLatLng.longitude;
     _latController = TextEditingController(
-      text: (existing?.latitude ?? widget.initialLatLng.latitude)
-          .toStringAsFixed(5),
+      text: initialLat.toStringAsFixed(5),
     );
     _lngController = TextEditingController(
-      text: (existing?.longitude ?? widget.initialLatLng.longitude)
-          .toStringAsFixed(5),
+      text: initialLng.toStringAsFixed(5),
     );
     _qtyController = TextEditingController(
       text: '${existing?.quantityCount ?? 1}',
@@ -1731,6 +2281,39 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
     _selectedMushroomName = existing?.mushroomName ??
         pre?.latinWithCommon(widget.lang);
     _photoPath = existing?.photoPath ?? widget.preselectedPhotoPath;
+
+    final existingTree = TreeSpecies.tryFromId(existing?.treeType);
+    if (existingTree != null) {
+      _selectedTreeType = existingTree.id;
+      _userManuallySelectedTree = true;
+    } else {
+      _detectTreeFromCoordinates(LatLng(initialLat, initialLng));
+    }
+  }
+
+  void _detectTreeFromCoordinates(LatLng point) {
+    final zone = ForestZone.findContainingZone(point, widget.forestZones);
+    if (zone == null) {
+      _autoDetectedForestName = null;
+      _autoDetectedTreeType = null;
+      return;
+    }
+    final zoneName = zone.name.trim().isNotEmpty
+        ? zone.name.trim()
+        : zone.species.forestLabel(widget.lang);
+    _autoDetectedForestName = zoneName;
+    _autoDetectedTreeType = zone.treeType;
+    if (!_userManuallySelectedTree) {
+      _selectedTreeType = zone.treeType;
+    }
+  }
+
+  void _refreshTreeDetectionFromFields() {
+    final lat = double.tryParse(_latController.text.replaceAll(',', '.'));
+    final lng = double.tryParse(_lngController.text.replaceAll(',', '.'));
+    if (lat != null && lng != null) {
+      _detectTreeFromCoordinates(LatLng(lat, lng));
+    }
   }
 
   void _onCoordinateChanged(String val, bool isLatitude) {
@@ -1747,10 +2330,13 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
           setState(() {
             _latController.text = parsedLat.toStringAsFixed(5);
             _lngController.text = parsedLng.toStringAsFixed(5);
+            _detectTreeFromCoordinates(LatLng(parsedLat, parsedLng));
           });
+          return;
         }
       }
     }
+    setState(_refreshTreeDetectionFromFields);
   }
 
   Future<void> _fillCurrentGpsLocation() async {
@@ -1787,6 +2373,7 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
       setState(() {
         _latController.text = pos.latitude.toStringAsFixed(5);
         _lngController.text = pos.longitude.toStringAsFixed(5);
+        _detectTreeFromCoordinates(LatLng(pos.latitude, pos.longitude));
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -2015,6 +2602,7 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
           widget.existingSpot?.outingTitle ?? widget.activeOutingTitle,
       quantityCount: qty < 1 ? 1 : qty,
       weightGrams: grams,
+      treeType: _selectedTreeType,
     );
 
     Navigator.of(context).pop(spot);
@@ -2209,6 +2797,24 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
             ),
             const SizedBox(height: 12),
 
+            TreeSpeciesPickerField(
+              selectedTreeType: _selectedTreeType,
+              lang: widget.lang,
+              allowUnassigned: true,
+              autoDetectedForestName: (_autoDetectedForestName != null &&
+                      _selectedTreeType != null &&
+                      _selectedTreeType == _autoDetectedTreeType)
+                  ? _autoDetectedForestName
+                  : null,
+              onChanged: (value) {
+                setState(() {
+                  _selectedTreeType = value;
+                  _userManuallySelectedTree = true;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+
             TextField(
               controller: _notesController,
               maxLines: 3,
@@ -2370,6 +2976,7 @@ class _SpotFormBottomSheetState extends State<_SpotFormBottomSheet> {
                                     picked.latitude.toStringAsFixed(5);
                                 _lngController.text =
                                     picked.longitude.toStringAsFixed(5);
+                                _detectTreeFromCoordinates(picked);
                               });
                             }
                           },
@@ -2550,6 +3157,8 @@ class _MapFilterAndRoutesSheet extends StatefulWidget {
   final List<Mushroom> allMushrooms;
   final String? initialSpeciesFilter;
   final String initialEdibilityFilter;
+  final String initialTreeTypeFilter;
+  final bool initialShowForestZones;
   final bool initialShowAllOutings;
   final bool initialShowStandaloneSpots;
   final Set<String> initialSelectedOutingIds;
@@ -2558,6 +3167,8 @@ class _MapFilterAndRoutesSheet extends StatefulWidget {
   final void Function({
     String? speciesFilter,
     required String edibilityFilter,
+    required String treeTypeFilter,
+    required bool showForestZones,
     required bool showAllOutings,
     required bool showStandaloneSpots,
     required Set<String> selectedOutingIds,
@@ -2569,6 +3180,8 @@ class _MapFilterAndRoutesSheet extends StatefulWidget {
     required this.allMushrooms,
     required this.initialSpeciesFilter,
     required this.initialEdibilityFilter,
+    required this.initialTreeTypeFilter,
+    required this.initialShowForestZones,
     required this.initialShowAllOutings,
     required this.initialShowStandaloneSpots,
     required this.initialSelectedOutingIds,
@@ -2585,6 +3198,8 @@ class _MapFilterAndRoutesSheet extends StatefulWidget {
 class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
   late String? _speciesFilter;
   late String _edibilityFilter;
+  late String _treeTypeFilter;
+  late bool _showForestZones;
   late bool _showAllOutings;
   late bool _showStandaloneSpots;
   late Set<String> _selectedOutingIds;
@@ -2594,6 +3209,8 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
     super.initState();
     _speciesFilter = widget.initialSpeciesFilter;
     _edibilityFilter = widget.initialEdibilityFilter;
+    _treeTypeFilter = widget.initialTreeTypeFilter;
+    _showForestZones = widget.initialShowForestZones;
     _showAllOutings = widget.initialShowAllOutings;
     _showStandaloneSpots = widget.initialShowStandaloneSpots;
     _selectedOutingIds =
@@ -2791,6 +3408,8 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
                     setState(() {
                       _speciesFilter = null;
                       _edibilityFilter = 'all';
+                      _treeTypeFilter = 'all';
+                      _showForestZones = true;
                       _showAllOutings = true;
                       _showStandaloneSpots = true;
                       _selectedOutingIds.clear();
@@ -2913,13 +3532,87 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
 
             const SizedBox(height: 18),
 
-            // SECCIÓN 2: IRTEERAK ETA IBILBIDEAK
+            // SECCIÓN 2: ÁRBOLES Y MAPA DE BOSQUES
+            _sectionTitle(
+              Icons.forest_rounded,
+              s.tr(
+                eu: '2. Zuhaitzak eta Baso Mapak',
+                es: '2. Árboles y Mapas de Bosques',
+                en: '2. Trees & Forest Maps',
+              ),
+            ),
+            const SizedBox(height: 6),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              activeThumbColor: AutumnColors.mossGreen,
+              title: Text(
+                s.tr(
+                  eu: 'Erakutsi baso-poligonoak mapan',
+                  es: 'Mostrar polígonos de bosques en el mapa',
+                  en: 'Show forest polygons on map',
+                ),
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              value: _showForestZones,
+              onChanged: (v) => setState(() => _showForestZones = v),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _choiceChip(
+                  label: s.tr(eu: 'Denak', es: 'Todos', en: 'All'),
+                  selected: _treeTypeFilter == 'all',
+                  onSelected: () => setState(() => _treeTypeFilter = 'all'),
+                ),
+                ...TreeSpecies.values.map(
+                  (sp) => ChoiceChip(
+                    avatar: Icon(sp.icon, size: 14, color: sp.color),
+                    label: Text(sp.label(widget.lang)),
+                    selected: _treeTypeFilter == sp.id,
+                    selectedColor: sp.color.withValues(alpha: 0.22),
+                    backgroundColor: Colors.white,
+                    labelStyle: TextStyle(
+                      color: _treeTypeFilter == sp.id
+                          ? sp.color
+                          : AutumnColors.textPrimary,
+                      fontWeight: _treeTypeFilter == sp.id
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    onSelected: (_) =>
+                        setState(() => _treeTypeFilter = sp.id),
+                  ),
+                ),
+                _choiceChip(
+                  label: s.tr(
+                    eu: 'Zuhaitzik gabe',
+                    es: 'Sin árbol',
+                    en: 'No tree',
+                  ),
+                  selected: _treeTypeFilter == TreeSpecies.unassignedFilterId,
+                  onSelected: () => setState(
+                    () => _treeTypeFilter = TreeSpecies.unassignedFilterId,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 18),
+
+            // SECCIÓN 3: IRTEERAK ETA IBILBIDEAK
             _sectionTitle(
               Icons.hiking_rounded,
               s.tr(
-                eu: '2. Irteerak eta Ibilbideak',
-                es: '2. Salidas y Rutas',
-                en: '2. Outings & Routes',
+                eu: '3. Irteerak eta Ibilbideak',
+                es: '3. Salidas y Rutas',
+                en: '3. Outings & Routes',
               ),
             ),
             const SizedBox(height: 8),
@@ -3077,6 +3770,8 @@ class _MapFilterAndRoutesSheetState extends State<_MapFilterAndRoutesSheet> {
           widget.onApply(
             speciesFilter: _speciesFilter,
             edibilityFilter: _edibilityFilter,
+            treeTypeFilter: _treeTypeFilter,
+            showForestZones: _showForestZones,
             showAllOutings: _showAllOutings,
             showStandaloneSpots: _showStandaloneSpots,
             selectedOutingIds: _selectedOutingIds,

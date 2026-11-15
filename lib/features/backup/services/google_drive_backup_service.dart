@@ -14,8 +14,10 @@ import '../../../core/localization/app_localizations.dart';
 import '../../ai_identifier/models/chat_message.dart';
 import '../../ai_identifier/services/gemini_mushroom_service.dart';
 import '../../catalog/data/catalog_repository.dart';
+import '../../map/data/forest_zones_database.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
+import '../../map/models/forest_zone.dart';
 import '../../map/services/offline_map_service.dart';
 import '../../outings/data/outings_database.dart';
 import '../../outings/models/foraging_outing.dart';
@@ -26,6 +28,7 @@ class FullBackupPayload {
   final List<String> favoriteIds;
   final List<AiChatMessage> aiMessages;
   final List<OfflineMapRegion> offlineRegions;
+  final List<ForestZone> forestZones;
 
   const FullBackupPayload({
     required this.spots,
@@ -33,6 +36,7 @@ class FullBackupPayload {
     this.favoriteIds = const <String>[],
     this.aiMessages = const <AiChatMessage>[],
     this.offlineRegions = const <OfflineMapRegion>[],
+    this.forestZones = const <ForestZone>[],
   });
 }
 
@@ -243,6 +247,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
   /// - favorites.json (especies favoritas del catálogo)
   /// - ai_chats.json (historial de identificaciones con IA Gemini)
   /// - offline_regions.json (regiones de mapa offline descargadas)
+  /// - forest_zones.json (zonas/polígonos de bosques definidos por el usuario)
   /// - photos/ (fotografías tomadas en el mapa, salidas y chat IA)
   static Future<Uint8List> createBackupArchiveBytes(
     List<ForagingSpot> spots, {
@@ -250,6 +255,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     List<String> favoriteIds = const <String>[],
     List<AiChatMessage> aiMessages = const <AiChatMessage>[],
     List<OfflineMapRegion> offlineRegions = const <OfflineMapRegion>[],
+    List<ForestZone> forestZones = const <ForestZone>[],
   }) async {
     final archive = Archive();
     final exportedSpotsJson = <Map<String, dynamic>>[];
@@ -333,6 +339,11 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       'regions': offlineRegions.map((r) => r.toJson()).toList(),
     });
 
+    addJsonFileToArchive('forest_zones.json', {
+      'version': 1,
+      'zones': forestZones.map((z) => z.toMap()).toList(),
+    });
+
     final encodedZip = ZipEncoder().encode(archive);
     return Uint8List.fromList(encodedZip);
   }
@@ -360,6 +371,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     ArchiveFile? favoritesJsonFile;
     ArchiveFile? aiChatsJsonFile;
     ArchiveFile? offlineRegionsJsonFile;
+    ArchiveFile? forestZonesJsonFile;
 
     for (final file in archive) {
       if (!file.isFile) continue;
@@ -373,6 +385,8 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         aiChatsJsonFile = file;
       } else if (file.name == 'offline_regions.json') {
         offlineRegionsJsonFile = file;
+      } else if (file.name == 'forest_zones.json') {
+        forestZonesJsonFile = file;
       } else if (file.name.startsWith('photos/') && photosDir != null) {
         final fileName = p.basename(file.name);
         final destFile = File(p.join(photosDir.path, fileName));
@@ -448,12 +462,26 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       }
     }
 
+    final restoredZones = <ForestZone>[];
+    if (forestZonesJsonFile != null) {
+      final jsonStr = utf8.decode(forestZonesJsonFile.content as List<int>);
+      final decoded = json.decode(jsonStr) as Map<String, dynamic>;
+      final rawZones =
+          decoded['zones'] as List<dynamic>? ?? const <dynamic>[];
+      for (final raw in rawZones) {
+        restoredZones.add(
+          ForestZone.fromMap(Map<String, dynamic>.from(raw as Map)),
+        );
+      }
+    }
+
     return FullBackupPayload(
       spots: restoredSpots,
       outings: restoredOutings,
       favoriteIds: restoredFavorites,
       aiMessages: restoredAiChats,
       offlineRegions: restoredRegions,
+      forestZones: restoredZones,
     );
   }
 
@@ -476,6 +504,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     required List<String> favoriteIds,
     required List<AiChatMessage> aiMessages,
     required List<OfflineMapRegion> offlineRegions,
+    List<ForestZone> forestZones = const <ForestZone>[],
     AppLanguage lang = AppLanguage.es,
   }) async {
     final s = AppStrings(lang);
@@ -541,6 +570,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         favoriteIds: favoriteIds,
         aiMessages: aiMessages,
         offlineRegions: offlineRegions,
+        forestZones: forestZones,
       );
 
       // También guardamos copia espejo local automática
@@ -773,6 +803,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
     required List<String> favoriteIds,
     required List<AiChatMessage> aiMessages,
     required List<OfflineMapRegion> offlineRegions,
+    List<ForestZone> forestZones = const <ForestZone>[],
     AppLanguage lang = AppLanguage.es,
   }) async {
     final s = AppStrings(lang);
@@ -784,6 +815,7 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
         favoriteIds: favoriteIds,
         aiMessages: aiMessages,
         offlineRegions: offlineRegions,
+        forestZones: forestZones,
       );
       await _writeLocalMirrorZip(zipBytes);
 
@@ -888,6 +920,16 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       await ref
           .read(offlineMapServiceProvider.notifier)
           .mergeRegions(payload.offlineRegions);
+      await ref
+          .read(forestZonesProvider.notifier)
+          .mergeZones(payload.forestZones);
+      final currentZones =
+          ref.read(forestZonesProvider).valueOrNull ?? payload.forestZones;
+      if (currentZones.isNotEmpty) {
+        await ref
+            .read(foragingSpotsProvider.notifier)
+            .assignTreeTypesFromForestZones(currentZones);
+      }
     } else {
       await ref
           .read(foragingSpotsProvider.notifier)
@@ -904,6 +946,9 @@ class GoogleDriveBackupService extends StateNotifier<AuthBackupState> {
       await ref
           .read(offlineMapServiceProvider.notifier)
           .replaceAllRegions(payload.offlineRegions);
+      await ref
+          .read(forestZonesProvider.notifier)
+          .replaceAllZones(payload.forestZones);
     }
   }
 }

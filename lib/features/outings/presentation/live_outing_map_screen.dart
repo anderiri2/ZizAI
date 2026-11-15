@@ -11,10 +11,13 @@ import '../../../core/theme/autumn_theme.dart';
 import '../../../core/widgets/gps_acquisition_sheet.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../catalog/models/mushroom.dart';
+import '../../map/data/forest_zones_database.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
+import '../../map/models/forest_zone.dart';
 import '../../map/presentation/widgets/foraging_spot_marker.dart';
 import '../../map/presentation/widgets/map_crosshair_target.dart';
+import '../../map/presentation/widgets/tree_species_picker.dart';
 import '../../map/services/offline_map_service.dart';
 import '../data/outings_database.dart';
 import 'outings_screen.dart';
@@ -232,6 +235,8 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
     final allSpots = ref.watch(foragingSpotsProvider).valueOrNull ?? const [];
     final allMushrooms =
         ref.watch(allMushroomsProvider).valueOrNull ?? const <Mushroom>[];
+    final forestZones =
+        ref.watch(forestZonesProvider).valueOrNull ?? const <ForestZone>[];
     final lang = ref.watch(appLanguageProvider);
     final s = AppStrings(lang);
 
@@ -286,6 +291,8 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                   maxNativeZoom: activeLayer.maxZoom,
                   tileProvider: _offlineTileProvider,
                 ),
+                if (forestZones.isNotEmpty)
+                  ForestZonesMapLayers.buildPolygonLayer(zones: forestZones),
                 if (!activeState.isManual &&
                     activeState.routePoints.length >= 2)
                   PolylineLayer(
@@ -296,6 +303,11 @@ class _LiveOutingMapScreenState extends ConsumerState<LiveOutingMapScreen> {
                         strokeWidth: 5.0,
                       ),
                     ],
+                  ),
+                if (forestZones.isNotEmpty)
+                  ForestZonesMapLayers.buildLabelMarkerLayer(
+                    zones: forestZones,
+                    lang: lang,
                   ),
                 MarkerLayer(
                   rotate: true,

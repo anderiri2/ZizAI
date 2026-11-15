@@ -5,8 +5,10 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/autumn_theme.dart';
 import '../../ai_identifier/services/gemini_mushroom_service.dart';
 import '../../catalog/data/catalog_repository.dart';
+import '../../map/data/forest_zones_database.dart';
 import '../../map/data/spots_database.dart';
 import '../../map/models/foraging_spot.dart';
+import '../../map/models/forest_zone.dart';
 import '../../map/services/offline_map_service.dart';
 import '../../outings/data/outings_database.dart';
 import '../../outings/models/foraging_outing.dart';
@@ -34,6 +36,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     final favorites = ref.watch(favoriteMushroomsProvider).toList();
     final aiMessages = ref.watch(geminiMushroomProvider).messages;
     final offlineRegions = ref.watch(offlineMapServiceProvider).regions;
+    final forestZones =
+        ref.watch(forestZonesProvider).valueOrNull ?? const <ForestZone>[];
 
     final photosCount = spots
         .where((sp) => sp.photoPath != null && sp.photoPath!.isNotEmpty)
@@ -406,6 +410,19 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                             color: AutumnColors.mossGreen,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _MetricTile(
+                            icon: Icons.forest_rounded,
+                            value: '${forestZones.length}',
+                            label: s.tr(
+                              eu: 'Baso Mapak',
+                              es: 'Mapas Bosques',
+                              en: 'Forest Maps',
+                            ),
+                            color: AutumnColors.boletusBrown,
+                          ),
+                        ),
                       ],
                     ),
                     const Divider(height: 22),
@@ -623,6 +640,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               favoriteIds: favorites,
                               aiMessages: aiMessages,
                               offlineRegions: offlineRegions,
+                              forestZones: forestZones,
                               lang: lang,
                             );
                       },
@@ -718,6 +736,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                                 favoriteIds: favorites,
                                 aiMessages: aiMessages,
                                 offlineRegions: offlineRegions,
+                                forestZones: forestZones,
                                 lang: lang,
                               ),
                       style: FilledButton.styleFrom(

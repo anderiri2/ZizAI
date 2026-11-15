@@ -48,8 +48,12 @@
   - **Satellite GPS Location**: modal radar (`GpsAcquisitionSheet`) ensuring accurate satellite lock (< 15 m) before saving.
   - **Finger Tap on Map (with Interactive Crosshair Reticle)**: high-precision central reticle with crosshair, contrast halos and floating pin; tap anywhere on the map to instantly center the reticle or pan the map for millimeter adjustments.
   - **Manual Coordinates Entry**: direct latitude/longitude input when logging known coordinates.
+- **Tree & Habitat Tagging (`TreeSpecies`)**: associate each saved mushroom spot (in Global Map or Outings) with the dominant tree or habitat across 12 options (*Beech*, *Oak*, *Pine*, *Holm oak*, *Chestnut*, *Pyrenean oak*, *Fir*, *Birch*, *Riverside*, *Eucalyptus*, *Meadow*, *Mixed*), while preserving full compatibility with legacy unassigned spots.
+- **Custom Offline Forest Polygon Map (`ForestZone`)**: draw and edit colored forest zones directly on the map (tap points or place vertices via crosshair reticle) with automatic non-crossing outer perimeter contour ordering (`orderContourPoints`) and step-by-step undo regardless of the order in which points are marked, rendered across both Global Map and Outings:
+  - **Automatic Tree Preselection**: saving a spot whose coordinates fall inside any saved forest polygon automatically selects that forest's tree species (prioritizing the smallest polygon when zones overlap, with manual override).
+  - **Retroactive Assignment**: saving or updating a forest polygon automatically assigns its tree species to existing unassigned spots inside that zone without overwriting manually tagged spots.
 - **Automatic Cache & Offline Downloads (`OfflineCachingTileProvider` & `OfflineMapsSheet`)**: caches viewed tiles on disk and allows downloading custom bounding boxes or 6 natural parks (*Gorbeia*, *Urbasa & Andia*, *Irati*, *Aralar*, *Urkiola*, *Izki*) in both topographic and satellite modes for zero-coverage areas.
-- **Unified Filters & Routes Panel**: filter markers by specific species (with search and thumbnails), edibility level, standalone spots vs outings, and simultaneous GPS route overlays with an autumn color palette.
+- **Unified Filters & Routes Panel**: filter markers by specific species (with search and thumbnails), edibility level, tree/habitat type (including unassigned spots), standalone spots vs outings, toggle forest polygon visibility, and overlay simultaneous GPS routes with an autumn color palette.
 
 ### 3. 🥾 Forest Outings & GPS Routes
 - **GPS Fix Acquisition Mechanism (`GPS Fix Acquisition`)**:
@@ -71,7 +75,7 @@
 - **Continue Finished Outings**: any completed outing can be resumed at any time from its summary card or detail screen, preserving its ID, route, recorded spots, distance, and accumulated duration.
 
 ### 4. ☁️ Full Google Drive Backup (`appDataFolder`) with Smart Merge
-- Packages all user activity (`spots.json`, `outings.json`, `favorites.json`, `offline_regions.json` and `photos/` folder) into `zizai_backup.zip`.
+- Packages all user activity (`spots.json`, `forest_zones.json`, `outings.json`, `favorites.json`, `offline_regions.json` and `photos/` folder) into `zizai_backup.zip`.
 - **Smart Merge by ID**: merges remote cloud data with local records without overwriting or duplicating existing outings or mushroom spots (with a full replace option also available).
 - **Automatic Backup Option**: optionally syncs activity to Google Drive automatically after saving an outing.
 - Supports exportable and importable **Local ZIP Snapshots** on the phone without a Google connection.
@@ -110,6 +114,7 @@ The repository manages the code lifecycle through `feature/*` branches, integrat
 - `v1.7.0` (`feature/map-gps-accuracy-manual-basket-background`): Radar GPS fix selector when saving spots on the map, manual outings redesigned as pure mycological baskets, background Foreground Service with persistent notification and drift-free stopwatch.
 - `v1.7.1`: Interactive crosshair reticle (*diana*) and finger-tap spot placement mode on the map.
 - `v1.7.2`: Map layer selector in outings, pure GPS route tracking, Android background GPS notification improvements, Drive `appDataFolder` scope at sign-in and catalog photo deduplication (252 unique real photos).
+- `v1.8.0`: Tree/habitat tagging when saving spots, offline custom forest polygon map (`ForestZone`) with vertex editing, automatic non-crossing outer perimeter contour ordering (`orderContourPoints`) and undo support, automatic tree preselection by spot location, retroactive assignment for unassigned spots inside mapped forests, tree/forest map filters and `forest_zones.json` backup support.
 
 ---
 
